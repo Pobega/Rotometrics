@@ -88,12 +88,12 @@
       <div class="bg-slate-800/40 border border-slate-800 rounded-xl p-3.5 flex flex-col gap-3">
         <!-- Profile Row -->
         <div class="flex items-center gap-4">
-          <img id="attacker-sprite" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/0.png" alt="Attacker" class="w-16 h-16 object-contain bg-slate-800 rounded-lg p-1">
+          <img id="attacker-sprite" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/0.png" alt="Attacker" class="w-24 h-24 object-contain bg-slate-800 rounded-lg p-1 shadow-inner border border-slate-700/40">
           <div class="flex-1 min-w-0 flex flex-col gap-1.5">
-            <div class="flex justify-between items-start gap-2">
-              <h3 id="attacker-name" class="font-black text-base truncate">Select a Pokemon</h3>
+            <div>
               <span id="attacker-regulation-tag" class="text-[8px] font-black px-1.5 py-0.5 rounded uppercase shrink-0"></span>
             </div>
+            <h3 id="attacker-name" class="font-black text-lg truncate -mt-0.5 text-slate-100">Select a Pokemon</h3>
             <div id="attacker-types" class="flex gap-1.5">
               <span class="text-[10px] px-2 py-0.5 font-bold uppercase rounded bg-slate-700 text-slate-300">???</span>
             </div>
@@ -168,92 +168,80 @@
             <option value="none">No offensive item</option>
             <option value="choice_band">Choice Band (1.5x Atk)</option>
             <option value="choice_specs">Choice Specs (1.5x SpA)</option>
+            <option value="choice_scarf">Choice Scarf (1.5x Speed)</option>
             <option value="life_orb">Life Orb (1.3x Damage)</option>
             <option value="expert_belt">Expert Belt (1.2x Super Eff.)</option>
             <option value="black_glasses_etc">Type boosting item (1.2x)</option>
+            <option value="mega_stone">Mega Stone</option>
           </select>
         </div>
         <div>
-          <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Ability/Other</label>
+          <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Attacker Ability</label>
           <select id="attacker-ability" class="w-full bg-slate-800 border border-slate-700 rounded-xl py-2 px-3 text-xs focus:outline-none focus:border-red-500 text-slate-100">
             <option value="none">No offensive ability</option>
+            <option value="huge_power">Huge Power (2x Atk Stat)</option>
+            <option value="guts">Guts Activated (1.5x Atk Stat)</option>
             <option value="adaptability">Adaptability (2.0x STAB)</option>
-            <option value="huge_power">Huge Power (2x Atk)</option>
-            <option value="guts">Guts Activated (1.5x Atk)</option>
-            <option value="supreme_overlord_5">Supreme Overlord 5 Fainted (1.5x)</option>
+            <option value="technician">Technician (1.5x moves &lt;= 60 power)</option>
+            <option value="sharpness">Sharpness (1.5x Slicing moves)</option>
+            <option value="tough_claws">Tough Claws (1.3x Contact moves)</option>
+            <option value="strong_jaw">Strong Jaw (1.5x Biting moves)</option>
+            <option value="iron-fist">Iron Fist (1.2x Punching moves)</option>
+            <option value="sniper">Sniper (Boosts Crit to 2.25x)</option>
+            <option value="transistor">Transistor (1.3x Electric moves)</option>
+            <option value="steelworker">Steelworker / Rocky Payload (1.5x Steel/Rock moves)</option>
+            <option value="supreme_overlord_5">Supreme Overlord 5 Fainted (1.5x damage)</option>
           </select>
         </div>
       </div>
 
-      <!-- Move Selection -->
-      <div class="bg-slate-800/40 border border-slate-800 rounded-xl p-3.5 flex flex-col gap-3">
-        <div class="border-b border-slate-800 pb-2">
-          <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Move Selection</label>
-          <select id="attacker-move-select" class="w-full bg-slate-800 border border-slate-700 rounded-xl py-2 px-3 text-sm focus:outline-none focus:border-red-500 text-slate-100">
-            <option value="custom">--- Custom Move ---</option>
-          </select>
-        </div>
-
-        <!-- Custom/Loaded Move Stats Override -->
-        <div class="grid grid-cols-3 gap-2 text-slate-100">
-          <div>
-            <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Type</label>
-            <select id="move-type" class="w-full bg-slate-800 border border-slate-700 rounded-lg py-1.5 px-2 text-xs focus:outline-none focus:border-red-500 text-slate-100">
-              <!-- Loaded in JS -->
-            </select>
-          </div>
-          <div>
-            <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Power</label>
-            <input type="number" id="move-power" value="80" min="0" max="250" class="w-full bg-slate-800 border border-slate-700 rounded-lg py-1 px-2 text-xs text-center focus:outline-none focus:border-red-500 text-slate-100">
-          </div>
-          <div>
-            <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Category</label>
-            <select id="move-category" class="w-full bg-slate-800 border border-slate-700 rounded-lg py-1.5 px-2 text-xs focus:outline-none focus:border-red-500 text-slate-100">
-              <option value="physical">Physical</option>
-              <option value="special">Special</option>
-            </select>
-          </div>
-        </div>
-      </div>
-
-      <!-- Base Stats & Boosts -->
+      <!-- Attacker Offensive Stats Dashboard (3-Column layout including Speed!) -->
       <div class="bg-slate-800/40 border border-slate-800 rounded-xl p-3.5">
-        <h4 class="text-xs font-bold text-slate-400 uppercase mb-2 tracking-wider border-b border-slate-800 pb-1.5">Offensive Stats Override</h4>
-        <div class="grid grid-cols-2 gap-4 text-xs">
-          <!-- Attack -->
-          <div class="flex flex-col gap-1">
-            <div class="flex justify-between items-center">
-              <span class="font-bold text-slate-300">Base Attack</span>
-              <input type="number" id="attacker-base-atk" value="100" min="1" max="255" class="w-14 bg-slate-800 border border-slate-700 rounded px-1 text-center text-slate-100">
+        <h4 class="text-xs font-bold text-slate-400 uppercase mb-2 tracking-wider border-b border-slate-800 pb-1.5">Offensive Stats Dashboard</h4>
+        <div class="grid grid-cols-3 gap-2.5">
+          <!-- Attack Column -->
+          <div class="flex flex-col gap-1 text-left">
+            <div class="flex justify-between items-center text-slate-300 font-extrabold uppercase text-[9px] tracking-wider">
+              <span>Attack</span>
+              <span class="text-amber-400 text-xs font-black" id="attacker-stat-atk-val">---</span>
             </div>
-            <div class="flex justify-between items-center mt-1">
-              <span class="text-slate-400">Atk Boost</span>
-              <select id="attacker-boost-atk" class="bg-slate-800 border border-slate-700 rounded px-1 text-slate-100">
+            <div class="flex justify-between items-center mt-1.5 text-[9px] text-slate-400">
+              <span>Boost</span>
+              <select id="attacker-boost-atk" class="bg-slate-800 border border-slate-700 rounded px-1 py-0.5 text-[9px] font-mono text-slate-300 cursor-pointer focus:outline-none focus:border-red-500">
                 <option value="-6">-6</option><option value="-5">-5</option><option value="-4">-4</option><option value="-3">-3</option><option value="-2">-2</option><option value="-1">-1</option>
                 <option value="0" selected>+0</option>
                 <option value="1">+1</option><option value="2">+2</option><option value="3">+3</option><option value="4">+4</option><option value="5">+5</option><option value="6">+6</option>
               </select>
-            </div>
-            <div class="text-right font-mono text-amber-400 mt-1 font-bold">
-              Stat: <span id="attacker-stat-atk-val">---</span>
             </div>
           </div>
-          <!-- Special Attack -->
-          <div class="flex flex-col gap-1 border-l border-slate-800 pl-3">
-            <div class="flex justify-between items-center">
-              <span class="font-bold text-slate-300">Base Sp. Atk</span>
-              <input type="number" id="attacker-base-spa" value="100" min="1" max="255" class="w-14 bg-slate-800 border border-slate-700 rounded px-1 text-center text-slate-100">
+          <!-- Sp. Attack Column -->
+          <div class="flex flex-col gap-1 text-left border-l border-slate-850 pl-2">
+            <div class="flex justify-between items-center text-slate-300 font-extrabold uppercase text-[9px] tracking-wider">
+              <span>Sp. Atk</span>
+              <span class="text-amber-400 text-xs font-black" id="attacker-stat-spa-val">---</span>
             </div>
-            <div class="flex justify-between items-center mt-1">
-              <span class="text-slate-400">SpA Boost</span>
-              <select id="attacker-boost-spa" class="bg-slate-800 border border-slate-700 rounded px-1 text-slate-100">
+            <div class="flex justify-between items-center mt-1.5 text-[9px] text-slate-400">
+              <span>Boost</span>
+              <select id="attacker-boost-spa" class="bg-slate-800 border border-slate-700 rounded px-1 py-0.5 text-[9px] font-mono text-slate-300 cursor-pointer focus:outline-none focus:border-red-500">
                 <option value="-6">-6</option><option value="-5">-5</option><option value="-4">-4</option><option value="-3">-3</option><option value="-2">-2</option><option value="-1">-1</option>
                 <option value="0" selected>+0</option>
                 <option value="1">+1</option><option value="2">+2</option><option value="3">+3</option><option value="4">+4</option><option value="5">+5</option><option value="6">+6</option>
               </select>
             </div>
-            <div class="text-right font-mono text-amber-400 mt-1 font-bold">
-              Stat: <span id="attacker-stat-spa-val">---</span>
+          </div>
+          <!-- Speed Column -->
+          <div class="flex flex-col gap-1 text-left border-l border-slate-850 pl-2">
+            <div class="flex justify-between items-center text-slate-300 font-extrabold uppercase text-[9px] tracking-wider">
+              <span>Speed</span>
+              <span class="text-amber-400 text-xs font-black" id="attacker-stat-spe-val">---</span>
+            </div>
+            <div class="flex justify-between items-center mt-1.5 text-[9px] text-slate-400">
+              <span>Boost</span>
+              <select id="attacker-boost-spe" class="bg-slate-800 border border-slate-700 rounded px-1 py-0.5 text-[9px] font-mono text-slate-300 cursor-pointer focus:outline-none focus:border-red-500">
+                <option value="-6">-6</option><option value="-5">-5</option><option value="-4">-4</option><option value="-3">-3</option><option value="-2">-2</option><option value="-1">-1</option>
+                <option value="0" selected>+0</option>
+                <option value="1">+1</option><option value="2">+2</option><option value="3">+3</option><option value="4">+4</option><option value="5">+5</option><option value="6">+6</option>
+              </select>
             </div>
           </div>
         </div>
@@ -266,11 +254,9 @@
           <!-- Presets dropdown -->
           <select id="attacker-sp-presets" class="bg-slate-800 border border-slate-700 rounded px-1.5 py-0.5 text-[10px] font-bold text-slate-300 cursor-pointer focus:outline-none focus:border-red-500">
             <option value="">-- Presets --</option>
-            <option value="max_phys_speed">Max Atk / Max Speed</option>
-            <option value="max_spec_speed">Max SpA / Max Speed</option>
-            <option value="bulky_phys">Bulky Physical</option>
-            <option value="bulky_spec">Bulky Special</option>
-            <option value="reset">Reset to 0 SP</option>
+            <option value="phys_attacker">Physical Attacker</option>
+            <option value="spec_attacker">Special Attacker</option>
+            <option value="mixed_attacker">Mixed Attacker</option>
           </select>
         </div>
         <div class="flex justify-between items-center text-xs font-mono text-slate-400 mb-2.5">
@@ -292,6 +278,13 @@
             </div>
             <input type="range" id="attacker-ev-spa" min="0" max="32" step="1" value="0" class="w-full accent-purple-500 bg-slate-700 rounded-lg appearance-none cursor-pointer">
           </div>
+          <div>
+            <div class="flex justify-between font-mono mb-1">
+              <span>Speed SP:</span>
+              <span id="attacker-ev-spe-val" class="font-bold text-amber-400">0</span>
+            </div>
+            <input type="range" id="attacker-ev-spe" min="0" max="32" step="1" value="0" class="w-full accent-amber-500 bg-slate-700 rounded-lg appearance-none cursor-pointer">
+          </div>
         </div>
       </div>
 
@@ -305,36 +298,115 @@
         <button id="tab-survival" class="flex-1 text-center py-2.5 text-sm font-bold rounded-xl transition flex items-center justify-center gap-2 bg-blue-600 text-white shadow-md">
           <i class="fa-solid fa-shield-halved"></i> Bulk Survival SP
         </button>
-        <button id="tab-offensive" class="flex-1 text-center py-2.5 text-sm font-bold rounded-xl transition flex items-center justify-center gap-2 text-slate-400 hover:text-white">
+        <button id="tab-offensive" class="flex-1 text-center py-2.5 text-sm font-bold rounded-xl transition flex items-center justify-center gap-2 text-slate-450 hover:text-white">
           <i class="fa-solid fa-burst"></i> Offense SP Optimizer
         </button>
       </div>
 
-      <!-- Doubles Battles Specific Tweaks -->
+      <!-- Battle Modifiers Card -->
       <div class="bg-slate-800 border border-slate-800 rounded-2xl p-4 shadow-xl flex flex-col gap-3">
         <h3 class="text-sm font-extrabold text-amber-400 flex items-center gap-2 border-b border-slate-800 pb-2">
-          <i class="fa-solid fa-people-group"></i> Doubles Battle Modifiers
+          <i class="fa-solid fa-people-group"></i> Battle Modifiers
         </h3>
+        
+        <!-- Row 1: Core Toggles -->
         <div class="grid grid-cols-2 gap-3 text-xs">
-          <label class="flex items-center gap-2 bg-slate-800 hover:bg-slate-700/80 p-2.5 rounded-xl border border-slate-700 cursor-pointer transition">
+          <label class="flex items-center gap-2 bg-slate-800 hover:bg-slate-755/80 p-2.5 rounded-xl border border-slate-700 cursor-pointer transition">
             <input type="checkbox" id="mod-spread" class="rounded accent-amber-500">
             <span>Spread Move (0.75x)</span>
           </label>
-          <label class="flex items-center gap-2 bg-slate-800 hover:bg-slate-700/80 p-2.5 rounded-xl border border-slate-700 cursor-pointer transition">
+          <label class="flex items-center gap-2 bg-slate-800 hover:bg-slate-755/80 p-2.5 rounded-xl border border-slate-700 cursor-pointer transition">
             <input type="checkbox" id="mod-crit" class="rounded accent-amber-500">
             <span>Crit Hit (1.5x)</span>
           </label>
         </div>
-        <!-- Weather Dropdown -->
-        <div class="flex flex-col gap-1 text-xs mt-1.5">
-          <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider text-left">Active Weather</label>
-          <select id="mod-weather-select" class="w-full bg-slate-800 border border-slate-700 rounded-xl py-2 px-3 text-xs focus:outline-none focus:border-amber-500 text-slate-100 cursor-pointer">
-            <option value="none">None (Neutral Weather)</option>
-            <option value="sun">Sun (Harsh Sunlight)</option>
-            <option value="rain">Rain (Rain Dance)</option>
-            <option value="sandstorm">Sandstorm</option>
-            <option value="snow">Snow / Hail</option>
+
+        <!-- Row 2: VGC Protective Toggles -->
+        <div class="grid grid-cols-2 gap-3 text-xs">
+          <label class="flex items-center gap-2 bg-slate-800 hover:bg-slate-755/80 p-2.5 rounded-xl border border-slate-700 cursor-pointer transition">
+            <input type="checkbox" id="mod-friend-guard" class="rounded accent-amber-500">
+            <span>Friend Guard (0.75x)</span>
+          </label>
+          <label class="flex items-center gap-2 bg-slate-800 hover:bg-slate-755/80 p-2.5 rounded-xl border border-slate-700 cursor-pointer transition">
+            <input type="checkbox" id="mod-screens" class="rounded accent-amber-500">
+            <span>Screens (0.66x)</span>
+          </label>
+        </div>
+
+        <!-- Row 3: Weather, Terrain, and Aura Selectors -->
+        <div class="grid grid-cols-3 gap-2 text-xs border-t border-slate-850 pt-2.5">
+          <!-- Weather -->
+          <div class="flex flex-col gap-1">
+            <label class="block text-[9px] font-bold text-slate-505 uppercase tracking-wider text-left">Weather</label>
+            <select id="mod-weather-select" class="w-full bg-slate-800 border border-slate-700 rounded-lg py-1.5 px-2 text-[10px] focus:outline-none focus:border-amber-500 text-slate-100 cursor-pointer">
+              <option value="none">None</option>
+              <option value="sun">Sun</option>
+              <option value="rain">Rain</option>
+              <option value="sandstorm">Sand</option>
+              <option value="snow">Snow</option>
+            </select>
+          </div>
+          <!-- Terrain -->
+          <div class="flex flex-col gap-1">
+            <label class="block text-[9px] font-bold text-slate-505 uppercase tracking-wider text-left">Terrain</label>
+            <select id="mod-terrain-select" class="w-full bg-slate-800 border border-slate-700 rounded-lg py-1.5 px-2 text-[10px] focus:outline-none focus:border-amber-500 text-slate-100 cursor-pointer">
+              <option value="none">None</option>
+              <option value="electric">Electric</option>
+              <option value="grassy">Grassy</option>
+              <option value="psychic">Psychic</option>
+              <option value="misty">Misty</option>
+            </select>
+          </div>
+          <!-- Aura -->
+          <div class="flex flex-col gap-1">
+            <label class="block text-[9px] font-bold text-slate-505 uppercase tracking-wider text-left">Aura</label>
+            <select id="mod-aura-select" class="w-full bg-slate-800 border border-slate-700 rounded-lg py-1.5 px-2 text-[10px] focus:outline-none focus:border-amber-500 text-slate-100 cursor-pointer">
+              <option value="none">None</option>
+              <option value="fairy">Fairy Aura</option>
+              <option value="dark">Dark Aura</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- Attack Selection Card (With new dynamic Speed Tier Comparison Banner!) -->
+      <div class="bg-slate-800 border border-slate-800 rounded-2xl p-4 shadow-xl flex flex-col gap-3.5 pokemon-card">
+        <h3 class="text-sm font-extrabold text-red-400 flex items-center gap-2 border-b border-slate-800 pb-2">
+          <i class="fa-solid fa-meteor"></i> Attack Selection
+        </h3>
+        
+        <!-- Dynamic Speed Comparison Banner -->
+        <div id="speed-comparison-banner" class="bg-slate-900/60 border border-slate-800 rounded-xl p-2.5 text-center text-[11px] font-extrabold flex items-center justify-center gap-2 shadow-inner transition-all duration-300">
+          <!-- Populated dynamically in JS! -->
+          <span class="text-slate-500 italic"><i class="fa-solid fa-hourglass-half mr-1 text-[10px]"></i> Awaiting Speed Stats...</span>
+        </div>
+
+        <div class="flex flex-col gap-1.5 text-xs border-t border-slate-800/40 pt-2">
+          <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider text-left">Select Move</label>
+          <select id="attacker-move-select" class="w-full bg-slate-800 border border-slate-700 rounded-xl py-2 px-3 text-xs focus:outline-none focus:border-red-500 text-slate-100 cursor-pointer">
+            <option value="custom">--- Custom Move ---</option>
           </select>
+        </div>
+
+        <!-- Custom/Loaded Move Stats Override -->
+        <div class="grid grid-cols-3 gap-2 text-slate-100 mt-1">
+          <div>
+            <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1 text-left">Type</label>
+            <select id="move-type" class="w-full bg-slate-800 border border-slate-700 rounded-lg py-1.5 px-2 text-xs focus:outline-none focus:border-red-500 text-slate-100 cursor-pointer">
+              <!-- Loaded in JS -->
+            </select>
+          </div>
+          <div>
+            <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1 text-left">Power</label>
+            <input type="number" id="move-power" value="80" min="0" max="250" class="w-full bg-slate-800 border border-slate-700 rounded-lg py-1 px-2 text-xs text-center focus:outline-none focus:border-red-500 text-slate-100">
+          </div>
+          <div>
+            <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1 text-left">Category</label>
+            <select id="move-category" class="w-full bg-slate-800 border border-slate-700 rounded-lg py-1.5 px-2 text-xs focus:outline-none focus:border-red-500 text-slate-100 cursor-pointer">
+              <option value="physical">Physical</option>
+              <option value="special">Special</option>
+            </select>
+          </div>
         </div>
       </div>
 
@@ -356,7 +428,7 @@
             </div>
 
             <div id="survival-possible-data" class="flex flex-col gap-3.5">
-              <div class="text-xs font-bold text-slate-400 uppercase tracking-wider">Suggested Options:</div>
+              <div class="text-xs font-bold text-slate-400 uppercase tracking-wider text-left">Suggested Options:</div>
               <div id="survival-options-container" class="flex flex-col gap-3">
                 <!-- Populated dynamically by JS -->
                 <div class="text-xs text-slate-500 italic p-2 text-center">Select Pokémon & Move to see survival options</div>
@@ -369,7 +441,7 @@
             <p class="text-xs text-slate-400">Optimize attacker's investment to secure a KO against the defender.</p>
             
             <div class="flex flex-col gap-3">
-              <label class="block text-xs font-bold text-slate-400 uppercase">Target Outcome</label>
+              <label class="block text-xs font-bold text-slate-400 uppercase flex text-left">Target Outcome</label>
               <div class="grid grid-cols-2 gap-2 text-xs">
                 <button id="btn-target-ohko" class="bg-amber-600 hover:bg-amber-500 text-white font-bold py-2 rounded-xl border border-amber-500/30 transition">
                   Guaranteed OHKO
@@ -442,12 +514,12 @@
       <div class="bg-slate-800/40 border border-slate-800 rounded-xl p-3.5 flex flex-col gap-3">
         <!-- Profile Row -->
         <div class="flex items-center gap-4">
-          <img id="defender-sprite" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/0.png" alt="Defender" class="w-16 h-16 object-contain bg-slate-800 rounded-lg p-1">
+          <img id="defender-sprite" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/0.png" alt="Defender" class="w-24 h-24 object-contain bg-slate-800 rounded-lg p-1 shadow-inner border border-slate-700/40">
           <div class="flex-1 min-w-0 flex flex-col gap-1.5">
-            <div class="flex justify-between items-start gap-2">
-              <h3 id="defender-name" class="font-black text-base truncate">Select a Pokemon</h3>
+            <div>
               <span id="defender-regulation-tag" class="text-[8px] font-black px-1.5 py-0.5 rounded uppercase shrink-0"></span>
             </div>
+            <h3 id="defender-name" class="font-black text-lg truncate -mt-0.5 text-slate-100">Select a Pokemon</h3>
             <div id="defender-types" class="flex gap-1.5">
               <span class="text-[10px] px-2 py-0.5 font-bold uppercase rounded bg-slate-700 text-slate-300">???</span>
             </div>
@@ -523,56 +595,77 @@
             <option value="assault_vest">Assault Vest (1.5x SpD)</option>
             <option value="eviolite">Eviolite (1.5x Def/SpD)</option>
             <option value="berries">Super effective Berry (0.5x)</option>
+            <option value="choice_scarf">Choice Scarf (1.5x Speed)</option>
+            <option value="mega_stone">Mega Stone</option>
           </select>
         </div>
         <div>
-          <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Screens/Active</label>
+          <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Defender Ability</label>
           <select id="defender-ability" class="w-full bg-slate-800 border border-slate-700 rounded-xl py-2 px-3 text-xs focus:outline-none focus:border-red-500 text-slate-100">
-            <option value="none">No screens</option>
-            <option value="reflect">Reflect Active (0.66x Phys)</option>
-            <option value="light_screen">Light Screen Active (0.66x Spec)</option>
-            <option value="aurora_veil">Aurora Veil Active (0.66x All)</option>
+            <option value="none">No defensive ability</option>
+            <option value="multiscale">Multiscale / Shadow Shield (0.5x Full HP)</option>
+            <option value="fluffy">Fluffy (0.5x Contact Physical)</option>
+            <option value="ice_scales">Ice Scales (0.5x Special)</option>
           </select>
         </div>
       </div>
 
-      <!-- Base Stats & Boosts -->
+      <!-- Defender Stats Dashboard (4-Column layout including Speed!) -->
       <div class="bg-slate-800/40 border border-slate-800 rounded-xl p-3.5 flex flex-col gap-3.5">
-        <h4 class="text-xs font-bold text-slate-400 uppercase mb-0.5 tracking-wider border-b border-slate-800 pb-1.5">Defensive Stats Override</h4>
+        <h4 class="text-xs font-bold text-slate-400 uppercase mb-0.5 tracking-wider border-b border-slate-800 pb-1.5">Defensive Stats Dashboard</h4>
         
-        <div class="grid grid-cols-3 gap-3 text-xs">
-          <!-- HP -->
-          <div class="flex flex-col gap-1">
-            <span class="font-bold text-slate-300">Base HP</span>
-            <input type="number" id="defender-base-hp" value="100" min="1" max="255" class="w-full bg-slate-800 border border-slate-700 rounded py-1 text-center text-slate-100">
-            <div class="text-center font-mono text-blue-400 mt-1 font-bold">
-              HP: <span id="defender-stat-hp-val">---</span>
+        <div class="grid grid-cols-4 gap-2 text-[10px]">
+          <!-- HP Column -->
+          <div class="flex flex-col gap-1 text-left">
+            <div class="flex justify-between items-center text-slate-300 font-extrabold uppercase text-[9px] tracking-wider">
+              <span>HP</span>
+              <span class="text-blue-400 text-xs font-black" id="defender-stat-hp-val">---</span>
+            </div>
+            <div class="text-[8px] text-slate-555 italic mt-2.5">No Boost</div>
+          </div>
+          <!-- Defense Column -->
+          <div class="flex flex-col gap-1 text-left border-l border-slate-850 pl-2">
+            <div class="flex justify-between items-center text-slate-300 font-extrabold uppercase text-[9px] tracking-wider">
+              <span>Def</span>
+              <span class="text-blue-400 text-xs font-black" id="defender-stat-def-val">---</span>
+            </div>
+            <div class="flex justify-between items-center mt-1.5 text-[9px] text-slate-450">
+              <span>Boost</span>
+              <select id="defender-boost-def" class="bg-slate-800 border border-slate-700 rounded py-0.5 px-1 text-[9px] font-mono text-slate-300 cursor-pointer focus:outline-none focus:border-blue-500">
+                <option value="-6">-6</option><option value="-5">-5</option><option value="-4">-4</option><option value="-3">-3</option><option value="-2">-2</option><option value="-1">-1</option>
+                <option value="0" selected>+0</option>
+                <option value="1">+1</option><option value="2">+2</option><option value="3">+3</option><option value="4">+4</option><option value="5">+5</option><option value="6">+6</option>
+              </select>
             </div>
           </div>
-          <!-- Defense -->
-          <div class="flex flex-col gap-1 border-l border-slate-800 pl-2">
-            <span class="font-bold text-slate-300">Base Def</span>
-            <input type="number" id="defender-base-def" value="100" min="1" max="255" class="w-full bg-slate-800 border border-slate-700 rounded py-1 text-center text-slate-100">
-            <select id="defender-boost-def" class="bg-slate-800 border border-slate-700 rounded py-0.5 text-[10px] mt-1 text-slate-100">
-              <option value="-6">-6</option><option value="-5">-5</option><option value="-4">-4</option><option value="-3">-3</option><option value="-2">-2</option><option value="-1">-1</option>
-              <option value="0" selected>+0</option>
-              <option value="1">+1</option><option value="2">+2</option><option value="3">+3</option><option value="4">+4</option><option value="5">+5</option><option value="6">+6</option>
-            </select>
-            <div class="text-center font-mono text-blue-400 mt-1 font-bold">
-              Def: <span id="defender-stat-def-val">---</span>
+          <!-- Sp. Defense Column -->
+          <div class="flex flex-col gap-1 text-left border-l border-slate-850 pl-2">
+            <div class="flex justify-between items-center text-slate-300 font-extrabold uppercase text-[9px] tracking-wider">
+              <span>SpD</span>
+              <span class="text-blue-400 text-xs font-black" id="defender-stat-spd-val">---</span>
+            </div>
+            <div class="flex justify-between items-center mt-1.5 text-[9px] text-slate-450">
+              <span>Boost</span>
+              <select id="defender-boost-spd" class="bg-slate-800 border border-slate-700 rounded py-0.5 px-1 text-[9px] font-mono text-slate-300 cursor-pointer focus:outline-none focus:border-blue-500">
+                <option value="-6">-6</option><option value="-5">-5</option><option value="-4">-4</option><option value="-3">-3</option><option value="-2">-2</option><option value="-1">-1</option>
+                <option value="0" selected>+0</option>
+                <option value="1">+1</option><option value="2">+2</option><option value="3">+3</option><option value="4">+4</option><option value="5">+5</option><option value="6">+6</option>
+              </select>
             </div>
           </div>
-          <!-- Sp. Defense -->
-          <div class="flex flex-col gap-1 border-l border-slate-800 pl-2">
-            <span class="font-bold text-slate-300">Base SpD</span>
-            <input type="number" id="defender-base-spd" value="100" min="1" max="255" class="w-full bg-slate-800 border border-slate-700 rounded py-1 text-center text-slate-100">
-            <select id="defender-boost-spd" class="bg-slate-800 border border-slate-700 rounded py-0.5 text-[10px] mt-1 text-slate-100">
-              <option value="-6">-6</option><option value="-5">-5</option><option value="-4">-4</option><option value="-3">-3</option><option value="-2">-2</option><option value="-1">-1</option>
-              <option value="0" selected>+0</option>
-              <option value="1">+1</option><option value="2">+2</option><option value="3">+3</option><option value="4">+4</option><option value="5">+5</option><option value="6">+6</option>
-            </select>
-            <div class="text-center font-mono text-blue-400 mt-1 font-bold">
-              SpD: <span id="defender-stat-spd-val">---</span>
+          <!-- Speed Column -->
+          <div class="flex flex-col gap-1 text-left border-l border-slate-850 pl-2">
+            <div class="flex justify-between items-center text-slate-300 font-extrabold uppercase text-[9px] tracking-wider">
+              <span>Speed</span>
+              <span class="text-blue-400 text-xs font-black" id="defender-stat-spe-val">---</span>
+            </div>
+            <div class="flex justify-between items-center mt-1.5 text-[9px] text-slate-450">
+              <span>Boost</span>
+              <select id="defender-boost-spe" class="bg-slate-800 border border-slate-700 rounded py-0.5 px-1 text-[9px] font-mono text-slate-300 cursor-pointer focus:outline-none focus:border-blue-500">
+                <option value="-6">-6</option><option value="-5">-5</option><option value="-4">-4</option><option value="-3">-3</option><option value="-2">-2</option><option value="-1">-1</option>
+                <option value="0" selected>+0</option>
+                <option value="1">+1</option><option value="2">+2</option><option value="3">+3</option><option value="4">+4</option><option value="5">+5</option><option value="6">+6</option>
+              </select>
             </div>
           </div>
         </div>
@@ -588,7 +681,7 @@
             <option value="max_phys_bulk">Max Physical Bulk</option>
             <option value="max_spec_bulk">Max Special Bulk</option>
             <option value="balanced_def">Balanced Defense</option>
-            <option value="reset">Reset to 0 SP</option>
+            <option value="fast_bulky">Fast Bulky</option>
           </select>
         </div>
         <div class="flex justify-between items-center text-xs font-mono text-slate-400 mb-2.5">
@@ -616,6 +709,13 @@
               <span id="defender-ev-spd-val" class="font-bold text-teal-400">0</span>
             </div>
             <input type="range" id="defender-ev-spd" min="0" max="32" step="1" value="0" class="w-full accent-teal-500 bg-slate-700 rounded-lg appearance-none cursor-pointer">
+          </div>
+          <div>
+            <div class="flex justify-between font-mono mb-1">
+              <span>Speed SP:</span>
+              <span id="defender-ev-spe-val" class="font-bold text-amber-400">0</span>
+            </div>
+            <input type="range" id="defender-ev-spe" min="0" max="32" step="1" value="0" class="w-full accent-amber-500 bg-slate-700 rounded-lg appearance-none cursor-pointer">
           </div>
         </div>
       </div>
