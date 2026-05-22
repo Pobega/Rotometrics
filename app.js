@@ -132,7 +132,8 @@ const CACHE = {
   pokemonList: [], 
   pokemonDetails: {}, 
   movesDetails: {},
-  statusMoves: {}
+  statusMoves: {},
+  championsLegalList: null
 };
 
 // ==========================================
@@ -486,45 +487,44 @@ function optimizeOffensiveEVsWithNatures(attacker, defender, move, modifiers, ta
 // ==========================================
 
 function isRegulationMALegal(apiName) {
+  if (!apiName) return false;
   const name = apiName.toLowerCase();
 
-  const paradoxList = [
-    'great-tusk', 'scream-tail', 'brute-bonnet', 'flutter-mane', 'slither-wing', 'sandy-shocks',
-    'iron-treads', 'iron-bundle', 'iron-hands', 'iron-jugulis', 'iron-moth', 'iron-thorns',
-    'roaring-moon', 'iron-valiant', 'walking-wake', 'iron-leaves', 'gouging-fire', 'raging-bolt',
-    'iron-crown', 'iron-boulder'
-  ];
-  if (paradoxList.includes(name)) return false;
+  // Cap/Totem custom forms should be completely banned:
+  if (name.includes('-totem') || name.includes('-cap') || name.includes('-battle-bond')) return false;
 
-  const legendaryList = [
-    'koraidon', 'miraidon', 'ting-lu', 'chien-pao', 'wo-chien', 'chi-yu',
-    'okidogi', 'munkidori', 'fezandipiti', 'ogerpon', 'terapagos', 'pecharunt',
-    'mewtwo', 'lugia', 'ho-oh', 'kyogre', 'groudon', 'rayquaza', 'dialga', 'palkia', 'giratina',
-    'reshiram', 'zekrom', 'kyurem', 'xerneas', 'yveltal', 'zygarde', 'solgaleo', 'lunala', 'necrozma',
-    'zacian', 'zamazenta', 'eternatus', 'calyrex',
-    'articuno', 'zapdos', 'moltres', 'mew', 'raikou', 'entei', 'suicune', 'celebi', 'regirock',
-    'regice', 'registeel', 'latias', 'latios', 'jirachi', 'deoxys', 'uxie', 'mesprit', 'azelf',
-    'heatran', 'regigigas', 'cresselia', 'phione', 'manaphy', 'darkrai', 'shaymin', 'arceus', 'victini',
-    'cobalion', 'terrakion', 'virizion', 'tornadus', 'thundurus', 'landorus', 'keldeo', 'meloetta',
-    'genesect', 'diancie', 'hoopa', 'volcanion', 'type-null', 'silvally', 'tapu-koko', 'tapu-lele',
-    'tapu-bulu', 'tapu-fini', 'cosmog', 'cosmoem', 'nihilego', 'buzzwole', 'pheromosa', 'xurkitree',
-    'celesteela', 'kartana', 'guzzlord', 'poipole', 'naganadel', 'stakataka', 'blacephalon',
-    'magearna', 'marshadow', 'zeraora', 'meltan', 'melmetal', 'kubfu', 'urshifu', 'zarude',
-    'regieleki', 'regidrago', 'glastrier', 'spectrier', 'enamorus'
-  ];
+  // Split Mega forms and specific battle forms (e.g. urshifu-rapid-strike -> urshifu)
+  const baseName = name.split('-mega')[0].split('-rapid')[0].split('-single')[0].split('-bloodmoon')[0].split('-hearthflame')[0];
 
-  for (const leg of legendaryList) {
-    if (name === leg || name.startsWith(leg + '-')) return false;
+  if (CACHE.championsLegalList && CACHE.championsLegalList.has(baseName)) {
+    return true;
   }
-
-  if (name.includes('totem')) return false;
-
-  return true;
+  return false;
 }
 
-// ==========================================
-// 6. POKEAPI & AUTOCMP DATA SERVICE
-// ==========================================
+async function initChampionsLegalList() {
+  const cacheKey = 'vgc_opt_champions_legal_list_v2';
+  const cached = Storage.get(cacheKey);
+  if (cached && cached.length > 0) {
+    CACHE.championsLegalList = new Set(cached);
+    return;
+  }
+
+  try {
+    const res = await fetch('champions_dex.json');
+    const data = await res.json();
+    CACHE.championsLegalList = new Set(data);
+    Storage.set(cacheKey, data);
+  } catch (err) {
+    console.error("Failed to fetch Champions VGC local Pokedex JSON, loading fallback", err);
+    // High-fidelity VGC legal fallbacks (Scenario templates!)
+    CACHE.championsLegalList = new Set([
+      'crabominable', 'incineroar', 'flutter-mane', 'amoonguss', 'rillaboom', 'tornadus',
+      'urshifu', 'gholdengo', 'kingambit', 'sneasler', 'garchomp', 'basculegion',
+      'charizard', 'venusaur', 'blastoise', 'beedrill', 'pidgeot', 'pikachu', 'raichu', 'clefable', 'ninetales'
+    ]);
+  }
+}
 
 const API_BASE = 'https://pokeapi.co/api/v2';
 
@@ -547,6 +547,8 @@ async function initPokemonList() {
   const cached = Storage.get('vgc_opt_pokemon_list_v2');
   if (cached && cached.length > 0) {
     CACHE.pokemonList = cached;
+    DOM.attackerSearch.placeholder = "Search Attacker (" + CACHE.pokemonList.length + " loaded)...";
+    DOM.defenderSearch.placeholder = "Search Defender (" + CACHE.pokemonList.length + " loaded)...";
     return;
   }
 
@@ -561,6 +563,8 @@ async function initPokemonList() {
     }));
 
     Storage.set('vgc_opt_pokemon_list_v2', CACHE.pokemonList);
+    DOM.attackerSearch.placeholder = "Search Attacker (" + CACHE.pokemonList.length + " loaded)...";
+    DOM.defenderSearch.placeholder = "Search Defender (" + CACHE.pokemonList.length + " loaded)...";
   } catch (e) {
     console.error('Failed fetching Pokemon list from PokeAPI', e);
     CACHE.pokemonList = [
@@ -573,6 +577,8 @@ async function initPokemonList() {
       { name: 'Ogerpon Hearthflame', apiName: 'ogerpon-hearthflame' },
       { name: 'Tornadus', apiName: 'tornadus' }
     ];
+    DOM.attackerSearch.placeholder = "Search Attacker (Fallbacks loaded)...";
+    DOM.defenderSearch.placeholder = "Search Defender (Fallbacks loaded)...";
   }
 }
 
@@ -777,7 +783,13 @@ const DOM = {
   damagePercentageRange: document.getElementById('damage-percentage-range'),
   damageBarMin: document.getElementById('damage-bar-min'),
   damageRollsCount: document.getElementById('damage-rolls-count'),
-  loadSampleBtn: document.getElementById('load-sample-btn')
+  loadSampleBtn: document.getElementById('load-sample-btn'),
+  
+  mobOverlayMatchup: document.getElementById('mob-overlay-matchup'),
+  mobOverlayMove: document.getElementById('mob-overlay-move'),
+  mobOverlayDamage: document.getElementById('mob-overlay-damage'),
+  mobOverlayPct: document.getElementById('mob-overlay-pct'),
+  mobOverlayBadge: document.getElementById('mob-overlay-badge')
 };
 
 function populateDropdowns() {
@@ -818,6 +830,18 @@ function bindAutocomplete(inputEl, resultsEl, spinnerEl, callback) {
       matches = matches.filter(p => isRegulationMALegal(p.apiName));
     }
 
+    // Dynamic Priority Sorting: Starts-With matches take absolute priority over containing matches!
+    matches.sort((a, b) => {
+      const aStart = a.name.toLowerCase().startsWith(q);
+      const bStart = b.name.toLowerCase().startsWith(q);
+      
+      if (aStart && !bStart) return -1; // a goes first
+      if (!aStart && bStart) return 1;  // b goes first
+      
+      // If both start with the query (or both contain it in the middle), sort alphabetically!
+      return a.name.localeCompare(b.name);
+    });
+
     matches = matches.slice(0, 10);
 
     if (matches.length === 0) {
@@ -826,21 +850,23 @@ function bindAutocomplete(inputEl, resultsEl, spinnerEl, callback) {
       return;
     }
 
-    resultsEl.innerHTML = matches.map(p => `
-      <button class="w-full text-left hover:bg-slate-700/50 px-4 py-2.5 text-xs font-bold border-b border-slate-750 flex justify-between items-center transition" data-api-name="${p.apiName}">
-        <span>${p.name}</span>
-        <span class="text-[9px] bg-slate-700 text-slate-400 px-1.5 py-0.5 rounded uppercase font-mono">
-          ${isRegulationMALegal(p.apiName) ? 'M-A' : 'Banned'}
-        </span>
-      </button>
-    `).join('');
+    resultsEl.innerHTML = matches.map(p => {
+      const isRegMA = STATE.format === 'regulation_ma';
+      const badgeText = isRegMA ? 'M-A' : 'National Dex';
+      const badgeColor = isRegMA 
+        ? 'bg-emerald-950/50 text-emerald-400 border border-emerald-900/30' 
+        : 'bg-slate-800/60 text-slate-400 border border-slate-700/30';
+        
+      return `
+        <button class="w-full text-left hover:bg-slate-700/50 px-4 py-2.5 text-xs font-bold border-b border-slate-750 flex justify-between items-center transition" data-api-name="${p.apiName}">
+          <span>${p.name}</span>
+          <span class="text-[9px] px-1.5 py-0.5 rounded uppercase font-mono font-extrabold border ${badgeColor}">
+            ${badgeText}
+          </span>
+        </button>
+      `;
+    }).join('');
     resultsEl.classList.remove('hidden');
-  });
-
-  document.addEventListener('click', (e) => {
-    if (!inputEl.contains(e.target) && !resultsEl.contains(e.target)) {
-      resultsEl.classList.add('hidden');
-    }
   });
 
   resultsEl.addEventListener('click', async (e) => {
@@ -856,9 +882,16 @@ function bindAutocomplete(inputEl, resultsEl, spinnerEl, callback) {
       const details = await fetchPokemonDetails(apiName);
       callback(details);
     } catch (err) {
-      console.error(err);
+      console.error('Error loading selected Pokemon details', err);
+      window.dispatchEvent(new ErrorEvent('error', { error: err, message: "Autocomplete Selection Error: " + err.message }));
     } finally {
       spinnerEl.classList.add('hidden');
+    }
+  });
+
+  document.addEventListener('click', (e) => {
+    if (!inputEl.contains(e.target) && !resultsEl.contains(e.target)) {
+      resultsEl.classList.add('hidden');
     }
   });
 }
@@ -868,16 +901,22 @@ function updateRegulationTag(apiName, tagEl) {
     tagEl.classList.add('hidden');
     return;
   }
-
-  const legal = isRegulationMALegal(apiName);
   tagEl.classList.remove('hidden');
 
-  if (legal) {
-    tagEl.textContent = "Regulation M-A Legal";
-    tagEl.className = "text-[8px] font-black px-1.5 py-0.5 rounded uppercase shrink-0 bg-green-950 text-green-400 border border-green-900/50";
+  const isRegMA = STATE.format === 'regulation_ma';
+
+  if (isRegMA) {
+    const isLegal = isRegulationMALegal(apiName);
+    if (isLegal) {
+      tagEl.textContent = "Regulation M-A Legal";
+      tagEl.className = "text-[8px] font-black px-1.5 py-0.5 rounded uppercase shrink-0 bg-green-950 text-green-400 border border-green-900/50";
+    } else {
+      tagEl.textContent = "Banned in M-A";
+      tagEl.className = "text-[8px] font-black px-1.5 py-0.5 rounded uppercase shrink-0 bg-red-950 text-red-400 border border-red-900/50";
+    }
   } else {
-    tagEl.textContent = "Banned in M-A";
-    tagEl.className = "text-[8px] font-black px-1.5 py-0.5 rounded uppercase shrink-0 bg-red-950 text-red-400 border border-red-900/50";
+    tagEl.textContent = "National Dex";
+    tagEl.className = "text-[8px] font-black px-1.5 py-0.5 rounded uppercase shrink-0 bg-slate-800/60 text-slate-400 border border-slate-700/30 border";
   }
 }
 
@@ -920,7 +959,6 @@ function setAttackerDetails(details) {
   const damagingMoves = details.moves.filter(m => !CACHE.statusMoves[m.apiName]);
   DOM.attackerMoveSelect.innerHTML = `<option value="custom">--- Custom Move ---</option>` + 
     damagingMoves.map(m => `<option value="${m.apiName}">${m.name}</option>`).join('');
-  DOM.attackerMoveSelect.value = "custom";
 
   // Filter custom VGC offensive abilities to ONLY those this Pokemon learn!
   const learnableOffensive = OFF_VGC_ABILITIES_HELPER(details.abilities);
@@ -939,9 +977,31 @@ function setAttackerDetails(details) {
     DOM.attackerItem.className = "w-full bg-slate-800 border border-slate-700 rounded-xl py-2 px-3 text-xs focus:outline-none focus:border-red-500 text-slate-100 cursor-pointer";
   }
 
-  // Enable overrides by default
-  DOM.movePower.value = 80;
-  updateMoveDetailsVisuals("Normal", "physical", true);
+  // Auto Pre-Selection of the very first valid damaging move from the new learnset!
+  if (damagingMoves.length > 0) {
+    const firstMove = damagingMoves[0];
+    DOM.attackerMoveSelect.value = firstMove.apiName;
+    STATE.move.apiName = firstMove.apiName;
+    
+    fetchMoveDetails(firstMove.apiName).then(move => {
+      DOM.movePower.value = move.power;
+      updateMoveDetailsVisuals(move.type, move.category, false);
+      updateLiveStats();
+    }).catch(err => {
+      console.error("Error auto pre-selecting first VGC move:", err);
+      DOM.attackerMoveSelect.value = "custom";
+      STATE.move.apiName = "";
+      DOM.movePower.value = 80;
+      updateMoveDetailsVisuals("Normal", "physical", true);
+      updateLiveStats();
+    });
+  } else {
+    DOM.attackerMoveSelect.value = "custom";
+    STATE.move.apiName = "";
+    DOM.movePower.value = 80;
+    updateMoveDetailsVisuals("Normal", "physical", true);
+    updateLiveStats();
+  }
 
   updateLiveStats();
 }
@@ -979,7 +1039,43 @@ function setDefenderDetails(details) {
   }
 
   updateLiveStats();
-}function updateLiveStats() {
+}
+
+function updateDropdownColors() {
+  // 1. Weather
+  const weather = DOM.modWeatherSelect.value;
+  const weatherClasses = {
+    none: "bg-slate-900/45 border-slate-700 text-slate-350",
+    sun: "bg-red-950/40 border-red-500/50 text-red-300",
+    rain: "bg-blue-950/40 border-blue-500/50 text-blue-300",
+    sandstorm: "bg-amber-950/40 border-amber-500/50 text-amber-300",
+    snow: "bg-cyan-950/40 border-cyan-500/50 text-cyan-300"
+  };
+  DOM.modWeatherSelect.className = `w-full border rounded-lg py-1.5 px-2 text-[10px] focus:outline-none cursor-pointer font-bold transition-all duration-200 ${weatherClasses[weather] || weatherClasses.none}`;
+
+  // 2. Terrain
+  const terrain = DOM.modTerrainSelect.value;
+  const terrainClasses = {
+    none: "bg-slate-900/45 border-slate-700 text-slate-350",
+    electric: "bg-yellow-950/40 border-yellow-500/50 text-yellow-300",
+    grassy: "bg-emerald-950/40 border-emerald-500/50 text-emerald-300",
+    psychic: "bg-purple-950/40 border-purple-500/50 text-purple-300",
+    misty: "bg-pink-950/40 border-pink-500/50 text-pink-300"
+  };
+  DOM.modTerrainSelect.className = `w-full border rounded-lg py-1.5 px-2 text-[10px] focus:outline-none cursor-pointer font-bold transition-all duration-200 ${terrainClasses[terrain] || terrainClasses.none}`;
+
+  // 3. Aura
+  const aura = DOM.modAuraSelect.value;
+  const auraClasses = {
+    none: "bg-slate-900/45 border-slate-700 text-slate-350",
+    fairy: "bg-pink-950/40 border-pink-500/50 text-pink-300",
+    dark: "bg-stone-950/40 border-stone-500/50 text-stone-300"
+  };
+  DOM.modAuraSelect.className = `w-full border rounded-lg py-1.5 px-2 text-[10px] focus:outline-none cursor-pointer font-bold transition-all duration-200 ${auraClasses[aura] || auraClasses.none}`;
+}
+
+function updateLiveStats() {
+  updateDropdownColors();
   STATE.attacker.nature = DOM.attackerNature.value;
   STATE.attacker.item = DOM.attackerItem.value;
   STATE.attacker.ability = DOM.attackerAbility.value;
@@ -1306,6 +1402,55 @@ function runOptimizations() {
       DOM.offensiveOptionsContainer.innerHTML = `<div class="text-xs text-slate-500 italic p-4 text-center border border-slate-800 rounded-xl bg-slate-800/20">Secure KO is impossible even with maximum offensive Nature & allocations</div>`;
     }
   }
+
+  // Update Premium Mobile Sticky Floating Overlay in real-time!
+  if (DOM.mobOverlayMatchup) {
+    if (!STATE.attacker.name || !STATE.defender.name) {
+      DOM.mobOverlayMatchup.textContent = "Awaiting Pokemon Selection...";
+      DOM.mobOverlayMove.textContent = "Select both slots to calculate";
+      DOM.mobOverlayDamage.textContent = "0 - 0 Dmg";
+      DOM.mobOverlayPct.textContent = "0.0% Damage";
+      DOM.mobOverlayBadge.textContent = "Awaiting";
+      DOM.mobOverlayBadge.className = "h-7 px-2 rounded-lg flex items-center justify-center text-[9px] font-black uppercase bg-slate-850 text-slate-450 border border-slate-750 select-none tracking-wider";
+    } else {
+      DOM.mobOverlayMatchup.textContent = `${STATE.attacker.name} vs ${STATE.defender.name}`;
+      DOM.mobOverlayMove.textContent = `${STATE.move.name} (${STATE.move.power} BP)`;
+      DOM.mobOverlayDamage.textContent = `${minDamage} - ${maxDamage} Dmg`;
+      
+      const finalHp = calculateStat('hp', STATE.defender.baseStats.hp, STATE.defender.sps.hp, STATE.defender.nature, true);
+      const maxPct = (maxDamage / finalHp) * 100;
+      
+      DOM.mobOverlayPct.textContent = `${maxPct.toFixed(1)}% Max Dmg`;
+      
+      // Glowing verdict badges matching top layouts
+      if (STATE.mode === 'survival') {
+        const isGuaranteed = minDamage >= finalHp;
+        if (isGuaranteed) {
+          DOM.mobOverlayBadge.textContent = "OHKO";
+          DOM.mobOverlayBadge.className = "h-7 px-2 rounded-lg flex items-center justify-center text-[9px] font-black uppercase bg-red-950/60 text-red-400 border border-red-900/30 select-none tracking-wider animate-pulse";
+        } else {
+          DOM.mobOverlayBadge.textContent = "Survives";
+          DOM.mobOverlayBadge.className = "h-7 px-2 rounded-lg flex items-center justify-center text-[9px] font-black uppercase bg-emerald-950/60 text-emerald-400 border border-emerald-900/30 select-none tracking-wider";
+        }
+      } else {
+        // Offensive OHKO/2HKO checks
+        const rollsNeeded = STATE.targetKO === 'ohko' ? 1 : 2;
+        const isGuaranteed = minDamage >= (finalHp / rollsNeeded);
+        const isPossible = maxDamage >= (finalHp / rollsNeeded);
+        
+        if (isGuaranteed) {
+          DOM.mobOverlayBadge.textContent = STATE.targetKO.toUpperCase();
+          DOM.mobOverlayBadge.className = "h-7 px-2 rounded-lg flex items-center justify-center text-[9px] font-black uppercase bg-emerald-950/60 text-emerald-400 border border-emerald-900/30 select-none tracking-wider";
+        } else if (isPossible) {
+          DOM.mobOverlayBadge.textContent = "Chance";
+          DOM.mobOverlayBadge.className = "h-7 px-2 rounded-lg flex items-center justify-center text-[9px] font-black uppercase bg-amber-950/60 text-amber-400 border border-amber-900/30 select-none tracking-wider";
+        } else {
+          DOM.mobOverlayBadge.textContent = "No KO";
+          DOM.mobOverlayBadge.className = "h-7 px-2 rounded-lg flex items-center justify-center text-[9px] font-black uppercase bg-red-950/60 text-red-400 border border-red-900/30 select-none tracking-wider";
+        }
+      }
+    }
+  }
 }
 
 function getTypeBgClass(type) {
@@ -1492,6 +1637,7 @@ function bindEvents() {
     const val = e.target.value;
     
     if (val === 'custom') {
+      STATE.move.apiName = "";
       updateMoveDetailsVisuals("Normal", "physical", true);
       updateLiveStats();
       return;
@@ -1500,6 +1646,7 @@ function bindEvents() {
     try {
       const move = await fetchMoveDetails(val);
       DOM.movePower.value = move.power;
+      STATE.move.apiName = move.apiName;
       updateMoveDetailsVisuals(move.type, move.category, false);
       updateLiveStats();
     } catch (err) {
@@ -1529,6 +1676,10 @@ function updateMoveDetailsVisuals(type, category, isCustom) {
     // Hide select dropdowns
     DOM.moveType.classList.add('hidden');
     DOM.moveCategory.classList.add('hidden');
+    
+    // Update the hidden select elements' values so calculations parse correct data!
+    DOM.moveType.value = type;
+    DOM.moveCategory.value = category.toLowerCase();
     
     // Render gorgeous colored VGC Type Badge!
     DOM.moveTypeBadgeContainer.innerHTML = `
@@ -1568,7 +1719,7 @@ async function loadSampleVGCScenario() {
     attackerDetails = {
       name: "Crabominable Mega",
       apiName: "crabominable-mega",
-      sprite: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/10270.png",
+      sprite: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/10315.png",
       types: ["Fighting", "Ice"],
       baseStats: { hp: 97, atk: 162, def: 127, spa: 62, spd: 87, spe: 43 },
       moves: [{ name: "Drain Punch", apiName: "drain-punch" }],
@@ -1612,6 +1763,7 @@ async function loadSampleVGCScenario() {
   try {
     const move = await fetchMoveDetails("drain-punch");
     DOM.movePower.value = move.power;
+    STATE.move.apiName = move.apiName;
     updateMoveDetailsVisuals(move.type, move.category, false);
   } catch (err) {
     console.error("Failed to load preloaded Drain Punch move info", err);
@@ -1687,23 +1839,17 @@ async function init() {
     setDefenderDetails
   );
 
-  await initPokemonList();
-  await initStatusMovesList();
-
+  // Fire preloaded sample scenario instantly on startup!
   try {
-    await loadSampleVGCScenario();
+    loadSampleVGCScenario();
   } catch (err) {
-    const errorDiv = document.createElement('div');
-    errorDiv.className = "bg-red-950 border-2 border-red-500 text-red-300 p-5 rounded-2xl m-6 text-xs font-mono shadow-2xl relative z-[9999] text-left";
-    errorDiv.innerHTML = `
-      <h3 class="text-sm font-black uppercase text-white mb-2 flex items-center gap-2">
-        <i class="fa-solid fa-triangle-exclamation animate-pulse text-red-400"></i> VGC Startup Preloader Crash!
-      </h3>
-      <p class="font-bold">${err.name}: ${err.message}</p>
-      <pre class="mt-3 bg-slate-950 p-3 rounded-xl overflow-x-auto max-w-full leading-relaxed text-[10px] opacity-85">${err.stack}</pre>
-    `;
-    document.body.prepend(errorDiv);
+    console.error("Preloader error:", err);
   }
+
+  // Fetch massive search databases quietly in the background without blocking!
+  initPokemonList();
+  initStatusMovesList();
+  initChampionsLegalList();
 }
 
 document.addEventListener('DOMContentLoaded', init);

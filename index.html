@@ -49,10 +49,10 @@
       <div class="flex items-center gap-2.5 shrink-0">
         <!-- Format Selector (Dropdown select styled compactly) -->
         <div class="flex items-center gap-1.5 bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-[10px] font-bold text-slate-300">
-          <span class="text-[9px] font-extrabold text-slate-500 uppercase tracking-wider hidden sm:inline">Format:</span>
+          <span class="text-[9px] font-extrabold text-slate-500 uppercase tracking-wider hidden sm:inline">Regulation:</span>
           <select id="format-selector" class="bg-transparent font-bold focus:outline-none text-slate-200 cursor-pointer uppercase tracking-wider text-[9px] sm:text-[10px]">
-            <option value="regulation_ma" class="bg-slate-800">Reg M-A</option>
-            <option value="all" class="bg-slate-800">All Pokém</option>
+            <option value="regulation_ma" class="bg-slate-800">M-A</option>
+            <option value="all" class="bg-slate-800">None</option>
           </select>
         </div>
         
@@ -66,8 +66,8 @@
     </div>
   </header>
 
-  <!-- Main Layout Container (Spacious 1440p Expanded Width!) -->
-  <main class="max-w-[1440px] mx-auto p-4 lg:p-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
+  <!-- Main Layout Container (Spacious 1440p Expanded Width with Mobile bottom pad cushion!) -->
+  <main class="max-w-[1440px] mx-auto p-4 lg:p-6 pb-20 lg:pb-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
     
     <!-- Mobile Navigation Tabs (Visible only on mobile lg:hidden) -->
     <div class="lg:hidden col-span-1 flex border border-slate-700 bg-slate-900/40 rounded-2xl p-1 shadow-inner gap-1.5 mb-1.5">
@@ -109,20 +109,20 @@
         <!-- Basic Attacker Profile Card with Stats Bars -->
         <div class="bg-slate-900/40 border border-slate-700 rounded-xl p-3 flex flex-col gap-3">
           <div class="flex items-center gap-3.5">
-            <img id="attacker-sprite" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/0.png" alt="Attacker" class="w-20 h-20 object-contain bg-slate-900 rounded-lg p-1 shadow-inner border border-slate-700/30">
-            <div class="flex-1 min-w-0 flex flex-col gap-1">
+            <img id="attacker-sprite" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/0.png" alt="Attacker" class="w-32 h-32 object-contain bg-slate-900 rounded-xl p-1 shadow-inner border border-slate-700/30">
+            <div class="flex-1 min-w-0 flex flex-col items-center text-center gap-1">
               <div>
                 <span id="attacker-regulation-tag" class="text-[8px] font-black px-1.5 py-0.5 rounded uppercase shrink-0"></span>
               </div>
-              <h3 id="attacker-name" class="font-black text-base truncate text-slate-100">Select a Pokemon</h3>
-              <div id="attacker-types" class="flex gap-1">
+              <h3 id="attacker-name" class="font-black text-base truncate text-slate-100 w-full">Select a Pokemon</h3>
+              <div id="attacker-types" class="flex gap-1.5 justify-center w-full">
                 <span class="text-[9px] px-1.5 py-0.5 font-bold uppercase rounded bg-slate-700 text-slate-300">???</span>
               </div>
             </div>
           </div>
           
           <!-- Stats Bars Grid -->
-          <div id="attacker-stats-bars" class="hidden border-t border-slate-700 pt-2 flex flex-col gap-1 text-[9px]">
+          <div id="attacker-stats-bars" class="hidden border-t border-slate-700 pt-2 flex flex-col gap-1 text-[9px] w-full">
             <div class="flex items-center gap-2">
               <span class="w-7 font-extrabold text-slate-400 uppercase text-[8px]">HP</span>
               <span id="attacker-bar-hp-val" class="w-6 text-right font-bold font-mono text-slate-300">0</span>
@@ -342,50 +342,57 @@
           <i class="fa-solid fa-people-group"></i> Battle Modifiers
         </h3>
         
-        <!-- Connected 2x3 Battle Modifiers Grid (Tactile controller pad style!) -->
-        <div class="grid grid-cols-2 gap-2 text-xs">
-          <!-- Button 1: Spread Move (Amber Theme) -->
-          <label class="relative cursor-pointer select-none">
+        <!-- Connected 2x3 Battle Modifiers Matrix Panel -->
+        <div class="bg-slate-900/45 border border-slate-700 rounded-xl overflow-hidden grid grid-cols-2 divide-x divide-y divide-slate-700 shadow-inner">
+          
+          <!-- Cell 1: Spread Move (Amber Theme) -->
+          <label class="relative cursor-pointer select-none h-10 flex items-center justify-center">
             <input type="checkbox" id="mod-spread" class="sr-only peer">
-            <div class="flex items-center justify-center h-9 bg-slate-800/60 border border-slate-700 text-slate-455 p-2 rounded-xl peer-checked:bg-amber-950/30 peer-checked:border-amber-500/60 peer-checked:text-amber-300 hover:bg-slate-750 hover:text-slate-200 transition-all duration-200 shadow-inner text-[10px] sm:text-xs">
-              <span>Spread Move (0.75x)</span>
+            <div class="w-full h-full flex items-center justify-center text-[10px] sm:text-xs text-slate-400 peer-checked:bg-amber-950/30 peer-checked:text-amber-300 hover:bg-slate-800/35 transition-all duration-150 font-bold">
+              Spread Move (0.75x)
             </div>
           </label>
-          <!-- Button 2: Crit Hit (Amber Theme) -->
-          <label class="relative cursor-pointer select-none">
+
+          <!-- Cell 2: Crit Hit (Amber Theme) -->
+          <label class="relative cursor-pointer select-none h-10 flex items-center justify-center">
             <input type="checkbox" id="mod-crit" class="sr-only peer">
-            <div class="flex items-center justify-center h-9 bg-slate-800/60 border border-slate-700 text-slate-455 p-2 rounded-xl peer-checked:bg-amber-950/30 peer-checked:border-amber-500/60 peer-checked:text-amber-300 hover:bg-slate-750 hover:text-slate-200 transition-all duration-200 shadow-inner text-[10px] sm:text-xs">
-              <span>Crit Hit (1.5x)</span>
+            <div class="w-full h-full flex items-center justify-center text-[10px] sm:text-xs text-slate-400 peer-checked:bg-amber-950/30 peer-checked:text-amber-300 hover:bg-slate-800/35 transition-all duration-150 font-bold">
+              Crit Hit (1.5x)
             </div>
           </label>
-          <!-- Button 3: Friend Guard (Emerald Theme) -->
-          <label class="relative cursor-pointer select-none">
+
+          <!-- Cell 3: Friend Guard (Emerald Theme) -->
+          <label class="relative cursor-pointer select-none h-10 flex items-center justify-center">
             <input type="checkbox" id="mod-friend-guard" class="sr-only peer">
-            <div class="flex items-center justify-center h-9 bg-slate-800/60 border border-slate-700 text-slate-455 p-2 rounded-xl peer-checked:bg-emerald-950/30 peer-checked:border-emerald-500/60 peer-checked:text-emerald-300 hover:bg-slate-750 hover:text-slate-200 transition-all duration-200 shadow-inner text-[10px] sm:text-xs">
-              <span>Friend Guard (0.75x)</span>
+            <div class="w-full h-full flex items-center justify-center text-[10px] sm:text-xs text-slate-400 peer-checked:bg-emerald-950/30 peer-checked:text-emerald-300 hover:bg-slate-800/35 transition-all duration-150 font-bold">
+              Friend Guard (0.75x)
             </div>
           </label>
-          <!-- Button 4: Screens (Emerald Theme) -->
-          <label class="relative cursor-pointer select-none">
+
+          <!-- Cell 4: Screens (Emerald Theme) -->
+          <label class="relative cursor-pointer select-none h-10 flex items-center justify-center">
             <input type="checkbox" id="mod-screens" class="sr-only peer">
-            <div class="flex items-center justify-center h-9 bg-slate-800/60 border border-slate-700 text-slate-455 p-2 rounded-xl peer-checked:bg-emerald-950/30 peer-checked:border-emerald-500/60 peer-checked:text-emerald-300 hover:bg-slate-750 hover:text-slate-200 transition-all duration-200 shadow-inner text-[10px] sm:text-xs">
-              <span>Screens (0.66x)</span>
+            <div class="w-full h-full flex items-center justify-center text-[10px] sm:text-xs text-slate-400 peer-checked:bg-emerald-950/30 peer-checked:text-emerald-300 hover:bg-slate-800/35 transition-all duration-150 font-bold">
+              Screens (0.66x)
             </div>
           </label>
-          <!-- Button 5: Atk Tailwind (Blue Theme) -->
-          <label class="relative cursor-pointer select-none">
+
+          <!-- Cell 5: Atk Tailwind (Blue Theme) -->
+          <label class="relative cursor-pointer select-none h-10 flex items-center justify-center">
             <input type="checkbox" id="mod-tail-atk" class="sr-only peer">
-            <div class="flex items-center justify-center h-9 bg-slate-800/60 border border-slate-700 text-slate-455 p-2 rounded-xl peer-checked:bg-blue-950/30 peer-checked:border-blue-500/60 peer-checked:text-blue-300 hover:bg-slate-750 hover:text-slate-200 transition-all duration-200 shadow-inner text-[10px] sm:text-xs">
-              <span>Atk Tailwind (2.0x)</span>
+            <div class="w-full h-full flex items-center justify-center text-[10px] sm:text-xs text-slate-400 peer-checked:bg-blue-950/30 peer-checked:text-blue-300 hover:bg-slate-800/35 transition-all duration-150 font-bold">
+              Atk Tailwind (2.0x)
             </div>
           </label>
-          <!-- Button 6: Def Tailwind (Blue Theme) -->
-          <label class="relative cursor-pointer select-none">
+
+          <!-- Cell 6: Def Tailwind (Blue Theme) -->
+          <label class="relative cursor-pointer select-none h-10 flex items-center justify-center">
             <input type="checkbox" id="mod-tail-def" class="sr-only peer">
-            <div class="flex items-center justify-center h-9 bg-slate-800/60 border border-slate-700 text-slate-455 p-2 rounded-xl peer-checked:bg-blue-950/30 peer-checked:border-blue-500/60 peer-checked:text-blue-300 hover:bg-slate-750 hover:text-slate-200 transition-all duration-200 shadow-inner text-[10px] sm:text-xs">
-              <span>Def Tailwind (2.0x)</span>
+            <div class="w-full h-full flex items-center justify-center text-[10px] sm:text-xs text-slate-400 peer-checked:bg-blue-950/30 peer-checked:text-blue-300 hover:bg-slate-800/35 transition-all duration-150 font-bold">
+              Def Tailwind (2.0x)
             </div>
           </label>
+
         </div>
 
         <!-- Row 4: Weather, Terrain, and Aura Selectors (Symmetrical Grid-Cols-3) -->
@@ -393,7 +400,7 @@
           <!-- Weather -->
           <div class="flex flex-col gap-1">
             <label class="block text-[9px] font-bold text-slate-500 uppercase tracking-wider text-left">Weather</label>
-            <select id="mod-weather-select" class="w-full bg-slate-800 border border-slate-700 rounded-lg py-1.5 px-2 text-[10px] focus:outline-none focus:border-amber-500 text-slate-100 cursor-pointer">
+            <select id="mod-weather-select" class="w-full bg-slate-900/45 border border-slate-700 rounded-lg py-1.5 px-2 text-[10px] focus:outline-none focus:border-amber-500 text-slate-100 cursor-pointer">
               <option value="none">None</option>
               <option value="sun">Sun</option>
               <option value="rain">Rain</option>
@@ -404,7 +411,7 @@
           <!-- Terrain -->
           <div class="flex flex-col gap-1">
             <label class="block text-[9px] font-bold text-slate-500 uppercase tracking-wider text-left">Terrain</label>
-            <select id="mod-terrain-select" class="w-full bg-slate-800 border border-slate-700 rounded-lg py-1.5 px-2 text-[10px] focus:outline-none focus:border-amber-500 text-slate-100 cursor-pointer">
+            <select id="mod-terrain-select" class="w-full bg-slate-900/45 border border-slate-700 rounded-lg py-1.5 px-2 text-[10px] focus:outline-none focus:border-amber-500 text-slate-100 cursor-pointer">
               <option value="none">None</option>
               <option value="electric">Electric</option>
               <option value="grassy">Grassy</option>
@@ -415,7 +422,7 @@
           <!-- Aura -->
           <div class="flex flex-col gap-1">
             <label class="block text-[9px] font-bold text-slate-500 uppercase tracking-wider text-left">Aura</label>
-            <select id="mod-aura-select" class="w-full bg-slate-800 border border-slate-700 rounded-lg py-1.5 px-2 text-[10px] focus:outline-none focus:border-amber-500 text-slate-100 cursor-pointer">
+            <select id="mod-aura-select" class="w-full bg-slate-900/45 border border-slate-700 rounded-lg py-1.5 px-2 text-[10px] focus:outline-none focus:border-amber-500 text-slate-100 cursor-pointer">
               <option value="none">None</option>
               <option value="fairy">Fairy</option>
               <option value="dark">Dark</option>
@@ -586,13 +593,13 @@
         <!-- Basic Defender Profile Card with Stats Bars -->
         <div class="bg-slate-900/40 border border-slate-700 rounded-xl p-3 flex flex-col gap-3">
           <div class="flex items-center gap-3.5">
-            <img id="defender-sprite" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/0.png" alt="Defender" class="w-20 h-20 object-contain bg-slate-900 rounded-lg p-1 shadow-inner border border-slate-700/40">
-            <div class="flex-1 min-w-0 flex flex-col gap-1">
+            <img id="defender-sprite" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/0.png" alt="Defender" class="w-32 h-32 object-contain bg-slate-900 rounded-xl p-1 shadow-inner border border-slate-700/40">
+            <div class="flex-1 min-w-0 flex flex-col items-center text-center gap-1">
               <div>
                 <span id="defender-regulation-tag" class="text-[8px] font-black px-1.5 py-0.5 rounded uppercase shrink-0"></span>
               </div>
-              <h3 id="defender-name" class="font-black text-base truncate text-slate-100">Select a Pokemon</h3>
-              <div id="defender-types" class="flex gap-1">
+              <h3 id="defender-name" class="font-black text-base truncate text-slate-100 w-full">Select a Pokemon</h3>
+              <div id="defender-types" class="flex gap-1.5 justify-center w-full">
                 <span class="text-[9px] px-1.5 py-0.5 font-bold uppercase rounded bg-slate-700 text-slate-300">???</span>
               </div>
             </div>
@@ -806,6 +813,30 @@
     </section>
 
   </main>
+
+  <!-- Premium Mobile Sticky Floating Damage Overlay (Visible ONLY on mobile < lg width!) -->
+  <div id="mobile-floating-overlay" class="lg:hidden fixed bottom-0 left-0 right-0 z-[999] bg-slate-900/95 backdrop-blur-md border-t border-slate-700 px-4 py-3 flex items-center justify-between gap-3 shadow-[0_-8px_30px_rgba(0,0,0,0.5)] transition-transform duration-300 text-left">
+    
+    <!-- Left: Profile & Move (Compact) -->
+    <div class="flex flex-col min-w-0">
+      <span class="text-[8px] font-bold text-slate-500 uppercase tracking-wider leading-none">VGC Live Tracker</span>
+      <h4 id="mob-overlay-matchup" class="text-[10px] font-black text-slate-200 truncate leading-tight mt-1">Awaiting Selection...</h4>
+      <p id="mob-overlay-move" class="text-[9px] font-bold text-amber-400 truncate leading-none mt-0.5">Select both slots to calculate</p>
+    </div>
+    
+    <!-- Right: Damage & KO Verdict -->
+    <div class="flex items-center gap-2.5 shrink-0 text-right">
+      <div class="flex flex-col justify-center">
+        <span id="mob-overlay-damage" class="text-xs font-mono font-black text-slate-100 leading-tight">0 - 0 Dmg</span>
+        <span id="mob-overlay-pct" class="text-[9px] font-extrabold text-slate-455 leading-none mt-0.5">0% OHKO</span>
+      </div>
+      
+      <!-- Glowing status badge -->
+      <div id="mob-overlay-badge" class="h-7 px-2 rounded-lg flex items-center justify-center text-[9px] font-black uppercase bg-slate-850 text-slate-400 border border-slate-750 select-none tracking-wider">
+        Awaiting
+      </div>
+    </div>
+  </div>
 
   <!-- Script imports -->
   <script src="app.js"></script>
