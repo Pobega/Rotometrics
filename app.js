@@ -81,7 +81,7 @@ function DEF_VGC_ABILITIES_HELPER(learnable) {
 // ==========================================
 
 const STATE = {
-  mode: 'survival', 
+  mode: 'offensive', 
   targetKO: 'ohko',  
   format: 'regulation_ma', 
   
@@ -789,7 +789,8 @@ const DOM = {
   mobOverlayMove: document.getElementById('mob-overlay-move'),
   mobOverlayDamage: document.getElementById('mob-overlay-damage'),
   mobOverlayPct: document.getElementById('mob-overlay-pct'),
-  mobOverlayBadge: document.getElementById('mob-overlay-badge')
+  mobOverlayBadge: document.getElementById('mob-overlay-badge'),
+  mobOverlaySpeed: document.getElementById('mob-overlay-speed')
 };
 
 function populateDropdowns() {
@@ -1097,6 +1098,11 @@ function updateLiveStats() {
   STATE.defender.boosts.spd = parseInt(DOM.defenderBoostSpd.value) || 0;
   STATE.defender.boosts.spe = parseInt(DOM.defenderBoostSpe.value) || 0;
 
+  const selectedMoveOpt = DOM.attackerMoveSelect.options[DOM.attackerMoveSelect.selectedIndex];
+  let moveName = selectedMoveOpt ? selectedMoveOpt.textContent : "Custom Move";
+  if (moveName.includes("Custom Move")) moveName = "Custom Move";
+  STATE.move.name = moveName;
+
   STATE.move.type = DOM.moveType.value;
   STATE.move.power = parseInt(DOM.movePower.value) || 0;
   STATE.move.category = DOM.moveCategory.value;
@@ -1182,24 +1188,40 @@ function updateLiveStats() {
   DOM.defenderEvSpeVal.textContent = STATE.defender.sps.spe;
   DOM.defenderEvSum.textContent = `Used: ${defenderSPSum}/66 SP`;
 
-  // Dynamic Turn-Order Comparison Banner Generation
+  // Dynamic Turn-Order Comparison Banner Generation (Desktop & Mobile Sync!)
   if (!STATE.attacker.name || !STATE.defender.name) {
     DOM.speedComparisonBanner.innerHTML = `<span class="text-slate-555 italic flex items-center justify-center gap-1"><i class="fa-solid fa-hourglass-half mr-1 text-[10px]"></i> Awaiting Pokemon Search...</span>`;
+    if (DOM.mobOverlaySpeed) {
+      DOM.mobOverlaySpeed.textContent = "Awaiting Speed";
+      DOM.mobOverlaySpeed.className = "text-[7px] font-black px-1.5 py-0.5 rounded uppercase font-mono select-none tracking-wider bg-slate-850 text-slate-450 border border-slate-750 border";
+    }
   } else if (finalAttackerSpe > finalDefenderSpe) {
     DOM.speedComparisonBanner.innerHTML = `
       <span class="text-green-400 flex items-center gap-1">
         <i class="fa-solid fa-bolt"></i> ${STATE.attacker.name} (${finalAttackerSpe} Spe) outspeeds ${STATE.defender.name} (${finalDefenderSpe} Spe) — Attacker goes first!
       </span>`;
+    if (DOM.mobOverlaySpeed) {
+      DOM.mobOverlaySpeed.textContent = "Attacker Moves 1st";
+      DOM.mobOverlaySpeed.className = "text-[7px] font-black px-1.5 py-0.5 rounded uppercase font-mono select-none tracking-wider bg-emerald-950/60 text-emerald-400 border border-emerald-900/30 border";
+    }
   } else if (finalDefenderSpe > finalAttackerSpe) {
     DOM.speedComparisonBanner.innerHTML = `
       <span class="text-orange-400 flex items-center gap-1">
         <i class="fa-solid fa-bolt"></i> ${STATE.defender.name} (${finalDefenderSpe} Spe) outspeeds ${STATE.attacker.name} (${finalAttackerSpe} Spe) — Defender goes first!
       </span>`;
+    if (DOM.mobOverlaySpeed) {
+      DOM.mobOverlaySpeed.textContent = "Attacker Moves 2nd";
+      DOM.mobOverlaySpeed.className = "text-[7px] font-black px-1.5 py-0.5 rounded uppercase font-mono select-none tracking-wider bg-red-950/60 text-red-400 border border-red-900/30 border";
+    }
   } else {
     DOM.speedComparisonBanner.innerHTML = `
       <span class="text-yellow-450 flex items-center gap-1">
         <i class="fa-solid fa-arrows-left-right"></i> Speed Tie (${finalAttackerSpe} Spe) — 50% chance to attack first!
       </span>`;
+    if (DOM.mobOverlaySpeed) {
+      DOM.mobOverlaySpeed.textContent = "Speed Tie";
+      DOM.mobOverlaySpeed.className = "text-[7px] font-black px-1.5 py-0.5 rounded uppercase font-mono select-none tracking-wider bg-amber-950/60 text-amber-400 border border-amber-900/30 border";
+    }
   }
 
   // Dynamic Presets Dropdowns Synchronization
@@ -1418,35 +1440,60 @@ function runOptimizations() {
       DOM.mobOverlayDamage.textContent = `${minDamage} - ${maxDamage} Dmg`;
       
       const finalHp = calculateStat('hp', STATE.defender.baseStats.hp, STATE.defender.sps.hp, STATE.defender.nature, true);
+      const minPct = (minDamage / finalHp) * 100;
       const maxPct = (maxDamage / finalHp) * 100;
       
-      DOM.mobOverlayPct.textContent = `${maxPct.toFixed(1)}% Max Dmg`;
+      DOM.mobOverlayPct.textContent = `${minPct.toFixed(1)}% - ${maxPct.toFixed(1)}%`;
       
-      // Glowing verdict badges matching top layouts
+      // Glowing verdict badges matching top layouts (Correct VGC Survival/Offensive Chance logic!)
       if (STATE.mode === 'survival') {
-        const isGuaranteed = minDamage >= finalHp;
-        if (isGuaranteed) {
-          DOM.mobOverlayBadge.textContent = "OHKO";
-          DOM.mobOverlayBadge.className = "h-7 px-2 rounded-lg flex items-center justify-center text-[9px] font-black uppercase bg-red-950/60 text-red-400 border border-red-900/30 select-none tracking-wider animate-pulse";
+        const isOHKO = minDamage >= finalHp;
+        const isChance = minDamage < finalHp && maxDamage >= finalHp;
+        
+        if (isOHKO) {
+          DOM.mobOverlayBadge.innerHTML = `<span class="leading-none">Faints</span>`;
+          DOM.mobOverlayBadge.className = "h-8 px-3 rounded-lg flex items-center justify-center text-[10px] font-black uppercase bg-red-950/60 text-red-400 border border-red-900/30 select-none tracking-wider animate-pulse";
+        } else if (isChance) {
+          DOM.mobOverlayBadge.innerHTML = `
+            <div class="flex flex-col items-center justify-center leading-none gap-0.5">
+              <span>Survives</span>
+              <span class="text-[7px] font-extrabold lowercase opacity-85 tracking-normal font-sans">(roll)</span>
+            </div>`;
+          DOM.mobOverlayBadge.className = "h-8 px-3 rounded-lg flex items-center justify-center text-[10px] font-black uppercase bg-amber-950/60 text-amber-400 border border-amber-900/30 select-none tracking-wider";
         } else {
-          DOM.mobOverlayBadge.textContent = "Survives";
-          DOM.mobOverlayBadge.className = "h-7 px-2 rounded-lg flex items-center justify-center text-[9px] font-black uppercase bg-emerald-950/60 text-emerald-400 border border-emerald-900/30 select-none tracking-wider";
+          DOM.mobOverlayBadge.innerHTML = `<span class="leading-none">Survives</span>`;
+          DOM.mobOverlayBadge.className = "h-8 px-3 rounded-lg flex items-center justify-center text-[10px] font-black uppercase bg-emerald-950/60 text-emerald-400 border border-emerald-900/30 select-none tracking-wider";
         }
       } else {
-        // Offensive OHKO/2HKO checks
-        const rollsNeeded = STATE.targetKO === 'ohko' ? 1 : 2;
-        const isGuaranteed = minDamage >= (finalHp / rollsNeeded);
-        const isPossible = maxDamage >= (finalHp / rollsNeeded);
+        // Dynamic Multi-Tier Offensive VGC calculations solver!
+        const isGuaranteedOHKO = minDamage >= finalHp;
+        const isPossibleOHKO = minDamage < finalHp && maxDamage >= finalHp;
+        const isGuaranteed2HKO = minDamage >= (finalHp / 2);
+        const isPossible2HKO = minDamage < (finalHp / 2) && maxDamage >= (finalHp / 2);
         
-        if (isGuaranteed) {
-          DOM.mobOverlayBadge.textContent = STATE.targetKO.toUpperCase();
-          DOM.mobOverlayBadge.className = "h-7 px-2 rounded-lg flex items-center justify-center text-[9px] font-black uppercase bg-emerald-950/60 text-emerald-400 border border-emerald-900/30 select-none tracking-wider";
-        } else if (isPossible) {
-          DOM.mobOverlayBadge.textContent = "Chance";
-          DOM.mobOverlayBadge.className = "h-7 px-2 rounded-lg flex items-center justify-center text-[9px] font-black uppercase bg-amber-950/60 text-amber-400 border border-amber-900/30 select-none tracking-wider";
+        if (isGuaranteedOHKO) {
+          DOM.mobOverlayBadge.innerHTML = `<span class="leading-none">OHKO</span>`;
+          DOM.mobOverlayBadge.className = "h-8 px-3 rounded-lg flex items-center justify-center text-[10px] font-black uppercase bg-emerald-950/60 text-emerald-400 border border-emerald-900/30 select-none tracking-wider";
+        } else if (isPossibleOHKO) {
+          DOM.mobOverlayBadge.innerHTML = `
+            <div class="flex flex-col items-center justify-center leading-none gap-0.5">
+              <span>OHKO</span>
+              <span class="text-[7px] font-extrabold lowercase opacity-85 tracking-normal font-sans">(roll)</span>
+            </div>`;
+          DOM.mobOverlayBadge.className = "h-8 px-3 rounded-lg flex items-center justify-center text-[10px] font-black uppercase bg-amber-950/60 text-amber-400 border border-amber-900/30 select-none tracking-wider";
+        } else if (isGuaranteed2HKO) {
+          DOM.mobOverlayBadge.innerHTML = `<span class="leading-none">2HKO</span>`;
+          DOM.mobOverlayBadge.className = "h-8 px-3 rounded-lg flex items-center justify-center text-[10px] font-black uppercase bg-emerald-950/60 text-emerald-400 border border-emerald-900/30 select-none tracking-wider";
+        } else if (isPossible2HKO) {
+          DOM.mobOverlayBadge.innerHTML = `
+            <div class="flex flex-col items-center justify-center leading-none gap-0.5">
+              <span>2HKO</span>
+              <span class="text-[7px] font-extrabold lowercase opacity-85 tracking-normal font-sans">(roll)</span>
+            </div>`;
+          DOM.mobOverlayBadge.className = "h-8 px-3 rounded-lg flex items-center justify-center text-[10px] font-black uppercase bg-amber-950/60 text-amber-400 border border-amber-900/30 select-none tracking-wider";
         } else {
-          DOM.mobOverlayBadge.textContent = "No KO";
-          DOM.mobOverlayBadge.className = "h-7 px-2 rounded-lg flex items-center justify-center text-[9px] font-black uppercase bg-red-950/60 text-red-400 border border-red-900/30 select-none tracking-wider";
+          DOM.mobOverlayBadge.innerHTML = `<span class="leading-none">No KO</span>`;
+          DOM.mobOverlayBadge.className = "h-8 px-3 rounded-lg flex items-center justify-center text-[10px] font-black uppercase bg-red-950/60 text-red-400 border border-red-900/30 select-none tracking-wider";
         }
       }
     }
@@ -1795,20 +1842,26 @@ function initMobileTabbing() {
     mobTabResults.className = "flex-1 text-center py-2.5 text-xs font-extrabold rounded-xl transition flex items-center justify-center gap-1 text-slate-400 hover:text-white";
     mobTabDefender.className = "flex-1 text-center py-2.5 text-xs font-extrabold rounded-xl transition flex items-center justify-center gap-1 text-slate-400 hover:text-white";
 
-    // Hide all panels under mobile
+    // Hide all panels under mobile and strip flex behaviors
     panelAttacker.classList.add('hidden');
+    panelAttacker.classList.remove('flex', 'flex-col');
     panelCenter.classList.add('hidden');
+    panelCenter.classList.remove('flex', 'flex-col');
     panelDefender.classList.add('hidden');
+    panelDefender.classList.remove('flex', 'flex-col');
 
     if (activeTab === 'attacker') {
       mobTabAttacker.className = "flex-1 text-center py-2.5 text-xs font-extrabold rounded-xl transition flex items-center justify-center gap-1 bg-red-950/30 text-red-400 border border-red-900/30 shadow";
       panelAttacker.classList.remove('hidden');
+      panelAttacker.classList.add('flex', 'flex-col');
     } else if (activeTab === 'results') {
       mobTabResults.className = "flex-1 text-center py-2.5 text-xs font-extrabold rounded-xl transition flex items-center justify-center gap-1 bg-amber-950/30 text-amber-400 border border-amber-900/30 shadow";
       panelCenter.classList.remove('hidden');
+      panelCenter.classList.add('flex', 'flex-col');
     } else if (activeTab === 'defender') {
       mobTabDefender.className = "flex-1 text-center py-2.5 text-xs font-extrabold rounded-xl transition flex items-center justify-center gap-1 bg-blue-950/30 text-blue-400 border border-blue-900/30 shadow";
       panelDefender.classList.remove('hidden');
+      panelDefender.classList.add('flex', 'flex-col');
     }
   }
 
