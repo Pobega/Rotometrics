@@ -41,73 +41,240 @@
       ...overrides,
     });
 
-    const TACKLE = { apiName: 'tackle', type: 'Normal', power: 80, category: 'physical' };
-    const FAKE_OUT = { apiName: 'fake-out', type: 'Normal', power: 40, category: 'physical' };
+    const TACKLE   = { apiName: 'tackle',   type: 'Normal',   power: 80, category: 'physical' };
+    const FAKE_OUT = { apiName: 'fake-out', type: 'Normal',   power: 40, category: 'physical' };
+    const CRUNCH   = { apiName: 'crunch',   type: 'Dark',     power: 80, category: 'physical' };
+    const EMBER    = { apiName: 'ember',    type: 'Fire',     power: 80, category: 'physical' };
+    const ROCK_SLIDE = { apiName: 'rock-slide', type: 'Rock', power: 80, category: 'physical' };
+    const ICE_HIT  = { apiName: 'ice-hit',  type: 'Ice',      power: 80, category: 'physical' };
+    const ELEC_HIT = { apiName: 'elec-hit', type: 'Electric', power: 80, category: 'physical' };
+
+    // Attacker preset: +atk nature, 32 SP into atk, everything else 0.
+    const ATTACKER = (overrides = {}) => NORMAL_MON({
+      nature: '+atk',
+      sps: { hp: 0, atk: 32, def: 0, spa: 0, spd: 0, spe: 0 },
+      ...overrides,
+    });
+    const DEFENDER = (overrides = {}) => NORMAL_MON({
+      sps: { hp: 32, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 },
+      ...overrides,
+    });
 
     // Expected min/max recorded from the engine's behavior at the time of writing.
     // If you intentionally change the formula, run the tests, then paste the new
     // numbers in. An unintentional change shows up as a red ✗.
     const CASES = [
+      // -------- Baseline & type chart --------
       {
         name: 'baseline: +atk attacker, Normal STAB, no modifiers',
-        attacker: NORMAL_MON({ nature: '+atk', sps: { hp: 0, atk: 32, def: 0, spa: 0, spd: 0, spe: 0 } }),
-        defender: NORMAL_MON({ sps: { hp: 32, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 } }),
+        attacker: ATTACKER(),
+        defender: DEFENDER(),
         move: TACKLE,
         modifiers: {},
         expected: { min: 63, max: 75 },
       },
       {
         name: 'no STAB: Fighting attacker, Normal move',
-        attacker: NORMAL_MON({ nature: '+atk', sps: { hp: 0, atk: 32, def: 0, spa: 0, spd: 0, spe: 0 }, types: ['Fighting'] }),
-        defender: NORMAL_MON({}),
+        attacker: ATTACKER({ types: ['Fighting'] }),
+        defender: DEFENDER(),
         move: TACKLE,
         modifiers: {},
         expected: { min: 42, max: 50 },
       },
       {
-        name: 'super effective 2x: Fire move on Grass defender',
-        attacker: NORMAL_MON({ nature: '+atk', sps: { hp: 0, atk: 32, def: 0, spa: 0, spd: 0, spe: 0 } }),
-        defender: NORMAL_MON({ types: ['Grass'] }),
+        name: 'super effective 2x: Fire move on Grass defender (no STAB)',
+        attacker: ATTACKER(),
+        defender: DEFENDER({ types: ['Grass'] }),
         move: { ...TACKLE, type: 'Fire' },
         modifiers: {},
         expected: { min: 84, max: 100 },
       },
       {
-        name: 'Tough Claws + contact move (regression: was silently broken pre-fix)',
-        attacker: NORMAL_MON({ nature: '+atk', sps: { hp: 0, atk: 32, def: 0, spa: 0, spd: 0, spe: 0 }, ability: 'tough-claws' }),
-        defender: NORMAL_MON({}),
+        name: 'type immunity: Normal move on Ghost defender = 0',
+        attacker: ATTACKER(),
+        defender: DEFENDER({ types: ['Ghost'] }),
+        move: TACKLE,
+        modifiers: {},
+        expected: { min: 0, max: 0 },
+      },
+      {
+        name: 'quad effective 4x: Ice on Grass/Flying dual-type (no STAB)',
+        attacker: ATTACKER(),
+        defender: DEFENDER({ types: ['Grass', 'Flying'] }),
+        move: ICE_HIT,
+        modifiers: {},
+        expected: { min: 168, max: 200 },
+      },
+      {
+        name: 'Adaptability STAB is 2.0x (not 1.5x)',
+        attacker: ATTACKER({ ability: 'adaptability' }),
+        defender: DEFENDER(),
+        move: TACKLE,
+        modifiers: {},
+        expected: { min: 84, max: 100 },
+      },
+
+      // -------- Step-1 ability regression coverage --------
+      {
+        name: 'Tough Claws + contact move (regression)',
+        attacker: ATTACKER({ ability: 'tough-claws' }),
+        defender: DEFENDER(),
         move: FAKE_OUT,
         modifiers: {},
         expected: { min: 42, max: 50 },
       },
       {
-        name: 'Huge Power (regression: was silently broken pre-fix)',
-        attacker: NORMAL_MON({ nature: '+atk', sps: { hp: 0, atk: 32, def: 0, spa: 0, spd: 0, spe: 0 }, ability: 'huge-power' }),
-        defender: NORMAL_MON({}),
+        name: 'Huge Power (regression)',
+        attacker: ATTACKER({ ability: 'huge-power' }),
+        defender: DEFENDER(),
         move: TACKLE,
         modifiers: {},
         expected: { min: 126, max: 148 },
       },
       {
-        name: 'Multiscale defender halves damage',
-        attacker: NORMAL_MON({ nature: '+atk', sps: { hp: 0, atk: 32, def: 0, spa: 0, spd: 0, spe: 0 } }),
-        defender: NORMAL_MON({ ability: 'multiscale' }),
+        name: 'Strong Jaw + biting move (regression)',
+        attacker: ATTACKER(),
+        defender: DEFENDER(),
+        move: CRUNCH,
+        modifiers: {},
+        expected: { min: 42, max: 50 },
+      },
+      {
+        name: 'Strong Jaw + biting move with ability (regression)',
+        attacker: ATTACKER({ ability: 'strong-jaw' }),
+        defender: DEFENDER(),
+        move: CRUNCH,
+        modifiers: {},
+        expected: { min: 63, max: 75 },
+      },
+      {
+        name: 'Supreme Overlord 1.5x (regression)',
+        attacker: ATTACKER({ ability: 'supreme-overlord' }),
+        defender: DEFENDER(),
+        move: TACKLE,
+        modifiers: {},
+        expected: { min: 94, max: 112 },
+      },
+      {
+        name: 'Rocky Payload + Rock move (regression: previously dead)',
+        attacker: ATTACKER({ ability: 'rocky-payload' }),
+        defender: DEFENDER(),
+        move: ROCK_SLIDE,
+        modifiers: {},
+        expected: { min: 63, max: 75 },
+      },
+      {
+        name: 'Shadow Shield defender (regression: previously dead)',
+        attacker: ATTACKER(),
+        defender: DEFENDER({ ability: 'shadow-shield' }),
         move: TACKLE,
         modifiers: {},
         expected: { min: 31, max: 37 },
       },
       {
-        name: 'Ice Scales halves special damage (regression: was silently broken pre-fix)',
-        attacker: NORMAL_MON({ nature: '+atk', sps: { hp: 0, atk: 32, def: 0, spa: 0, spd: 0, spe: 0 } }),
-        defender: NORMAL_MON({ ability: 'ice-scales' }),
+        name: 'Multiscale defender halves damage',
+        attacker: ATTACKER(),
+        defender: DEFENDER({ ability: 'multiscale' }),
+        move: TACKLE,
+        modifiers: {},
+        expected: { min: 31, max: 37 },
+      },
+      {
+        name: 'Ice Scales halves special damage (regression)',
+        attacker: ATTACKER(),
+        defender: DEFENDER({ ability: 'ice-scales' }),
         move: { ...TACKLE, category: 'special' },
         modifiers: {},
         expected: { min: 21, max: 24 },
       },
+
+      // -------- Items --------
       {
-        name: 'spread move modifier (0.75x)',
-        attacker: NORMAL_MON({ nature: '+atk', sps: { hp: 0, atk: 32, def: 0, spa: 0, spd: 0, spe: 0 } }),
-        defender: NORMAL_MON({}),
+        name: 'Choice Band 1.5x Atk',
+        attacker: ATTACKER({ item: 'choice_band' }),
+        defender: DEFENDER(),
+        move: TACKLE,
+        modifiers: {},
+        expected: { min: 94, max: 112 },
+      },
+      {
+        name: 'Life Orb 1.3x damage',
+        attacker: ATTACKER({ item: 'life_orb' }),
+        defender: DEFENDER(),
+        move: TACKLE,
+        modifiers: {},
+        expected: { min: 81, max: 97 },
+      },
+      {
+        name: 'Expert Belt 1.2x on super-effective only',
+        attacker: ATTACKER({ item: 'expert_belt' }),
+        defender: DEFENDER({ types: ['Grass'] }),
+        move: { ...TACKLE, type: 'Fire' },
+        modifiers: {},
+        expected: { min: 100, max: 120 },
+      },
+      {
+        name: 'Eviolite defender 1.5x Def',
+        attacker: ATTACKER(),
+        defender: DEFENDER({ item: 'eviolite' }),
+        move: TACKLE,
+        modifiers: {},
+        expected: { min: 42, max: 51 },
+      },
+
+      // -------- Crit, weather, terrain, screens, friend guard --------
+      {
+        name: 'Crit 1.5x',
+        attacker: ATTACKER(),
+        defender: DEFENDER(),
+        move: TACKLE,
+        modifiers: { crit: true },
+        expected: { min: 94, max: 112 },
+      },
+      {
+        name: 'Sniper + crit = 2.25x',
+        attacker: ATTACKER({ ability: 'sniper' }),
+        defender: DEFENDER(),
+        move: TACKLE,
+        modifiers: { crit: true },
+        expected: { min: 141, max: 168 },
+      },
+      {
+        name: 'Sun boosts Fire moves 1.5x (Fire STAB attacker)',
+        attacker: ATTACKER({ types: ['Fire'] }),
+        defender: DEFENDER(),
+        move: EMBER,
+        modifiers: { weather: 'sun' },
+        expected: { min: 94, max: 112 },
+      },
+      {
+        name: 'Electric terrain boosts Electric move 1.3x (grounded attacker)',
+        attacker: ATTACKER(),
+        defender: DEFENDER(),
+        move: ELEC_HIT,
+        modifiers: { terrain: 'electric' },
+        expected: { min: 54, max: 65 },
+      },
+      {
+        name: 'Friend Guard 0.75x',
+        attacker: ATTACKER(),
+        defender: DEFENDER(),
+        move: TACKLE,
+        modifiers: { friendGuard: true },
+        expected: { min: 47, max: 56 },
+      },
+      {
+        name: 'Screens 0.66x',
+        attacker: ATTACKER(),
+        defender: DEFENDER(),
+        move: TACKLE,
+        modifiers: { screens: true },
+        expected: { min: 41, max: 49 },
+      },
+      {
+        name: 'spread move modifier 0.75x',
+        attacker: ATTACKER(),
+        defender: DEFENDER(),
         move: TACKLE,
         modifiers: { spread: true },
         expected: { min: 47, max: 56 },
