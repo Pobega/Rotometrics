@@ -620,7 +620,7 @@ function setAttackerDetails(details) {
     DOM.attackerItem.className = "w-full bg-slate-800/50 border border-slate-700 rounded-xl py-2 px-3 text-xs text-slate-400 cursor-not-allowed";
   } else {
     DOM.attackerItem.disabled = false;
-    DOM.attackerItem.className = "w-full bg-slate-800 border border-slate-700 rounded-xl py-2 px-3 text-xs focus:outline-none focus:border-red-500 text-slate-100 cursor-pointer";
+    DOM.attackerItem.className = "w-full bg-slate-900 border border-slate-700 rounded-xl py-2 px-3 focus:outline-none focus:border-red-500 text-slate-100 cursor-pointer";
   }
 
   // Auto Pre-Selection of the very first valid damaging move from the new learnset!
@@ -681,7 +681,7 @@ function setDefenderDetails(details) {
     DOM.defenderItem.className = "w-full bg-slate-800/50 border border-slate-700 rounded-xl py-2 px-3 text-xs text-slate-400 cursor-not-allowed";
   } else {
     DOM.defenderItem.disabled = false;
-    DOM.defenderItem.className = "w-full bg-slate-800 border border-slate-700 rounded-xl py-2 px-3 text-xs focus:outline-none focus:border-blue-500 text-slate-100 cursor-pointer";
+    DOM.defenderItem.className = "w-full bg-slate-900 border border-slate-700 rounded-xl py-2 px-3 focus:outline-none focus:border-blue-500 text-slate-100 cursor-pointer";
   }
 
   updateLiveStats();
