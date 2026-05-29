@@ -60,6 +60,10 @@
     const PSYSHOCK = { apiName: 'psyshock', type: 'Psychic', power: 80, category: 'special' };
     const PHOTON_GEYSER = { apiName: 'photon-geyser', type: 'Psychic', power: 100, category: 'special' };
     const SPEC_PSY = { apiName: 'special-psychic', type: 'Psychic', power: 80, category: 'special' };
+    const RETURN = { apiName: 'return', type: 'Normal', power: 0, category: 'physical' };
+    const ERUPTION = { apiName: 'eruption', type: 'Fire', power: 150, category: 'special' };
+    const GYRO_BALL = { apiName: 'gyro-ball', type: 'Steel', power: 1, category: 'physical' };
+    const ELECTRO_BALL = { apiName: 'electro-ball', type: 'Electric', power: 0, category: 'special' };
 
     // Attacker preset: +atk nature, 32 SP into atk, everything else 0.
     const ATTACKER = (overrides = {}) => NORMAL_MON({
@@ -537,6 +541,56 @@
         move: TACKLE,
         modifiers: { helpingHand: true },
         expected: { min: 94, max: 112 },
+      },
+
+      // -------- Group C: variable base power --------
+      {
+        name: 'Return is a fixed 102 BP',
+        attacker: ATTACKER(),
+        defender: DEFENDER(),
+        move: RETURN,
+        modifiers: {},
+        expected: { min: 81, max: 96 },
+      },
+      {
+        name: 'Eruption assumes full HP (150 BP)',
+        attacker: ATTACKER(),
+        defender: DEFENDER(),
+        move: ERUPTION,
+        modifiers: {},
+        expected: { min: 51, max: 61 },
+      },
+      {
+        name: 'Gyro Ball at equal speed (26 BP)',
+        attacker: ATTACKER(),
+        defender: DEFENDER(),
+        move: GYRO_BALL,
+        modifiers: {},
+        expected: { min: 14, max: 17 },
+      },
+      {
+        name: 'Gyro Ball scales up against a faster target',
+        attacker: ATTACKER(),
+        defender: DEFENDER({ boosts: { atk: 0, spa: 0, def: 0, spd: 0, spe: 2 } }),
+        move: GYRO_BALL,
+        modifiers: {},
+        expected: { min: 28, max: 33 },
+      },
+      {
+        name: 'Electro Ball at equal speed (60 BP)',
+        attacker: ATTACKER(),
+        defender: DEFENDER(),
+        move: ELECTRO_BALL,
+        modifiers: {},
+        expected: { min: 21, max: 25 },
+      },
+      {
+        name: 'Electro Ball scales up against a slower target',
+        attacker: ATTACKER({ boosts: { atk: 0, spa: 0, def: 0, spd: 0, spe: 2 } }),
+        defender: DEFENDER(),
+        move: ELECTRO_BALL,
+        modifiers: {},
+        expected: { min: 28, max: 33 },
       },
     ];
 

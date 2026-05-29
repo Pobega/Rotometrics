@@ -3,7 +3,7 @@
 import { calculateStat, calculateStatBoost, getTypeEffectiveness } from './stats.js';
 import { attackerAbilityMultiplier, defenderAbilityMultiplier } from './abilities.js';
 
-// Effective Speed including stat boosts, used to infer turn order.
+// Effective Speed including stat boosts.
 function effectiveSpeed(mon) {
   const base = calculateStat('spe', mon.baseStats.spe, mon.sps.spe, mon.nature, false);
   return calculateStatBoost(base, mon.boosts.spe || 0);
@@ -101,6 +101,20 @@ export function calculateDamageRolls(attacker, defender, move, modifiers) {
     if (movesSecond) {
       effectivePower *= 2;
     }
+  }
+
+  // Variable base power. PokeAPI reports 0/1 for these, so compute it here.
+  if (move.apiName === 'return' || move.apiName === 'frustration') {
+    effectivePower = 102; // max happiness / min happiness, the competitive default
+  } else if (move.apiName === 'eruption' || move.apiName === 'water-spout' || move.apiName === 'dragon-energy') {
+    effectivePower = 150; // scales with the user's current HP; a calc assumes full HP
+  } else if (move.apiName === 'gyro-ball') {
+    const userSpe = effectiveSpeed(attacker);
+    const targetSpe = effectiveSpeed(defender);
+    effectivePower = Math.min(150, Math.floor((25 * targetSpe) / Math.max(1, userSpe)) + 1);
+  } else if (move.apiName === 'electro-ball') {
+    const ratio = effectiveSpeed(attacker) / Math.max(1, effectiveSpeed(defender));
+    effectivePower = ratio >= 4 ? 150 : ratio >= 3 ? 120 : ratio >= 2 ? 80 : ratio >= 1 ? 60 : 40;
   }
 
   const levelFactor = 22;
