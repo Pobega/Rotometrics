@@ -600,8 +600,10 @@ function setAttackerDetails(details) {
   updateRegulationTag(details.apiName, DOM.attackerRegTag);
   updateStatsBars(details.baseStats, 'attacker');
 
-  const damagingMoves = details.moves.filter(m => !CACHE.statusMoves[m.apiName]);
-  DOM.attackerMoveSelect.innerHTML = `<option value="custom">--- Custom Move ---</option>` + 
+  const damagingMoves = details.moves
+    .filter(m => !CACHE.statusMoves[m.apiName])
+    .sort((a, b) => a.name.localeCompare(b.name));
+  DOM.attackerMoveSelect.innerHTML = `<option value="custom">--- Custom Move ---</option>` +
     damagingMoves.map(m => `<option value="${m.apiName}">${m.name}</option>`).join('');
 
   // Filter custom VGC offensive abilities to ONLY those this Pokemon learn!
