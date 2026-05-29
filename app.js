@@ -1375,6 +1375,10 @@ async function init() {
     setDefenderDetails
   );
 
+  // The status-move filter list must be ready before any move dropdown is
+  // built, otherwise non-damaging moves leak through unfiltered.
+  await initStatusMovesList();
+
   // Fire preloaded sample scenario instantly on startup!
   try {
     loadSampleVGCScenario();
@@ -1384,7 +1388,6 @@ async function init() {
 
   // Fetch massive search databases quietly in the background without blocking!
   initPokemonList();
-  initStatusMovesList();
   initChampionsLegalList();
 }
 
