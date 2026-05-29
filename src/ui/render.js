@@ -53,7 +53,7 @@ export function createOptionCardHTML(title, nature, hpVal, defVal, statName, tot
     <div class="border rounded-xl p-3 flex flex-col gap-2 transition text-left ${themeBg}">
       <div class="flex justify-between items-start gap-3">
         <div>
-          <div class="text-[9px] text-slate-450 uppercase font-extrabold tracking-wider">${title}</div>
+          <div class="text-[9px] text-slate-400 uppercase font-extrabold tracking-wider">${title}</div>
           <div class="text-xs font-black text-white mt-0.5">
             Nature: <span class="${themeText}">${natureFormatted}</span>
           </div>
@@ -120,7 +120,7 @@ export function updateStatsBars(baseStats, prefix) {
 export function updateDropdownColors() {
   const weather = DOM.modWeatherSelect.value;
   const weatherClasses = {
-    none: "bg-slate-900/45 border-slate-700 text-slate-350",
+    none: "bg-slate-900/45 border-slate-700 text-slate-400",
     sun: "bg-red-950/40 border-red-500/50 text-red-300",
     rain: "bg-blue-950/40 border-blue-500/50 text-blue-300",
     sandstorm: "bg-amber-950/40 border-amber-500/50 text-amber-300",
@@ -130,7 +130,7 @@ export function updateDropdownColors() {
 
   const terrain = DOM.modTerrainSelect.value;
   const terrainClasses = {
-    none: "bg-slate-900/45 border-slate-700 text-slate-350",
+    none: "bg-slate-900/45 border-slate-700 text-slate-400",
     electric: "bg-yellow-950/40 border-yellow-500/50 text-yellow-300",
     grassy: "bg-emerald-950/40 border-emerald-500/50 text-emerald-300",
     psychic: "bg-purple-950/40 border-purple-500/50 text-purple-300",
@@ -140,7 +140,7 @@ export function updateDropdownColors() {
 
   const aura = DOM.modAuraSelect.value;
   const auraClasses = {
-    none: "bg-slate-900/45 border-slate-700 text-slate-350",
+    none: "bg-slate-900/45 border-slate-700 text-slate-400",
     fairy: "bg-pink-950/40 border-pink-500/50 text-pink-300",
     dark: "bg-stone-950/40 border-stone-500/50 text-stone-300"
   };
