@@ -10,29 +10,51 @@ function effectiveSpeed(mon) {
 }
 
 export function calculateDamageRolls(attacker, defender, move, modifiers) {
-  const isPhysical = move.category.toLowerCase() === 'physical';
-  const atkStatName = isPhysical ? 'atk' : 'spa';
-  const defStatName = isPhysical ? 'def' : 'spd';
+  const baseIsPhysical = move.category.toLowerCase() === 'physical';
 
-  let baseAtkVal = calculateStat(atkStatName, attacker.baseStats[atkStatName], attacker.sps[atkStatName], attacker.nature, false);
+  // Resolve which stats this move uses. Most moves pit the attacker's
+  // Atk/SpA against the matching defense, but several special-case it.
+  let offMon = attacker;
+  let isPhysical = baseIsPhysical;
+  let atkStatName = baseIsPhysical ? 'atk' : 'spa';
+  let defStatName = baseIsPhysical ? 'def' : 'spd';
+
+  if (move.apiName === 'body-press') {
+    atkStatName = 'def';                       // damage scales off the user's Defense
+  } else if (move.apiName === 'foul-play') {
+    offMon = defender;                         // uses the target's Attack stat
+    atkStatName = 'atk';
+  } else if (move.apiName === 'psyshock' || move.apiName === 'psystrike' || move.apiName === 'secret-sword') {
+    defStatName = 'def';                       // special move that hits physical Defense
+  } else if (move.apiName === 'photon-geyser' || move.apiName === 'tera-blast') {
+    const atkVal = calculateStatBoost(calculateStat('atk', attacker.baseStats.atk, attacker.sps.atk, attacker.nature, false), attacker.boosts.atk || 0);
+    const spaVal = calculateStatBoost(calculateStat('spa', attacker.baseStats.spa, attacker.sps.spa, attacker.nature, false), attacker.boosts.spa || 0);
+    isPhysical = atkVal >= spaVal;             // uses whichever offensive stat is higher
+    atkStatName = isPhysical ? 'atk' : 'spa';
+    defStatName = isPhysical ? 'def' : 'spd';
+  }
+
+  let baseAtkVal = calculateStat(atkStatName, offMon.baseStats[atkStatName], offMon.sps[atkStatName], offMon.nature, false);
   let baseDefVal = calculateStat(defStatName, defender.baseStats[defStatName], defender.sps[defStatName], defender.nature, false);
 
-  let effectiveAtk = calculateStatBoost(baseAtkVal, attacker.boosts[atkStatName] || 0);
+  let effectiveAtk = calculateStatBoost(baseAtkVal, offMon.boosts[atkStatName] || 0);
   let effectiveDef = calculateStatBoost(baseDefVal, defender.boosts[defStatName] || 0);
 
-  if (attacker.item === 'choice_band' && isPhysical) {
+  // Item/ability Atk boosts only apply to the user's own stat, so they are
+  // skipped when the offensive stat is borrowed from the target (Foul Play).
+  if (offMon === attacker && attacker.item === 'choice_band' && isPhysical) {
     effectiveAtk = Math.floor(effectiveAtk * 1.5);
-  } else if (attacker.item === 'choice_specs' && !isPhysical) {
+  } else if (offMon === attacker && attacker.item === 'choice_specs' && !isPhysical) {
     effectiveAtk = Math.floor(effectiveAtk * 1.5);
   }
 
-  if (attacker.ability === 'huge-power' && isPhysical) {
+  if (offMon === attacker && attacker.ability === 'huge-power' && isPhysical) {
     effectiveAtk = Math.floor(effectiveAtk * 2.0);
-  } else if (attacker.ability === 'guts' && isPhysical) {
+  } else if (offMon === attacker && attacker.ability === 'guts' && isPhysical) {
     effectiveAtk = Math.floor(effectiveAtk * 1.5);
   }
 
-  if (defender.item === 'assault_vest' && !isPhysical) {
+  if (defender.item === 'assault_vest' && defStatName === 'spd') {
     effectiveDef = Math.floor(effectiveDef * 1.5);
   } else if (defender.item === 'eviolite') {
     effectiveDef = Math.floor(effectiveDef * 1.5);
