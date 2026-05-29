@@ -46,7 +46,8 @@ const OFFENSIVE_VGC_ABILITIES = [
   { apiName: 'rocky-payload', name: 'Rocky Payload (1.5x Rock moves)' },
   { apiName: 'supreme-overlord', name: 'Supreme Overlord (1.5x damage)' },
   { apiName: 'iron-fist', name: 'Iron Fist (1.2x Punching moves)' },
-  { apiName: 'mega-sol', name: 'Mega Sol (Always Sunny)' }
+  { apiName: 'mega-sol', name: 'Mega Sol (Always Sunny)' },
+  { apiName: 'fairy-aura', name: 'Fairy Aura (1.33x Fairy moves)' }
 ];
 
 const DEFENSIVE_VGC_ABILITIES = [
@@ -747,6 +748,18 @@ function updateLiveStats() {
   STATE.modifiers.screens = DOM.modScreens.checked;
   STATE.modifiers.helpingHand = DOM.modHelpingHand.checked;
   STATE.modifiers.terrain = DOM.modTerrainSelect.value;
+
+  // Fairy Aura locks the field aura to Fairy for its holder.
+  if (DOM.attackerAbility.value === 'fairy-aura') {
+    DOM.modAuraSelect.value = 'fairy';
+    DOM.modAuraSelect.disabled = true;
+    DOM.modAuraSelect.className = "w-full bg-slate-800/50 border border-slate-700 rounded-lg py-1.5 px-2 text-[10px] text-slate-400 cursor-not-allowed";
+  } else if (DOM.modAuraSelect.disabled) {
+    // Releasing a previously forced lock: clear it and re-enable.
+    DOM.modAuraSelect.value = 'none';
+    DOM.modAuraSelect.disabled = false;
+    DOM.modAuraSelect.className = "w-full bg-slate-900/45 border border-slate-700 rounded-lg py-1.5 px-2 text-[10px] focus:outline-none focus:border-amber-500 text-slate-100 cursor-pointer";
+  }
   STATE.modifiers.aura = DOM.modAuraSelect.value;
   STATE.attacker.status = DOM.modBurned.checked ? 'burned' : null;
 
