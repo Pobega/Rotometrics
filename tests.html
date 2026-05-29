@@ -55,6 +55,11 @@
     const BOLT_BEAK = { apiName: 'bolt-beak', type: 'Electric', power: 85, category: 'physical' };
     const COLLISION_COURSE = { apiName: 'collision-course', type: 'Fighting', power: 100, category: 'physical' };
     const PAYBACK = { apiName: 'payback', type: 'Dark', power: 50, category: 'physical' };
+    const BODY_PRESS = { apiName: 'body-press', type: 'Fighting', power: 80, category: 'physical' };
+    const FOUL_PLAY = { apiName: 'foul-play', type: 'Dark', power: 95, category: 'physical' };
+    const PSYSHOCK = { apiName: 'psyshock', type: 'Psychic', power: 80, category: 'special' };
+    const PHOTON_GEYSER = { apiName: 'photon-geyser', type: 'Psychic', power: 100, category: 'special' };
+    const SPEC_PSY = { apiName: 'special-psychic', type: 'Psychic', power: 80, category: 'special' };
 
     // Attacker preset: +atk nature, 32 SP into atk, everything else 0.
     const ATTACKER = (overrides = {}) => NORMAL_MON({
@@ -358,6 +363,88 @@
         move: TACKLE,
         modifiers: {},
         expected: { min: 42, max: 51 },
+      },
+
+      // -------- Group B: stat-swap moves --------
+      {
+        name: 'Body Press uses the user Defense as the offensive stat',
+        attacker: ATTACKER(),
+        defender: DEFENDER({ types: ['Water'] }),
+        move: BODY_PRESS,
+        modifiers: {},
+        expected: { min: 31, max: 37 },
+      },
+      {
+        name: 'Body Press scales with a Defense boost',
+        attacker: ATTACKER({ boosts: { atk: 0, spa: 0, def: 2, spd: 0, spe: 0 } }),
+        defender: DEFENDER({ types: ['Water'] }),
+        move: BODY_PRESS,
+        modifiers: {},
+        expected: { min: 61, max: 72 },
+      },
+      {
+        name: 'Foul Play uses the target Attack stat',
+        attacker: ATTACKER(),
+        defender: DEFENDER(),
+        move: FOUL_PLAY,
+        modifiers: {},
+        expected: { min: 36, max: 43 },
+      },
+      {
+        name: 'Foul Play scales with the target Attack boost',
+        attacker: ATTACKER(),
+        defender: DEFENDER({ boosts: { atk: 2, spa: 0, def: 0, spd: 0, spe: 0 } }),
+        move: FOUL_PLAY,
+        modifiers: {},
+        expected: { min: 72, max: 85 },
+      },
+      {
+        name: 'Psyshock hits physical Def (ignores a SpD boost)',
+        attacker: ATTACKER(),
+        defender: DEFENDER({ boosts: { atk: 0, spa: 0, def: 0, spd: 2, spe: 0 } }),
+        move: PSYSHOCK,
+        modifiers: {},
+        expected: { min: 28, max: 33 },
+      },
+      {
+        name: 'Ordinary special move hits SpD (SpD boost applies)',
+        attacker: ATTACKER(),
+        defender: DEFENDER({ boosts: { atk: 0, spa: 0, def: 0, spd: 2, spe: 0 } }),
+        move: SPEC_PSY,
+        modifiers: {},
+        expected: { min: 14, max: 17 },
+      },
+      {
+        name: 'Photon Geyser uses Atk when higher (hits Def)',
+        attacker: ATTACKER(),
+        defender: DEFENDER({ boosts: { atk: 0, spa: 0, def: 2, spd: 0, spe: 0 } }),
+        move: PHOTON_GEYSER,
+        modifiers: {},
+        expected: { min: 27, max: 32 },
+      },
+      {
+        name: 'Photon Geyser uses SpA when higher (hits SpD)',
+        attacker: ATTACKER({ nature: '+spa', sps: { hp: 0, atk: 0, def: 0, spa: 32, spd: 0, spe: 0 } }),
+        defender: DEFENDER({ boosts: { atk: 0, spa: 0, def: 2, spd: 0, spe: 0 } }),
+        move: PHOTON_GEYSER,
+        modifiers: {},
+        expected: { min: 53, max: 63 },
+      },
+      {
+        name: 'Assault Vest boosts SpD against a special move',
+        attacker: ATTACKER(),
+        defender: DEFENDER({ item: 'assault_vest' }),
+        move: SPEC_PSY,
+        modifiers: {},
+        expected: { min: 19, max: 23 },
+      },
+      {
+        name: 'Assault Vest does not help against Psyshock (hits Def)',
+        attacker: ATTACKER(),
+        defender: DEFENDER({ item: 'assault_vest' }),
+        move: PSYSHOCK,
+        modifiers: {},
+        expected: { min: 28, max: 33 },
       },
 
       // -------- Crit, weather, terrain, screens, friend guard --------
