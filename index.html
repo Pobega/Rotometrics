@@ -24,7 +24,17 @@
     select option:hover {
       background-color: #334155 !important; /* bg-slate-700 */
     }
-  </style>
+    /* Hide native number-input spinner arrows (Chrome/Safari + Firefox) */
+    input[type="number"] {
+      -moz-appearance: textfield;
+      appearance: textfield;
+    }
+    input[type="number"]::-webkit-outer-spin-button,
+    input[type="number"]::-webkit-inner-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
+</style>
 </head>
 <body class="bg-slate-900 text-slate-100 min-h-screen font-sans">
 
