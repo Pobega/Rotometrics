@@ -61,13 +61,19 @@ export const CONTACT_MOVES = new Set([
   'zippy-zap',
 ]);
 
+// Biting moves boosted by Strong Jaw, per Bulbapedia
+// (https://bulbapedia.bulbagarden.net/wiki/Strong_Jaw_(Ability)).
 export const BITING_MOVES = new Set([
-  'crunch', 'psychic-fangs', 'thunder-fang', 'ice-fang', 'fire-fang',
-  'fishious-rend', 'bite', 'hyper-fang',
+  'bite', 'crunch', 'fire-fang', 'fishious-rend', 'hyper-fang', 'ice-fang',
+  'jaw-lock', 'poison-fang', 'psychic-fangs', 'thunder-fang',
 ]);
 
+// Punching moves boosted by Iron Fist, per Bulbapedia
+// (https://bulbapedia.bulbagarden.net/wiki/Iron_Fist_(Ability)).
 export const PUNCHING_MOVES = new Set([
-  'drain-punch', 'ice-punch', 'thunder-punch', 'fire-punch',
-  'bullet-punch', 'mach-punch', 'rage-fist', 'shadow-punch',
-  'focus-punch', 'meteor-mash', 'ice-hammer', 'hammer-arm',
+  'bullet-punch', 'comet-punch', 'dizzy-punch', 'double-iron-bash', 'drain-punch',
+  'dynamic-punch', 'fire-punch', 'focus-punch', 'hammer-arm', 'headlong-rush',
+  'ice-hammer', 'ice-punch', 'jet-punch', 'mach-punch', 'mega-punch', 'meteor-mash',
+  'plasma-fists', 'power-up-punch', 'rage-fist', 'shadow-punch', 'sky-uppercut',
+  'surging-strikes', 'thunder-punch', 'wicked-blow',
 ]);
