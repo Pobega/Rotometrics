@@ -1446,7 +1446,8 @@ function dexDom() {
     rows: document.getElementById('dex-rows'),
     status: document.getElementById('dex-status'),
     header: document.getElementById('dex-header'),
-    regBadge: document.getElementById('dex-regulation-badge')
+    regBadge: document.getElementById('dex-regulation-badge'),
+    mobileOverlay: document.getElementById('mobile-floating-overlay')
   };
   return DexPage.dom;
 }
@@ -1646,12 +1647,17 @@ function showPage(page) {
     dom.pagePokedex.classList.remove('hidden');
     dom.navPokedex.className = activeCls;
     dom.navCalculator.className = idleCls;
+    // The mobile damage-results overlay belongs to the calculator; hide it here
+    // so it doesn't float over the Pokédex on small screens (no-op on desktop,
+    // where it's already lg:hidden).
+    if (dom.mobileOverlay) dom.mobileOverlay.classList.add('hidden');
     openDexPage();
   } else {
     dom.pagePokedex.classList.add('hidden');
     dom.pageCalculator.classList.remove('hidden');
     dom.navCalculator.className = activeCls;
     dom.navPokedex.className = idleCls;
+    if (dom.mobileOverlay) dom.mobileOverlay.classList.remove('hidden');
   }
 }
 
