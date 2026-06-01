@@ -88,8 +88,10 @@ export function isHiddenForm(apiName) {
   if (name.startsWith('pikachu-') || name === 'eevee-starter') return true; // cosplay/cap/starter
   if (COSMETIC_DUP_FORMS.has(name)) return true;
 
-  // Minior: keep only the default meteor form, drop the color duplicates.
-  if (name.startsWith('minior-') && name !== 'minior-red-meteor') return true;
+  // Minior: the seven color variants are identical to each other, but the Meteor
+  // (Shields Up, defensive) and Core (offensive, Spe 120) forms differ in stats.
+  // Keep one of each profile and drop the redundant colors.
+  if (name.startsWith('minior-') && name !== 'minior-red-meteor' && name !== 'minior-red') return true;
 
   return false;
 }
