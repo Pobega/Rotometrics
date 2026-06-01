@@ -257,11 +257,12 @@ function optimizeOffensiveEVsWithNatures(attacker, defender, move, modifiers, ta
 // Non-legal cosmetic / gimmick / event forms. These share a prefix with a legal
 // base species (so they'd otherwise pass the form check below) but aren't VGC
 // selectable: Gigantamax, Totem, cosplay/cap Pikachu, Eternal Floette,
-// Ash-Greninja (Battle Bond), Let's Go starters, etc.
+// Ash-Greninja (Battle Bond), Let's Go starters, the non-canon "-mega-z" forms
+// (absol/garchomp/lucario), etc.
 const NON_LEGAL_FORMS = [
   '-totem', '-cap', '-battle-bond', '-gmax', '-eternamax', '-starter',
   '-cosplay', '-rock-star', '-belle', '-pop-star', '-phd', '-libre',
-  '-eternal', 'greninja-ash'
+  '-eternal', '-mega-z', 'greninja-ash'
 ];
 
 function isRegulationMALegal(apiName) {
