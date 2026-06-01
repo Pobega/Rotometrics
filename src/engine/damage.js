@@ -164,7 +164,7 @@ export function calculateDamageRolls(attacker, defender, move, modifiers) {
     mod *= 5461 / 4096;
   }
 
-  const abilityCtx = { move, isPhysical, attacker, defender };
+  const abilityCtx = { move, isPhysical, attacker, defender, typeMult };
   mod *= attackerAbilityMultiplier(attacker.ability, abilityCtx);
 
   let screenMod = modifiers.screens ? 0.66 : 1.0;

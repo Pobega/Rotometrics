@@ -26,6 +26,13 @@ export const DEFENDER_DAMAGE_ABILITIES = {
   'shadow-shield': () => 0.5,
   'fluffy':        ({ isPhysical }) =>  isPhysical ? 0.5 : 1,
   'ice-scales':    ({ isPhysical }) => !isPhysical ? 0.5 : 1,
+  'water-bubble':   ({ move }) => move.type === 'Fire' ? 0.5 : 1,
+  'thick-fat':      ({ move }) => (move.type === 'Fire' || move.type === 'Ice') ? 0.5 : 1,
+  'heatproof':      ({ move }) => move.type === 'Fire' ? 0.5 : 1,
+  'purifying-salt': ({ move }) => move.type === 'Ghost' ? 0.5 : 1,
+  'filter':         ({ typeMult }) => typeMult > 1 ? 0.75 : 1,
+  'solid-rock':     ({ typeMult }) => typeMult > 1 ? 0.75 : 1,
+  'prism-armor':    ({ typeMult }) => typeMult > 1 ? 0.75 : 1,
 };
 
 export function attackerAbilityMultiplier(ability, ctx) {
