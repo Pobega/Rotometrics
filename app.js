@@ -254,27 +254,36 @@ function optimizeOffensiveEVsWithNatures(attacker, defender, move, modifiers, ta
 // 5. REGULATION M-A RULES CHECKER
 // ==========================================
 
+// Non-legal cosmetic / gimmick / event forms. These share a prefix with a legal
+// base species (so they'd otherwise pass the form check below) but aren't VGC
+// selectable: Gigantamax, Totem, cosplay/cap Pikachu, Eternal Floette,
+// Ash-Greninja (Battle Bond), Let's Go starters, etc.
+const NON_LEGAL_FORMS = [
+  '-totem', '-cap', '-battle-bond', '-gmax', '-eternamax', '-starter',
+  '-cosplay', '-rock-star', '-belle', '-pop-star', '-phd', '-libre',
+  '-eternal', 'greninja-ash'
+];
+
 function isRegulationMALegal(apiName) {
   if (!apiName) return false;
   const name = apiName.toLowerCase();
 
-  // Cap/Totem custom forms should be completely banned:
-  if (name.includes('-totem') || name.includes('-cap') || name.includes('-battle-bond')) return false;
+  if (NON_LEGAL_FORMS.some(f => name.includes(f))) return false;
+  if (!CACHE.championsLegalList) return false;
 
-  // Split Mega forms and specific battle forms (e.g. urshifu-rapid-strike -> urshifu)
-  // Regional variants (alola/galar/hisui/paldea) inherit their base species' legality.
-  const baseName = name
-    .split('-mega')[0].split('-rapid')[0].split('-single')[0].split('-bloodmoon')[0].split('-hearthflame')[0]
-    .split('-alola')[0].split('-galar')[0].split('-hisui')[0].split('-paldea')[0];
-
-  if (CACHE.championsLegalList && CACHE.championsLegalList.has(baseName)) {
-    return true;
+  // A Pokémon is legal when it IS, or is a form of, a legal base species. PokéAPI
+  // names every variety as "<base>-<form>" (charizard-mega-x, aegislash-shield,
+  // ninetales-alola), and some legal species only exist as such forms. The
+  // trailing-hyphen guard matches those forms without letting a base like "mew"
+  // match "mewtwo", and it handles hyphenated base names (kommo-o, ho-oh).
+  for (const base of CACHE.championsLegalList) {
+    if (name === base || name.startsWith(base + '-')) return true;
   }
   return false;
 }
 
 async function initChampionsLegalList() {
-  const cacheKey = 'vgc_opt_champions_legal_list_v2';
+  const cacheKey = 'vgc_opt_champions_legal_list_v3';
   const cached = Storage.get(cacheKey);
   if (cached && cached.length > 0) {
     CACHE.championsLegalList = new Set(cached);
@@ -1432,27 +1441,11 @@ function dexDom() {
 
 // Build the roster for the current STATE.format from the already-loaded caches.
 function buildDexRoster() {
-  let entries;
-  if (STATE.format === 'regulation_ma' && CACHE.championsLegalList) {
-    // Seed the base form of every legal species. This is needed because some
-    // species' default variety carries a suffix isRegulationMALegal doesn't
-    // recognize (aegislash-shield, gourgeist-average, mr.rime, …), so they
-    // wouldn't be picked up by the variety pass below.
-    entries = Array.from(CACHE.championsLegalList)
-      .map(slug => ({ apiName: slug, name: formatDisplayName(slug.replace(/\./g, '-')) }));
-    // Then add every other legal variety (Megas, regional + battle forms) using
-    // the same predicate the calculator's search uses, so the two stay in sync.
-    const seen = new Set(entries.map(e => e.apiName));
-    (CACHE.pokemonList || []).forEach(p => {
-      const v = p.apiName.toLowerCase();
-      if (seen.has(v)) return;
-      if (isRegulationMALegal(v)) {
-        seen.add(v);
-        entries.push({ apiName: p.apiName, name: p.name });
-      }
-    });
-  } else {
-    entries = (CACHE.pokemonList || []).map(p => ({ apiName: p.apiName, name: p.name }));
+  let entries = (CACHE.pokemonList || []).map(p => ({ apiName: p.apiName, name: p.name }));
+  // M-A: keep only legal varieties, using the same predicate the calculator's
+  // search uses so the two views stay in sync.
+  if (STATE.format === 'regulation_ma') {
+    entries = entries.filter(p => isRegulationMALegal(p.apiName));
   }
   entries.sort((a, b) => a.name.localeCompare(b.name));
 
@@ -1461,43 +1454,6 @@ function buildDexRoster() {
   DexPage.roster.forEach(r => { DexPage.byName[r.apiName] = r; });
   DexPage.builtForFormat = STATE.format;
   DexPage.allLoaded = false;
-}
-
-// champions_dex.json stores base-species slugs (e.g. "aegislash", "mr.rime"),
-// but PokéAPI's /pokemon endpoint only resolves concrete varieties
-// ("aegislash-shield", "mr-rime"). Resolve a fetchable default variety via the
-// species endpoint, returning the original slug when no remap is needed.
-async function resolveDefaultVariety(slug) {
-  const norm = slug.replace(/\./g, '-');
-  try {
-    const res = await fetch(`${API_BASE}/pokemon-species/${norm}`);
-    if (!res.ok) return norm !== slug ? norm : null;
-    const data = await res.json();
-    const def = data.varieties.find(v => v.is_default) || data.varieties[0];
-    return def ? def.pokemon.name : (norm !== slug ? norm : null);
-  } catch (err) {
-    return norm !== slug ? norm : null;
-  }
-}
-
-// Like fetchPokemonDetails but tolerant of base-species slugs: on a failed
-// direct fetch it resolves the default variety and caches the result under the
-// original slug so later loads short-circuit.
-async function fetchDexDetails(apiName) {
-  const cacheKey = `poke_details_v6_${apiName}`;
-  const cached = Storage.get(cacheKey);
-  if (cached) return cached;
-  try {
-    return await fetchPokemonDetails(apiName);
-  } catch (err) {
-    const variety = await resolveDefaultVariety(apiName);
-    if (variety && variety !== apiName) {
-      const details = await fetchPokemonDetails(variety);
-      Storage.set(cacheKey, details);
-      return details;
-    }
-    throw err;
-  }
 }
 
 function dexStatusText() {
@@ -1522,7 +1478,7 @@ async function loadDexDetails(apiNames, { rerenderEachBatch = true } = {}) {
     while (cursor < queue.length) {
       const apiName = queue[cursor++];
       try {
-        const details = await fetchDexDetails(apiName);
+        const details = await fetchPokemonDetails(apiName);
         const row = DexPage.byName[apiName];
         if (row) row.details = details;
       } catch (err) {
