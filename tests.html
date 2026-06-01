@@ -673,7 +673,7 @@
 
   <!-- Pokédex pure-logic tests (bst / sortDex / filterDex) -->
   <script type="module">
-    import { bst, sortDex, filterDex, STAT_KEYS } from './src/data/dex.js';
+    import { bst, sortDex, filterDex, STAT_KEYS, isHiddenForm } from './src/data/dex.js';
 
     const results = document.getElementById('results');
     const summary = document.getElementById('summary');
@@ -769,6 +769,26 @@
           const rows = [row('A', stats(1, 1, 1, 1, 1, 1)), row('B', null)];
           return filterDex(rows, '   ').length === 2;
         },
+      },
+      {
+        name: 'isHiddenForm hides ride/gimmick/cosmetic forms',
+        run: () => [
+          'koraidon-sprinting-build', 'miraidon-aquatic-mode',
+          'charizard-gmax', 'eternatus-eternamax', 'marowak-totem',
+          'mimikyu-totem-disguised', 'pikachu-libre', 'pikachu-world-cap',
+          'eevee-starter', 'mimikyu-busted', 'morpeko-hangry',
+          'cramorant-gulping', 'tatsugiri-droopy', 'maushold-family-of-three',
+          'minior-blue', 'minior-red',
+        ].every(isHiddenForm),
+      },
+      {
+        name: 'isHiddenForm keeps real forms and distinct species',
+        run: () => [
+          'charizard', 'charizard-mega-x', 'ninetales-alola', 'rotom-heat',
+          'aegislash-blade', 'gourgeist-small', 'castform-sunny',
+          'minior-red-meteor', 'mr-rime', 'mr-mime', 'iron-hands',
+          'tapu-koko', 'nidoran-f',
+        ].every(n => !isHiddenForm(n)),
       },
     ];
 

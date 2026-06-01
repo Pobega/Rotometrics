@@ -57,3 +57,39 @@ export function filterDex(rows, query) {
     return false;
   });
 }
+
+// Cosmetic forms that are identical (stats + type + ability) to a kept sibling,
+// so they're pure duplicates we don't want cluttering either view.
+const COSMETIC_DUP_FORMS = new Set([
+  'cramorant-gulping', 'cramorant-gorging',
+  'dudunsparce-three-segment',
+  'maushold-family-of-three',
+  'mimikyu-busted',
+  'morpeko-hangry',
+  'tatsugiri-droopy', 'tatsugiri-stretchy',
+]);
+
+// True for non-battle / cosmetic forms that should never appear in any view
+// (ride modes, Gigantamax/Eternamax/Totem, cosplay/cap Pikachu, cosmetic
+// duplicates, and the redundant Minior color forms). This is a name-only filter
+// because the National Dex roster is built before any stats are loaded.
+// Battle-distinct forms (Mega/regional, Aegislash stances, Rotom appliances,
+// Castform weather, Gourgeist sizes, etc.) and distinct species that merely share
+// a hyphen prefix (mr-rime, iron-hands, tapu-koko, nidoran-f) are intentionally
+// NOT matched.
+export function isHiddenForm(apiName) {
+  if (!apiName) return false;
+  const name = apiName.toLowerCase();
+
+  if (/^(koraidon|miraidon)-/.test(name)) return true;        // ride / build modes
+  if (/-gmax$/.test(name)) return true;                        // Gigantamax
+  if (/-eternamax$/.test(name)) return true;                   // Eternamax
+  if (name.includes('-totem')) return true;                    // Totem
+  if (name.startsWith('pikachu-') || name === 'eevee-starter') return true; // cosplay/cap/starter
+  if (COSMETIC_DUP_FORMS.has(name)) return true;
+
+  // Minior: keep only the default meteor form, drop the color duplicates.
+  if (name.startsWith('minior-') && name !== 'minior-red-meteor') return true;
+
+  return false;
+}

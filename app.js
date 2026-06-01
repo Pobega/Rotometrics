@@ -3,7 +3,7 @@
 
 import { calculateStat, calculateStatBoost } from './src/engine/stats.js';
 import { calculateDamageRolls } from './src/engine/damage.js';
-import { bst, sortDex, filterDex } from './src/data/dex.js';
+import { bst, sortDex, filterDex, isHiddenForm } from './src/data/dex.js';
 import { DOM } from './src/ui/dom.js';
 import {
   getTypeBgClass,
@@ -504,6 +504,7 @@ function bindAutocomplete(inputEl, resultsEl, spinnerEl, callback) {
     }
 
     let matches = CACHE.pokemonList.filter(p => p.name.toLowerCase().includes(q));
+    matches = matches.filter(p => !isHiddenForm(p.apiName));
 
     if (STATE.format === 'regulation_ma') {
       matches = matches.filter(p => isRegulationMALegal(p.apiName));
@@ -1442,7 +1443,11 @@ function dexDom() {
 
 // Build the roster for the current STATE.format from the already-loaded caches.
 function buildDexRoster() {
-  let entries = (CACHE.pokemonList || []).map(p => ({ apiName: p.apiName, name: p.name }));
+  // Drop non-battle / cosmetic forms from every view (ride modes, Gmax/Totem,
+  // cosplay Pikachu, cosmetic duplicates, redundant Minior colors).
+  let entries = (CACHE.pokemonList || [])
+    .filter(p => !isHiddenForm(p.apiName))
+    .map(p => ({ apiName: p.apiName, name: p.name }));
   // M-A: keep only legal varieties, using the same predicate the calculator's
   // search uses so the two views stay in sync.
   if (STATE.format === 'regulation_ma') {
