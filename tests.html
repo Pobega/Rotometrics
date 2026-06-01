@@ -252,6 +252,38 @@
         modifiers: {},
         expected: { min: 63, max: 75 },
       },
+      {
+        name: 'Fluffy still halves physical damage (regression)',
+        attacker: ATTACKER(),
+        defender: DEFENDER({ ability: 'fluffy' }),
+        move: TACKLE,
+        modifiers: {},
+        expected: { min: 31, max: 37 },
+      },
+      {
+        name: 'Fluffy doubles Fire damage taken',
+        attacker: ATTACKER(),
+        defender: DEFENDER({ ability: 'fluffy' }),
+        move: { ...TACKLE, type: 'Fire', category: 'special' },
+        modifiers: {},
+        expected: { min: 56, max: 66 },
+      },
+      {
+        name: 'Dry Skin increases Fire damage to 1.25x',
+        attacker: ATTACKER(),
+        defender: DEFENDER({ ability: 'dry-skin' }),
+        move: EMBER,
+        modifiers: {},
+        expected: { min: 52, max: 62 },
+      },
+      {
+        name: 'Dry Skin makes the defender immune to Water',
+        attacker: ATTACKER(),
+        defender: DEFENDER({ ability: 'dry-skin' }),
+        move: WATER_HIT,
+        modifiers: {},
+        expected: { min: 0, max: 0 },
+      },
 
       // -------- Items --------
       {

@@ -55,12 +55,13 @@ const OFFENSIVE_VGC_ABILITIES = [
 const DEFENSIVE_VGC_ABILITIES = [
   { apiName: 'multiscale', name: 'Multiscale (0.5x full HP)' },
   { apiName: 'shadow-shield', name: 'Shadow Shield (0.5x full HP)' },
-  { apiName: 'fluffy', name: 'Fluffy (0.5x Contact Physical)' },
+  { apiName: 'fluffy', name: 'Fluffy (0.5x Contact Physical, 2x Fire)' },
   { apiName: 'ice-scales', name: 'Ice Scales (0.5x Special)' },
   { apiName: 'water-bubble', name: 'Water Bubble (0.5x Fire)' },
   { apiName: 'thick-fat', name: 'Thick Fat (0.5x Fire & Ice)' },
   { apiName: 'heatproof', name: 'Heatproof (0.5x Fire)' },
   { apiName: 'purifying-salt', name: 'Purifying Salt (0.5x Ghost)' },
+  { apiName: 'dry-skin', name: 'Dry Skin (1.25x Fire, immune Water)' },
   { apiName: 'filter', name: 'Filter (0.75x super-effective)' },
   { apiName: 'solid-rock', name: 'Solid Rock (0.75x super-effective)' },
   { apiName: 'prism-armor', name: 'Prism Armor (0.75x super-effective)' }
