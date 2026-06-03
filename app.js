@@ -1654,7 +1654,7 @@ function dexDom() {
     header: document.getElementById('dex-header'),
     regBadge: document.getElementById('dex-regulation-badge'),
     mobileOverlay: document.getElementById('mobile-floating-overlay'),
-    desktopResultsBar: document.getElementById('desktop-results-bar')
+    desktopResultsBar: document.getElementById('results-hud')
   };
   return DexPage.dom;
 }
