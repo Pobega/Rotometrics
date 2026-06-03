@@ -911,15 +911,23 @@ function updateLiveStats() {
   DOM.defenderEvSpeVal.textContent = STATE.defender.sps.spe;
   DOM.defenderEvSum.textContent = `Used: ${defenderSPSum}/66 SP`;
 
-  // Turn-order chips (the full banner was removed; the HUD/mobile chips carry speed now).
+  // Turn-order chips (the full banner was removed; the HUD/mobile chips carry speed
+  // now). Always framed around the mode's own Pokémon (the attacker in offense mode,
+  // the defender in survival mode): green when it moves first, red when it moves
+  // second — i.e. green is always the favorable turn order for that Pokémon.
   if (!STATE.attacker.name || !STATE.defender.name) {
     setSpeedChips("Awaiting Speed", "slate");
-  } else if (finalAttackerSpe > finalDefenderSpe) {
-    setSpeedChips("Attacker Moves 1st", "emerald");
-  } else if (finalDefenderSpe > finalAttackerSpe) {
-    setSpeedChips("Attacker Moves 2nd", "red");
   } else {
-    setSpeedChips("Speed Tie", "amber");
+    const survival = STATE.mode === 'survival';
+    const subjectName = survival ? STATE.defender.name : STATE.attacker.name;
+    const subjectSpe = survival ? finalDefenderSpe : finalAttackerSpe;
+    const otherSpe = survival ? finalAttackerSpe : finalDefenderSpe;
+    if (subjectSpe === otherSpe) {
+      setSpeedChips("Speed Tie", "amber");
+    } else {
+      const first = subjectSpe > otherSpe;
+      setSpeedChips(`${subjectName} moves ${first ? '1st' : '2nd'}`, first ? "emerald" : "red");
+    }
   }
 
   // Dynamic Presets Dropdowns Synchronization
@@ -977,7 +985,7 @@ const RESULT_TONES = {
 const RESULT_VIEWS = [
   {
     matchup: DOM.mobOverlayMatchup, move: DOM.mobOverlayMove, pct: DOM.mobOverlayPct,
-    dmg: DOM.mobOverlayDamage, badge: DOM.mobOverlayBadge,
+    badge: DOM.mobOverlayBadge,
     badgeBase: 'h-8 px-3 rounded-lg flex items-center justify-center text-[10px] font-black uppercase select-none tracking-wider border',
     barMin: DOM.mobOverlayBarMin, barMax: DOM.mobOverlayBarMax,
     icon: DOM.mobOverlayIcon, iconWrap: DOM.mobOverlayIconWrap,
@@ -986,7 +994,7 @@ const RESULT_VIEWS = [
   },
   {
     matchup: DOM.resMatchup, move: DOM.resMove, pct: DOM.resPct,
-    dmg: DOM.resDmg, badge: DOM.resBadge,
+    badge: DOM.resBadge,
     badgeBase: 'h-10 px-4 rounded-lg flex items-center justify-center text-sm font-black uppercase select-none tracking-wider border',
     barMin: DOM.resBarMin, barMax: DOM.resBarMax,
     icon: DOM.resModeIcon, iconWrap: DOM.resModeIconWrap,
@@ -1042,7 +1050,7 @@ function updateResultSummary(minDamage, maxDamage) {
   if (!STATE.attacker.name || !STATE.defender.name) {
     model = {
       matchup: 'Awaiting Selection...', move: 'Select both slots to calculate',
-      pct: '0.0% - 0.0%', dmg: '0 - 0 Dmg',
+      pct: '0.0% - 0.0%',
       verdict: { label: 'Awaiting', tone: 'slate', roll: false }, minFill: 0, maxFill: 0,
     };
   } else {
@@ -1053,7 +1061,6 @@ function updateResultSummary(minDamage, maxDamage) {
       matchup: `${STATE.attacker.name} vs ${STATE.defender.name}`,
       move: `${STATE.move.name} (${STATE.move.power} BP)`,
       pct: `${minPct.toFixed(1)}% - ${maxPct.toFixed(1)}%`,
-      dmg: `${minDamage} - ${maxDamage} Dmg`,
       verdict: computeVerdict(STATE.mode, minDamage, maxDamage, finalHp),
       minFill: Math.min(100, minPct),
       maxFill: Math.min(100, maxPct),
@@ -1076,7 +1083,6 @@ function updateResultSummary(minDamage, maxDamage) {
     v.matchup.textContent = model.matchup;
     v.move.textContent = model.move;
     v.pct.textContent = model.pct;
-    v.dmg.textContent = model.dmg;
     v.badge.innerHTML = verdictBadgeHTML(model.verdict);
     v.badge.className = `${v.badgeBase} ${RESULT_TONES[model.verdict.tone]}`;
 

@@ -109,7 +109,6 @@ export const DOM = {
 
   mobOverlayMatchup: document.getElementById('mob-overlay-matchup'),
   mobOverlayMove: document.getElementById('mob-overlay-move'),
-  mobOverlayDamage: document.getElementById('mob-overlay-damage'),
   mobOverlayPct: document.getElementById('mob-overlay-pct'),
   mobOverlayBadge: document.getElementById('mob-overlay-badge'),
   mobOverlaySpeed: document.getElementById('mob-overlay-speed'),
@@ -122,7 +121,6 @@ export const DOM = {
   resMatchup: document.getElementById('res-matchup'),
   resMove: document.getElementById('res-move'),
   resPct: document.getElementById('res-pct'),
-  resDmg: document.getElementById('res-dmg'),
   resBadge: document.getElementById('res-badge'),
   resSpeed: document.getElementById('res-speed'),
   resBarMin: document.getElementById('res-bar-min'),
