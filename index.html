@@ -91,11 +91,15 @@
     </div>
   </header>
 
-  <!-- Pinned Desktop Results HUD (focal damage telemetry; visible only on lg+).
-       Lives outside #page-calculator so it can be toggled with the page switch. -->
-  <div id="desktop-results-bar" class="hidden lg:block sticky top-0 z-40 bg-slate-900/95 backdrop-blur-md border-b border-slate-700/80 shadow-[0_12px_30px_rgba(0,0,0,0.45)]">
-    <!-- top accent line -->
-    <div class="h-[3px] w-full bg-gradient-to-r from-red-500 via-amber-500 to-rose-500"></div>
+  <!-- Desktop damage HUD. A self-contained card above the calculator grid that
+       sticks to the top of the viewport (floating, with a small gap) once you scroll
+       past it. Visible on lg+ only. Kept outside #page-calculator so it can stay
+       pinned across the whole scroll. -->
+  <div id="results-hud" class="hidden lg:block sticky top-3 lg:top-4 z-40 mt-5 lg:mt-6">
+    <div id="results-hud-inner" class="max-w-[1440px] mx-auto px-5 lg:px-6">
+      <div id="desktop-results-bar" class="rounded-2xl border border-slate-700/80 shadow-xl overflow-hidden bg-slate-900/95 backdrop-blur-md">
+        <!-- top accent line -->
+        <div class="h-[3px] w-full bg-gradient-to-r from-red-500 via-amber-500 to-rose-500"></div>
 
     <div class="max-w-[1440px] mx-auto px-6 py-3 flex items-center justify-between gap-6">
 
@@ -136,6 +140,8 @@
         <!-- guaranteed min-roll (solid) -->
         <div id="res-bar-min" class="absolute inset-y-0 left-0 transition-all duration-300" style="width:0%"></div>
       </div>
+    </div>
+  </div>
     </div>
   </div>
 
