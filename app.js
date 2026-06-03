@@ -1018,11 +1018,11 @@ function setSpeedText(label, tone) {
   const toneCls = SPEED_TEXT_TONES[tone] || SPEED_TEXT_TONES.slate;
   if (DOM.mobOverlaySpeed) {
     DOM.mobOverlaySpeed.textContent = label;
-    DOM.mobOverlaySpeed.className = `text-[10px] font-extrabold uppercase tracking-wider leading-none ${toneCls}`;
+    DOM.mobOverlaySpeed.className = `text-[10px] font-extrabold tracking-wide leading-none ${toneCls}`;
   }
   if (DOM.resSpeed) {
     DOM.resSpeed.textContent = label;
-    DOM.resSpeed.className = `text-[11px] font-extrabold uppercase tracking-wider leading-none ${toneCls}`;
+    DOM.resSpeed.className = `text-[11px] font-extrabold tracking-wide leading-none ${toneCls}`;
   }
 }
 
