@@ -113,6 +113,10 @@ export const DOM = {
   mobOverlayPct: document.getElementById('mob-overlay-pct'),
   mobOverlayBadge: document.getElementById('mob-overlay-badge'),
   mobOverlaySpeed: document.getElementById('mob-overlay-speed'),
+  mobOverlayBarMin: document.getElementById('mob-res-bar-min'),
+  mobOverlayBarMax: document.getElementById('mob-res-bar-max'),
+  mobOverlayIcon: document.getElementById('mob-res-mode-icon'),
+  mobOverlayIconWrap: document.getElementById('mob-res-mode-icon-wrap'),
 
   // Desktop pinned results HUD
   resMatchup: document.getElementById('res-matchup'),

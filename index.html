@@ -922,28 +922,44 @@
   </main>
 
   <!-- Premium Mobile Sticky Floating Damage Overlay (Visible ONLY on mobile < lg width!) -->
-  <div id="mobile-floating-overlay" class="lg:hidden fixed bottom-0 left-0 right-0 z-[999] bg-slate-900/96 backdrop-blur-md border-t border-slate-700 px-5 py-4 flex items-center justify-between gap-3.5 shadow-[0_-10px_35px_rgba(0,0,0,0.65)] transition-transform duration-300 text-left">
-    
-    <!-- Left: Profile & Move (Spacious) -->
-    <div class="flex flex-col min-w-0">
-      <div class="flex items-center gap-2.5 leading-none">
-        <span class="text-[10px] font-extrabold text-slate-500 uppercase tracking-wider">VGC Live Tracker</span>
-        <span id="mob-overlay-speed" class="text-[8px] font-black px-2 py-0.5 rounded uppercase font-mono select-none tracking-wider bg-slate-800 text-slate-400 border border-slate-700 border">Awaiting Speed</span>
+  <div id="mobile-floating-overlay" class="lg:hidden fixed bottom-0 left-0 right-0 z-[999] bg-slate-900/96 backdrop-blur-md border-t border-slate-700 px-5 py-3.5 flex flex-col gap-2.5 shadow-[0_-10px_35px_rgba(0,0,0,0.65)] transition-transform duration-300 text-left">
+
+    <div class="flex items-center justify-between gap-3.5">
+      <!-- Left: mode icon + Profile & Move -->
+      <div class="flex items-center gap-2.5 min-w-0">
+        <div id="mob-res-mode-icon-wrap" class="flex items-center justify-center w-8 h-8 rounded-lg bg-amber-950/40 border border-amber-900/40 text-amber-400 shrink-0 shadow-inner">
+          <i id="mob-res-mode-icon" class="fa-solid fa-hand-fist text-xs"></i>
+        </div>
+        <div class="flex flex-col min-w-0">
+          <div class="flex items-center gap-2.5 leading-none">
+            <span id="mob-overlay-speed" class="text-[8px] font-black px-2 py-0.5 rounded uppercase font-mono select-none tracking-wider bg-slate-800 text-slate-400 border border-slate-700">Awaiting Speed</span>
+          </div>
+          <h4 id="mob-overlay-matchup" class="text-xs font-black text-slate-100 truncate leading-tight mt-1.5">Awaiting Selection...</h4>
+          <p id="mob-overlay-move" class="text-[10px] font-bold text-amber-400 truncate leading-none mt-1">Select both slots to calculate</p>
+        </div>
       </div>
-      <h4 id="mob-overlay-matchup" class="text-xs font-black text-slate-100 truncate leading-tight mt-1.5">Awaiting Selection...</h4>
-      <p id="mob-overlay-move" class="text-[10px] font-bold text-amber-400 truncate leading-none mt-1">Select both slots to calculate</p>
+
+      <!-- Right: Damage & KO Verdict -->
+      <div class="flex items-center gap-3 shrink-0 text-right">
+        <div class="flex flex-col justify-center">
+          <span id="mob-overlay-pct" class="text-sm font-mono font-black text-slate-100 leading-tight">0.0% - 0.0%</span>
+          <span id="mob-overlay-damage" class="text-[10px] font-extrabold text-slate-400 leading-none mt-1.5">0 - 0 Dmg</span>
+        </div>
+
+        <!-- Glowing status badge -->
+        <div id="mob-overlay-badge" class="h-8 px-3 rounded-lg flex items-center justify-center text-[10px] font-black uppercase bg-slate-800 text-slate-400 border border-slate-700 select-none tracking-wider">
+          Awaiting
+        </div>
+      </div>
     </div>
-    
-    <!-- Right: Damage & KO Verdict -->
-    <div class="flex items-center gap-3 shrink-0 text-right">
-      <div class="flex flex-col justify-center">
-        <span id="mob-overlay-pct" class="text-sm font-mono font-black text-slate-100 leading-tight">0.0% - 0.0%</span>
-        <span id="mob-overlay-damage" class="text-[10px] font-extrabold text-slate-400 leading-none mt-1.5">0 - 0 Dmg</span>
-      </div>
-      
-      <!-- Glowing status badge -->
-      <div id="mob-overlay-badge" class="h-8 px-3 rounded-lg flex items-center justify-center text-[10px] font-black uppercase bg-slate-800 text-slate-400 border border-slate-700 select-none tracking-wider">
-        Awaiting
+
+    <!-- Damage-roll range gauge (mirrors the desktop HUD): solid floor = guaranteed
+         (min roll), faded extension = up to the high roll. -->
+    <div class="flex items-center gap-2.5">
+      <span class="text-[8px] font-extrabold text-slate-500 uppercase tracking-[0.18em] shrink-0 leading-none">% of HP</span>
+      <div class="relative flex-1 h-1.5 rounded-full bg-slate-800/80 overflow-hidden ring-1 ring-slate-700/50">
+        <div id="mob-res-bar-max" class="absolute inset-y-0 left-0 opacity-40 transition-all duration-300" style="width:0%"></div>
+        <div id="mob-res-bar-min" class="absolute inset-y-0 left-0 transition-all duration-300" style="width:0%"></div>
       </div>
     </div>
   </div>

@@ -978,11 +978,19 @@ const RESULT_VIEWS = [
     matchup: DOM.mobOverlayMatchup, move: DOM.mobOverlayMove, pct: DOM.mobOverlayPct,
     dmg: DOM.mobOverlayDamage, badge: DOM.mobOverlayBadge,
     badgeBase: 'h-8 px-3 rounded-lg flex items-center justify-center text-[10px] font-black uppercase select-none tracking-wider border',
+    barMin: DOM.mobOverlayBarMin, barMax: DOM.mobOverlayBarMax,
+    icon: DOM.mobOverlayIcon, iconWrap: DOM.mobOverlayIconWrap,
+    iconBase: 'fa-solid text-xs',
+    iconWrapBase: 'flex items-center justify-center w-8 h-8 rounded-lg shrink-0 shadow-inner border',
   },
   {
     matchup: DOM.resMatchup, move: DOM.resMove, pct: DOM.resPct,
     dmg: DOM.resDmg, badge: DOM.resBadge,
     badgeBase: 'h-10 px-4 rounded-lg flex items-center justify-center text-sm font-black uppercase select-none tracking-wider border',
+    barMin: DOM.resBarMin, barMax: DOM.resBarMax,
+    icon: DOM.resModeIcon, iconWrap: DOM.resModeIconWrap,
+    iconBase: 'fa-solid',
+    iconWrapBase: 'flex items-center justify-center w-10 h-10 rounded-xl shrink-0 shadow-inner border',
   },
 ];
 
@@ -1049,6 +1057,17 @@ function updateResultSummary(minDamage, maxDamage) {
     };
   }
 
+  // Mode-driven bits, shared by every view: the identity icon (shield when sizing
+  // defensive bulk, fist when sizing offense; accent matches the mode's tab) and the
+  // roll-gauge tier color (keyed off the high roll's lethality).
+  const survival = STATE.mode === 'survival';
+  const iconGlyph = survival ? 'fa-shield-halved' : 'fa-hand-fist';
+  const iconTone = survival ? 'bg-blue-950/40 border-blue-900/40 text-blue-400'
+    : 'bg-amber-950/40 border-amber-900/40 text-amber-400';
+  const gaugeTier = model.maxFill >= 100 ? 'bg-gradient-to-r from-red-600 to-rose-600'
+    : model.maxFill >= 50 ? 'bg-gradient-to-r from-amber-500 to-yellow-500'
+    : 'bg-gradient-to-r from-green-500 to-emerald-500';
+
   for (const v of RESULT_VIEWS) {
     if (!v.matchup) continue;
     v.matchup.textContent = model.matchup;
@@ -1057,28 +1076,19 @@ function updateResultSummary(minDamage, maxDamage) {
     v.dmg.textContent = model.dmg;
     v.badge.innerHTML = verdictBadgeHTML(model.verdict);
     v.badge.className = `${v.badgeBase} ${RESULT_TONES[model.verdict.tone]}${model.verdict.pulse ? ' animate-pulse' : ''}`;
-  }
 
-  // HUD identity icon tracks the active mode: a shield when sizing defensive bulk,
-  // an impact burst when sizing offense. Container accent matches the mode's tab.
-  if (DOM.resModeIcon && DOM.resModeIconWrap) {
-    const survival = STATE.mode === 'survival';
-    DOM.resModeIcon.className = `fa-solid ${survival ? 'fa-shield-halved' : 'fa-hand-fist'}`;
-    DOM.resModeIconWrap.className = 'flex items-center justify-center w-10 h-10 rounded-xl shrink-0 shadow-inner border ' + (
-      survival ? 'bg-blue-950/40 border-blue-900/40 text-blue-400'
-      : 'bg-amber-950/40 border-amber-900/40 text-amber-400');
-  }
+    if (v.icon && v.iconWrap) {
+      v.icon.className = `${v.iconBase} ${iconGlyph}`;
+      v.iconWrap.className = `${v.iconWrapBase} ${iconTone}`;
+    }
 
-  // Desktop HUD roll gauge: solid floor = guaranteed (min roll), faded extension =
-  // up to the max roll. Both share a lethality tier keyed off the high roll.
-  if (DOM.resBarMin && DOM.resBarMax) {
-    const tier = model.maxFill >= 100 ? 'bg-gradient-to-r from-red-600 to-rose-600'
-      : model.maxFill >= 50 ? 'bg-gradient-to-r from-amber-500 to-yellow-500'
-      : 'bg-gradient-to-r from-green-500 to-emerald-500';
-    DOM.resBarMax.style.width = `${model.maxFill}%`;
-    DOM.resBarMax.className = `absolute inset-y-0 left-0 opacity-40 transition-all duration-300 ${tier}`;
-    DOM.resBarMin.style.width = `${model.minFill}%`;
-    DOM.resBarMin.className = `absolute inset-y-0 left-0 transition-all duration-300 ${tier}`;
+    // Roll gauge: solid floor = guaranteed (min roll), faded extension = up to max.
+    if (v.barMin && v.barMax) {
+      v.barMax.style.width = `${model.maxFill}%`;
+      v.barMax.className = `absolute inset-y-0 left-0 opacity-40 transition-all duration-300 ${gaugeTier}`;
+      v.barMin.style.width = `${model.minFill}%`;
+      v.barMin.className = `absolute inset-y-0 left-0 transition-all duration-300 ${gaugeTier}`;
+    }
   }
 }
 
