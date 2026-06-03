@@ -187,8 +187,13 @@
             </div>
           </div>
           
-          <!-- Stats Bars Grid -->
-          <div id="attacker-stats-bars" class="hidden border-t border-slate-700 pt-2 flex flex-col gap-1 text-[9px] w-full">
+          <!-- Base Stats (collapsed pullout) -->
+          <details class="group border-t border-slate-700 pt-2 w-full">
+            <summary class="flex items-center justify-between cursor-pointer select-none list-none text-[9px] font-extrabold text-slate-400 uppercase tracking-wider [&::-webkit-details-marker]:hidden">
+              <span><i class="fa-solid fa-chart-simple text-[8px] mr-1 text-slate-500"></i> Base Stats</span>
+              <i class="fa-solid fa-chevron-down text-[8px] text-slate-500 transition-transform duration-200 group-open:rotate-180"></i>
+            </summary>
+          <div id="attacker-stats-bars" class="hidden flex flex-col gap-1 text-[9px] w-full mt-2">
             <div class="flex items-center gap-2">
               <span class="w-7 font-extrabold text-slate-400 uppercase text-[8px]">HP</span>
               <span id="attacker-bar-hp-val" class="w-6 text-right font-bold font-mono text-slate-300">0</span>
@@ -232,6 +237,7 @@
               </div>
             </div>
           </div>
+          </details>
         </div>
       </div>
 
@@ -671,8 +677,13 @@
             </div>
           </div>
           
-          <!-- Stats Bars Grid -->
-          <div id="defender-stats-bars" class="hidden border-t border-slate-700 pt-2 flex flex-col gap-1 text-[9px]">
+          <!-- Base Stats (collapsed pullout) -->
+          <details class="group border-t border-slate-700 pt-2 w-full">
+            <summary class="flex items-center justify-between cursor-pointer select-none list-none text-[9px] font-extrabold text-slate-400 uppercase tracking-wider [&::-webkit-details-marker]:hidden">
+              <span><i class="fa-solid fa-chart-simple text-[8px] mr-1 text-slate-500"></i> Base Stats</span>
+              <i class="fa-solid fa-chevron-down text-[8px] text-slate-500 transition-transform duration-200 group-open:rotate-180"></i>
+            </summary>
+          <div id="defender-stats-bars" class="hidden flex flex-col gap-1 text-[9px] mt-2">
             <div class="flex items-center gap-2">
               <span class="w-7 font-extrabold text-slate-400 uppercase text-[8px]">HP</span>
               <span id="defender-bar-hp-val" class="w-6 text-right font-bold font-mono text-slate-300">0</span>
@@ -716,6 +727,7 @@
               </div>
             </div>
           </div>
+          </details>
         </div>
       </div>
 
