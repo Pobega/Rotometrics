@@ -7,6 +7,7 @@ import { STATE, CACHE } from '../state.js';
 import { bst, sortDex, filterDex, isHiddenForm, isRegulationMALegal } from '../data/dex.js';
 import { fetchPokemonDetails, initPokemonList, initChampionsLegalList } from '../api/pokeapi.js';
 import { getTypeBgClass, setSearchPlaceholders } from './render.js';
+import { registerPage } from './page-nav.js';
 
 const DexPage = {
   roster: [],          // [{ apiName, name, details|null }]
@@ -24,35 +25,16 @@ const DexPage = {
 function dexDom() {
   if (DexPage.dom) return DexPage.dom;
   DexPage.dom = {
-    pageCalculator: document.getElementById('page-calculator'),
     pagePokedex: document.getElementById('page-pokedex'),
-    navCalculator: document.getElementById('nav-calculator'),
     navPokedex: document.getElementById('nav-pokedex'),
     search: document.getElementById('dex-search'),
     rows: document.getElementById('dex-rows'),
     status: document.getElementById('dex-status'),
     header: document.getElementById('dex-header'),
-    regBadge: document.getElementById('dex-regulation-badge'),
-    mobileOverlay: document.getElementById('mobile-floating-overlay'),
-    desktopResultsBar: document.getElementById('results-hud'),
-    brandRotom: document.getElementById('brand-rotom'),
-    brandSubtitle: document.getElementById('brand-subtitle')
+    regBadge: document.getElementById('dex-regulation-badge')
   };
   return DexPage.dom;
 }
-
-// The header Rotom swaps form per view: base Rotom drives the calculator, while
-// Wash Rotom (a fan-favourite competitive form) presides over the Pokédex.
-const BRAND_BY_PAGE = {
-  calculator: {
-    sprite: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/versions/generation-v/black-white/animated/479.gif',
-    subtitle: 'VGC Spread Optimizer',
-  },
-  pokedex: {
-    sprite: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/versions/generation-v/black-white/animated/10009.gif',
-    subtitle: 'Pokémon Champions Pokédex',
-  },
-};
 
 // Build the roster for the current STATE.format from the already-loaded caches.
 function buildDexRoster() {
@@ -239,40 +221,6 @@ function observeLazyDexRows() {
   });
 }
 
-function showPage(page) {
-  const dom = dexDom();
-  const activeCls = "text-[9px] sm:text-[10px] font-extrabold uppercase tracking-wider py-1.5 px-2.5 rounded-md transition bg-amber-950/40 text-amber-400 shadow";
-  const idleCls = "text-[9px] sm:text-[10px] font-extrabold uppercase tracking-wider py-1.5 px-2.5 rounded-md transition text-slate-400 hover:text-white";
-
-  // Swap the header Rotom form + tagline to match the active view.
-  const brand = BRAND_BY_PAGE[page] || BRAND_BY_PAGE.calculator;
-  if (dom.brandRotom && dom.brandRotom.getAttribute('src') !== brand.sprite) {
-    dom.brandRotom.src = brand.sprite;
-  }
-  if (dom.brandSubtitle) dom.brandSubtitle.textContent = brand.subtitle;
-
-  if (page === 'pokedex') {
-    dom.pageCalculator.classList.add('hidden');
-    dom.pagePokedex.classList.remove('hidden');
-    dom.navPokedex.className = activeCls;
-    dom.navCalculator.className = idleCls;
-    // The damage-results views (mobile bottom overlay + desktop pinned HUD)
-    // belong to the calculator; hide them so they don't float over the Pokédex.
-    if (dom.mobileOverlay) dom.mobileOverlay.classList.add('hidden');
-    // Bar's base is `hidden lg:block`; use important `!hidden` so removing it
-    // later restores the responsive default instead of revealing it on mobile.
-    if (dom.desktopResultsBar) dom.desktopResultsBar.classList.add('!hidden');
-    openDexPage();
-  } else {
-    dom.pagePokedex.classList.add('hidden');
-    dom.pageCalculator.classList.remove('hidden');
-    dom.navCalculator.className = activeCls;
-    dom.navPokedex.className = idleCls;
-    if (dom.mobileOverlay) dom.mobileOverlay.classList.remove('hidden');
-    if (dom.desktopResultsBar) dom.desktopResultsBar.classList.remove('!hidden');
-  }
-}
-
 // Build + render the dex the first time it's shown (or after a format change).
 async function openDexPage() {
   if (DexPage.builtForFormat === STATE.format && DexPage.roster.length > 0) {
@@ -313,8 +261,11 @@ export function initDexPage() {
   const dom = dexDom();
   if (!dom.navPokedex) return;
 
-  dom.navPokedex.addEventListener('click', () => showPage('pokedex'));
-  dom.navCalculator.addEventListener('click', () => showPage('calculator'));
+  registerPage('pokedex', {
+    navBtn: dom.navPokedex,
+    pageEl: dom.pagePokedex,
+    onShow: openDexPage
+  });
 
   let searchTimer = null;
   dom.search.addEventListener('input', (e) => {

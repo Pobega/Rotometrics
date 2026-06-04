@@ -91,6 +91,9 @@
           <button id="nav-pokedex" class="text-[9px] sm:text-[10px] font-extrabold uppercase tracking-wider py-1.5 px-2.5 rounded-md transition text-slate-400 hover:text-white">
             <i class="fa-solid fa-book sm:hidden"></i><span class="hidden sm:inline">Pokédex</span>
           </button>
+          <button id="nav-attackdex" class="text-[9px] sm:text-[10px] font-extrabold uppercase tracking-wider py-1.5 px-2.5 rounded-md transition text-slate-400 hover:text-white">
+            <i class="fa-solid fa-burst sm:hidden"></i><span class="hidden sm:inline">Attackdex</span>
+          </button>
         </div>
         <!-- Format Selector (Dropdown select styled compactly) -->
         <div id="format-pill" class="flex items-center gap-1.5 bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-[10px] font-bold text-slate-300 transition-colors">
@@ -938,6 +941,85 @@
           </div>
           <!-- Data rows injected here -->
           <div id="dex-rows" class="flex flex-col"></div>
+        </div>
+      </div>
+
+    </section>
+  </main>
+
+  <!-- Attackdex: a move browser parallel to the Pokédex. Hidden by default;
+       toggled via #nav-attackdex through the shared page-nav controller. -->
+  <main id="page-attackdex" class="hidden max-w-[1440px] mx-auto p-5 lg:p-6 pb-28 lg:pb-6">
+    <section class="bg-slate-950/20 border border-slate-800/80 rounded-3xl p-5 lg:p-5 flex flex-col gap-4">
+
+      <!-- Title + Search -->
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-700 pb-3">
+        <h2 class="text-sm font-black text-amber-400 uppercase tracking-wider flex items-center gap-2">
+          <i class="fa-solid fa-burst text-xs"></i> Attackdex
+          <span id="attackdex-status" class="text-[10px] font-bold text-slate-500 normal-case tracking-normal"></span>
+        </h2>
+        <div class="relative w-full sm:w-72">
+          <input type="text" id="attackdex-search" placeholder="Search name or effect (e.g. burn)…"
+            class="w-full bg-slate-900 border border-slate-700 rounded-xl py-2 pl-9 pr-4 text-xs text-slate-100 focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition">
+          <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-slate-500 text-[10px]"></i>
+        </div>
+      </div>
+
+      <!-- Filters: Type, Category, Spread -->
+      <div class="flex flex-wrap items-center gap-2">
+        <div class="flex items-center gap-1.5 bg-slate-900 border border-slate-700 rounded-xl px-3 py-1.5">
+          <span class="text-[9px] font-extrabold text-slate-500 uppercase tracking-wider">Type</span>
+          <select id="attackdex-type" class="bg-transparent text-[11px] font-bold text-slate-200 focus:outline-none cursor-pointer">
+            <option value="" class="bg-slate-800">All</option>
+            <option value="Normal" class="bg-slate-800">Normal</option>
+            <option value="Fire" class="bg-slate-800">Fire</option>
+            <option value="Water" class="bg-slate-800">Water</option>
+            <option value="Grass" class="bg-slate-800">Grass</option>
+            <option value="Electric" class="bg-slate-800">Electric</option>
+            <option value="Ice" class="bg-slate-800">Ice</option>
+            <option value="Fighting" class="bg-slate-800">Fighting</option>
+            <option value="Poison" class="bg-slate-800">Poison</option>
+            <option value="Ground" class="bg-slate-800">Ground</option>
+            <option value="Flying" class="bg-slate-800">Flying</option>
+            <option value="Psychic" class="bg-slate-800">Psychic</option>
+            <option value="Bug" class="bg-slate-800">Bug</option>
+            <option value="Rock" class="bg-slate-800">Rock</option>
+            <option value="Ghost" class="bg-slate-800">Ghost</option>
+            <option value="Dragon" class="bg-slate-800">Dragon</option>
+            <option value="Dark" class="bg-slate-800">Dark</option>
+            <option value="Steel" class="bg-slate-800">Steel</option>
+            <option value="Fairy" class="bg-slate-800">Fairy</option>
+          </select>
+        </div>
+        <div class="flex items-center gap-1.5 bg-slate-900 border border-slate-700 rounded-xl px-3 py-1.5">
+          <span class="text-[9px] font-extrabold text-slate-500 uppercase tracking-wider">Category</span>
+          <select id="attackdex-category" class="bg-transparent text-[11px] font-bold text-slate-200 focus:outline-none cursor-pointer">
+            <option value="" class="bg-slate-800">All</option>
+            <option value="physical" class="bg-slate-800">Physical</option>
+            <option value="special" class="bg-slate-800">Special</option>
+            <option value="status" class="bg-slate-800">Status</option>
+          </select>
+        </div>
+        <button id="attackdex-spread" type="button" aria-pressed="false"
+          class="shrink-0 text-[10px] font-extrabold uppercase tracking-wider py-2 px-3 rounded-xl transition bg-slate-900 text-slate-400 border border-slate-700 hover:text-white">
+          Spread only
+        </button>
+      </div>
+
+      <!-- Scrollable table -->
+      <div class="overflow-x-auto">
+        <div class="min-w-[720px]">
+          <!-- Header row (sortable columns carry data-sort-key) -->
+          <div id="attackdex-header" class="grid grid-cols-[minmax(140px,1.4fr)_72px_72px_48px_40px_minmax(220px,2.8fr)] items-center gap-2 px-3 py-2 text-[9px] font-extrabold uppercase tracking-wider text-slate-400 border-b border-slate-700">
+            <button data-sort-key="name" class="attackdex-sort uppercase text-left hover:text-white transition">Move <span class="attackdex-arrow"></span></button>
+            <span class="text-left">Type</span>
+            <span class="text-left">Category</span>
+            <button data-sort-key="power" class="attackdex-sort uppercase text-left hover:text-white transition">Power <span class="attackdex-arrow"></span></button>
+            <button data-sort-key="pp" class="attackdex-sort uppercase text-left hover:text-white transition">PP <span class="attackdex-arrow"></span></button>
+            <span class="text-left">Effect</span>
+          </div>
+          <!-- Data rows injected here -->
+          <div id="attackdex-rows" class="flex flex-col"></div>
         </div>
       </div>
 

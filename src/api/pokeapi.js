@@ -165,6 +165,21 @@ export async function fetchPokemonDetails(apiName) {
   return details;
 }
 
+// Pull the English rules text for a move, preferring the terse short_effect and
+// substituting the move's effect chance into PokéAPI's $effect_chance token so
+// strings like "Has a $effect_chance% chance to burn" read correctly. Used for
+// the Attackdex's free-text search ("burn", "paralyze", …) and its description
+// column. Returns '' when no English entry exists.
+function moveDescription(data) {
+  const entry = (data.effect_entries || []).find(e => e.language && e.language.name === 'en');
+  if (!entry) return '';
+  let text = entry.short_effect || entry.effect || '';
+  if (data.effect_chance != null) {
+    text = text.replace(/\$effect_chance/g, data.effect_chance);
+  }
+  return text.trim();
+}
+
 export async function fetchMoveDetails(moveApiName) {
   const key = cacheKey(`move_details_${moveApiName}`);
   const cached = Storage.get(key);
@@ -178,9 +193,41 @@ export async function fetchMoveDetails(moveApiName) {
     apiName: data.name,
     power: data.power || 0,
     type: formatDisplayName(data.type.name),
-    category: data.damage_class.name
+    category: data.damage_class.name,
+    // Attackdex fields. `pp` and `target` drive the PP sort and the Spread
+    // filter; `desc` backs the description column + free-text search.
+    pp: data.pp ?? null,
+    target: data.target ? data.target.name : null,
+    desc: moveDescription(data)
   };
 
   Storage.set(key, details);
   return details;
+}
+
+// Loads the full move name list (PokéAPI's /move index, ~900 entries) into
+// CACHE.allMoves as [{ name, apiName }], cached in localStorage. Only names are
+// fetched here; the Attackdex lazy-loads each move's stats via fetchMoveDetails
+// as rows scroll in (or eagerly before a filter/sort that needs them).
+export async function initAllMovesList() {
+  const key = cacheKey('all_moves_list');
+  const cached = Storage.get(key);
+  if (cached && cached.length > 0) {
+    CACHE.allMoves = cached;
+    return;
+  }
+
+  try {
+    const res = await fetch(`${API_BASE}/move?limit=2000`);
+    const data = await res.json();
+    const list = (data.results || []).map(m => ({
+      name: formatDisplayName(m.name),
+      apiName: m.name
+    }));
+    CACHE.allMoves = list;
+    Storage.set(key, list);
+  } catch (err) {
+    console.error('Failed to fetch the move list', err);
+    CACHE.allMoves = [];
+  }
 }
