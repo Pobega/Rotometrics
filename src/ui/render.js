@@ -28,6 +28,16 @@ export function getTypeBgClass(type) {
   return TYPE_BG_CLASSES[type] || 'bg-slate-700';
 }
 
+// Reflect the loaded roster size in the calculator's search placeholders. The
+// API module stays DOM-free and returns { count, fallback }; the wording lives
+// here. Called after the roster loads (on startup and when the Pokédex triggers
+// the background fetch).
+export function setSearchPlaceholders({ count, fallback }) {
+  const label = fallback ? 'Fallbacks loaded' : `${count} loaded`;
+  DOM.attackerSearch.placeholder = `Search Attacker (${label})...`;
+  DOM.defenderSearch.placeholder = `Search Defender (${label})...`;
+}
+
 const NATURE_DISPLAY = {
   'neutral': 'Neutral',
   '+atk': '+Atk',

@@ -29,6 +29,7 @@ import {
   updateStatsBars,
   updateDropdownColors,
   updateMoveDetailsVisuals,
+  setSearchPlaceholders,
 } from './src/ui/render.js';
 import { setSpeedText, updateResultSummary } from './src/ui/result-summary.js';
 
@@ -57,13 +58,6 @@ function augmentedState() {
   };
 }
 
-// Reflect the loaded roster size in the search placeholders. The API module
-// stays DOM-free and returns { count, fallback }; the UI wording lives here.
-function setSearchPlaceholders({ count, fallback }) {
-  const label = fallback ? 'Fallbacks loaded' : `${count} loaded`;
-  DOM.attackerSearch.placeholder = `Search Attacker (${label})...`;
-  DOM.defenderSearch.placeholder = `Search Defender (${label})...`;
-}
 
 // ==========================================
 // 7. UI WORKFLOW & CONTROLLER BINDING
