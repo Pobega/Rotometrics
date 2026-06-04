@@ -1,31 +1,19 @@
-// PokéAPI plumbing: roster/move fetches plus the localStorage cache wrapper.
+// PokéAPI plumbing: roster/move fetches over the versioned localStorage cache.
 // Kept DOM-free so the data layer can grow (rate limiting, retry, request
 // deduplication, or a test mock) without dragging in UI concerns. The only
 // shared state it touches is CACHE; callers own any DOM the results drive.
+// Every cache key flows through cacheKey() so a single CACHE_VERSION bump
+// invalidates all cached resources at once (see cache.js).
 import { CACHE } from '../state.js';
+import { Storage, cacheKey } from './cache.js';
 
 export const API_BASE = 'https://pokeapi.co/api/v2';
-
-export const Storage = {
-  get: (key) => {
-    try {
-      return JSON.parse(localStorage.getItem(key));
-    } catch (e) {
-      return null;
-    }
-  },
-  set: (key, val) => {
-    try {
-      localStorage.setItem(key, JSON.stringify(val));
-    } catch (e) {}
-  }
-};
 
 // Resolves to { count, fallback }. `count` is the number of entries loaded and
 // `fallback` flags that the network failed and a hardcoded roster was used, so
 // the caller can phrase the search placeholders accordingly.
 export async function initPokemonList() {
-  const cached = Storage.get('vgc_opt_pokemon_list_v3');
+  const cached = Storage.get(cacheKey('pokemon_list'));
   if (cached && cached.length > 0) {
     CACHE.pokemonList = cached;
     return { count: CACHE.pokemonList.length, fallback: false };
@@ -41,7 +29,7 @@ export async function initPokemonList() {
       url: p.url
     }));
 
-    Storage.set('vgc_opt_pokemon_list_v3', CACHE.pokemonList);
+    Storage.set(cacheKey('pokemon_list'), CACHE.pokemonList);
     return { count: CACHE.pokemonList.length, fallback: false };
   } catch (e) {
     console.error('Failed fetching Pokemon list from PokeAPI', e);
@@ -60,8 +48,8 @@ export async function initPokemonList() {
 }
 
 export async function initStatusMovesList() {
-  const cacheKey = 'vgc_opt_status_moves_set_v1';
-  let statusMoves = Storage.get(cacheKey);
+  const key = cacheKey('status_moves_set');
+  let statusMoves = Storage.get(key);
 
   if (!statusMoves) {
     try {
@@ -72,7 +60,7 @@ export async function initStatusMovesList() {
       data.moves.forEach(m => {
         statusMoves[m.name] = true;
       });
-      Storage.set(cacheKey, statusMoves);
+      Storage.set(key, statusMoves);
     } catch (err) {
       console.error("Failed to fetch status moves list", err);
       statusMoves = {};
@@ -86,8 +74,8 @@ export async function initStatusMovesList() {
 // champions_dex.json (not PokéAPI), but shares the same Storage-cache + fallback
 // shape as the roster fetches, so it lives alongside them in the data layer.
 export async function initChampionsLegalList() {
-  const cacheKey = 'vgc_opt_champions_legal_list_v3';
-  const cached = Storage.get(cacheKey);
+  const key = cacheKey('champions_legal_list');
+  const cached = Storage.get(key);
   if (cached && cached.length > 0) {
     CACHE.championsLegalList = new Set(cached);
     return;
@@ -97,7 +85,7 @@ export async function initChampionsLegalList() {
     const res = await fetch('champions_dex.json');
     const data = await res.json();
     CACHE.championsLegalList = new Set(data);
-    Storage.set(cacheKey, data);
+    Storage.set(key, data);
   } catch (err) {
     console.error("Failed to fetch Champions VGC local Pokedex JSON, loading fallback", err);
     // High-fidelity VGC legal fallbacks (Scenario templates!)
@@ -126,8 +114,8 @@ export function formatDisplayName(apiName) {
 }
 
 export async function fetchPokemonDetails(apiName) {
-  const cacheKey = `poke_details_v6_${apiName}`;
-  const cached = Storage.get(cacheKey);
+  const key = cacheKey(`pokemon_details_${apiName}`);
+  const cached = Storage.get(key);
   if (cached) return cached;
 
   const res = await fetch(`${API_BASE}/pokemon/${apiName}`);
@@ -173,13 +161,13 @@ export async function fetchPokemonDetails(apiName) {
     }))
   };
 
-  Storage.set(cacheKey, details);
+  Storage.set(key, details);
   return details;
 }
 
 export async function fetchMoveDetails(moveApiName) {
-  const cacheKey = `move_details_${moveApiName}`;
-  const cached = Storage.get(cacheKey);
+  const key = cacheKey(`move_details_${moveApiName}`);
+  const cached = Storage.get(key);
   if (cached) return cached;
 
   const res = await fetch(`${API_BASE}/move/${moveApiName}`);
@@ -193,6 +181,6 @@ export async function fetchMoveDetails(moveApiName) {
     category: data.damage_class.name
   };
 
-  Storage.set(cacheKey, details);
+  Storage.set(key, details);
   return details;
 }

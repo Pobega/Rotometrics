@@ -15,13 +15,13 @@ import {
 import { DOM } from './src/ui/dom.js';
 import { STATE, CACHE } from './src/state.js';
 import {
-  Storage,
   initPokemonList,
   initStatusMovesList,
   initChampionsLegalList,
   fetchPokemonDetails,
   fetchMoveDetails
 } from './src/api/pokeapi.js';
+import { pruneOldCaches } from './src/api/cache.js';
 import {
   getTypeBgClass,
   createOptionCardHTML,
@@ -1062,6 +1062,8 @@ function initMobileTabbing() {
 }
 
 async function init() {
+  // Sweep stale-version cache entries before any fetch reads or writes them.
+  pruneOldCaches();
   populateDropdowns();
   bindEvents();
   initMobileTabbing();
