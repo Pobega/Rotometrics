@@ -95,3 +95,34 @@ export function isHiddenForm(apiName) {
 
   return false;
 }
+
+// Forms that PokéAPI lists but that are never selectable in Regulation M-A:
+// Gigantamax, Totem, cosplay/cap Pikachu, Eternal Floette, Ash-Greninja
+// (Battle Bond), Let's Go starters, the non-canon "-mega-z" forms
+// (absol/garchomp/lucario), etc.
+const NON_LEGAL_FORMS = [
+  '-totem', '-cap', '-battle-bond', '-gmax', '-eternamax', '-starter',
+  '-cosplay', '-rock-star', '-belle', '-pop-star', '-phd', '-libre',
+  '-eternal', '-mega-z', 'greninja-ash'
+];
+
+// Whether `apiName` is legal in Regulation M-A, given the legal base-species set
+// (a Set of PokéAPI base names, e.g. CACHE.championsLegalList). Pure: the legal
+// set is injected rather than read from module state, so this stays unit-testable.
+export function isRegulationMALegal(apiName, legalList) {
+  if (!apiName) return false;
+  const name = apiName.toLowerCase();
+
+  if (NON_LEGAL_FORMS.some(f => name.includes(f))) return false;
+  if (!legalList) return false;
+
+  // A Pokémon is legal when it IS, or is a form of, a legal base species. PokéAPI
+  // names every variety as "<base>-<form>" (charizard-mega-x, aegislash-shield,
+  // ninetales-alola), and some legal species only exist as such forms. The
+  // trailing-hyphen guard matches those forms without letting a base like "mew"
+  // match "mewtwo", and it handles hyphenated base names (kommo-o, ho-oh).
+  for (const base of legalList) {
+    if (name === base || name.startsWith(base + '-')) return true;
+  }
+  return false;
+}

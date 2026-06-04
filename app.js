@@ -3,7 +3,7 @@
 
 import { calculateStat, calculateStatBoost } from './src/engine/stats.js';
 import { calculateDamageRolls } from './src/engine/damage.js';
-import { bst, sortDex, filterDex, isHiddenForm } from './src/data/dex.js';
+import { bst, sortDex, filterDex, isHiddenForm, isRegulationMALegal } from './src/data/dex.js';
 import { exportMatchup, importMatchup } from './src/data/matchup-text.js';
 import { DOM } from './src/ui/dom.js';
 import { STATE, CACHE } from './src/state.js';
@@ -229,39 +229,6 @@ function optimizeOffensiveEVsWithNatures(attacker, defender, move, modifiers, ta
   return { sp: bestSP, nature: bestNature };
 }
 
-// ==========================================
-// 5. REGULATION M-A RULES CHECKER
-// ==========================================
-
-// Non-legal cosmetic / gimmick / event forms. These share a prefix with a legal
-// base species (so they'd otherwise pass the form check below) but aren't VGC
-// selectable: Gigantamax, Totem, cosplay/cap Pikachu, Eternal Floette,
-// Ash-Greninja (Battle Bond), Let's Go starters, the non-canon "-mega-z" forms
-// (absol/garchomp/lucario), etc.
-const NON_LEGAL_FORMS = [
-  '-totem', '-cap', '-battle-bond', '-gmax', '-eternamax', '-starter',
-  '-cosplay', '-rock-star', '-belle', '-pop-star', '-phd', '-libre',
-  '-eternal', '-mega-z', 'greninja-ash'
-];
-
-function isRegulationMALegal(apiName) {
-  if (!apiName) return false;
-  const name = apiName.toLowerCase();
-
-  if (NON_LEGAL_FORMS.some(f => name.includes(f))) return false;
-  if (!CACHE.championsLegalList) return false;
-
-  // A Pokémon is legal when it IS, or is a form of, a legal base species. PokéAPI
-  // names every variety as "<base>-<form>" (charizard-mega-x, aegislash-shield,
-  // ninetales-alola), and some legal species only exist as such forms. The
-  // trailing-hyphen guard matches those forms without letting a base like "mew"
-  // match "mewtwo", and it handles hyphenated base names (kommo-o, ho-oh).
-  for (const base of CACHE.championsLegalList) {
-    if (name === base || name.startsWith(base + '-')) return true;
-  }
-  return false;
-}
-
 // Reflect the loaded roster size in the search placeholders. The API module
 // stays DOM-free and returns { count, fallback }; the UI wording lives here.
 function setSearchPlaceholders({ count, fallback }) {
@@ -311,7 +278,7 @@ function bindAutocomplete(inputEl, resultsEl, spinnerEl, callback) {
     matches = matches.filter(p => !isHiddenForm(p.apiName));
 
     if (STATE.format === 'regulation_ma') {
-      matches = matches.filter(p => isRegulationMALegal(p.apiName));
+      matches = matches.filter(p => isRegulationMALegal(p.apiName, CACHE.championsLegalList));
     }
 
     // Dynamic Priority Sorting: Starts-With matches take absolute priority over containing matches!
@@ -409,7 +376,7 @@ function updateRegulationTag(apiName, tagEl) {
   const isRegMA = STATE.format === 'regulation_ma';
 
   if (isRegMA) {
-    const isLegal = isRegulationMALegal(apiName);
+    const isLegal = isRegulationMALegal(apiName, CACHE.championsLegalList);
     if (isLegal) {
       tagEl.textContent = "Regulation M-A Legal";
       tagEl.className = "text-[8px] font-black px-1.5 py-0.5 rounded uppercase shrink-0 bg-green-950 text-green-400 border border-green-900/50";
@@ -1486,7 +1453,7 @@ function buildDexRoster() {
   // M-A: keep only legal varieties, using the same predicate the calculator's
   // search uses so the two views stay in sync.
   if (STATE.format === 'regulation_ma') {
-    entries = entries.filter(p => isRegulationMALegal(p.apiName));
+    entries = entries.filter(p => isRegulationMALegal(p.apiName, CACHE.championsLegalList));
   }
   entries.sort((a, b) => a.name.localeCompare(b.name));
 
