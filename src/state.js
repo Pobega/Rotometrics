@@ -60,5 +60,6 @@ export const CACHE = {
   pokemonDetails: {},
   movesDetails: {},
   statusMoves: {},
-  championsLegalList: null
+  championsLegalList: null,
+  allMoves: []
 };

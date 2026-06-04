@@ -18,6 +18,7 @@ import {
   initPokemonList,
   initStatusMovesList,
   initChampionsLegalList,
+  initAllMovesList,
   fetchPokemonDetails,
   fetchMoveDetails
 } from './src/api/pokeapi.js';
@@ -33,6 +34,8 @@ import {
 } from './src/ui/render.js';
 import { setSpeedText, updateResultSummary } from './src/ui/result-summary.js';
 import { onDexFormatChange, initDexPage } from './src/ui/dex-page.js';
+import { initAttackdexPage } from './src/ui/attackdex-page.js';
+import { registerPage } from './src/ui/page-nav.js';
 
 // Each format gets a Rotom-form accent: the brand Rotom's glow and the format
 // pill borrow that form's signature color. Regulation M-A wears Heat Rotom's warm
@@ -1089,7 +1092,14 @@ async function init() {
   populateDropdowns();
   bindEvents();
   initMobileTabbing();
+  // Register the calculator as the home view in the shared nav, then let the
+  // dex pages register themselves. The calculator has no onShow side effect.
+  registerPage('calculator', {
+    navBtn: document.getElementById('nav-calculator'),
+    pageEl: document.getElementById('page-calculator')
+  });
   initDexPage();
+  initAttackdexPage();
 
   bindAutocomplete(
     DOM.attackerSearch,
@@ -1122,6 +1132,9 @@ async function init() {
   // Fetch massive search databases quietly in the background without blocking!
   initPokemonList().then(setSearchPlaceholders);
   initChampionsLegalList();
+  // Warm the Attackdex move index so its first open is instant (names only; each
+  // move's stats are lazy-loaded as rows scroll in).
+  initAllMovesList();
 
   // Tint the brand/format chrome to match the active format's Rotom form.
   applyFormTheme(STATE.format);
