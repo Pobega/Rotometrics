@@ -1044,17 +1044,39 @@ function computeVerdict(mode, minDamage, maxDamage, finalHp) {
 
 function verdictBadgeHTML(v) {
   if (v.roll) {
+    // Roll verdicts carry the odds: show the exact chance (e.g. "12.5%") in place
+    // of a generic "(roll)" tag so a high-roll-only result reads as a probability.
+    const sub = v.chance != null ? v.chance : '(roll)';
     return `
       <div class="flex flex-col items-center justify-center leading-none gap-0.5">
         <span>${v.label}</span>
-        <span class="text-[7px] font-extrabold lowercase opacity-85 tracking-normal font-sans">(roll)</span>
+        <span class="text-[10px] font-extrabold opacity-85 tracking-normal font-sans tabular-nums">${sub}</span>
       </div>`;
   }
   return `<span class="leading-none">${v.label}</span>`;
 }
 
+// Probability that the displayed roll-verdict actually lands, as a percentage of
+// the 16 damage rolls. Only meaningful for "roll" verdicts (guaranteed ones are
+// 100% by definition), so it returns null otherwise.
+function koChanceLabel(mode, rolls, finalHp, verdict) {
+  if (!verdict.roll) return null;
+  const n = rolls.length;
+  let count;
+  if (mode === 'survival') {
+    count = rolls.filter(r => r < finalHp).length;       // rolls the defender lives through
+  } else if (verdict.label === 'OHKO') {
+    count = rolls.filter(r => r >= finalHp).length;
+  } else {                                                // 2HKO
+    count = rolls.filter(r => r * 2 >= finalHp).length;
+  }
+  return `${(count / n * 100).toFixed(1).replace(/\.0$/, '')}%`;
+}
+
 // Build the summary model once, then mirror it into every result view.
-function updateResultSummary(minDamage, maxDamage) {
+function updateResultSummary(rolls) {
+  const minDamage = rolls[0];
+  const maxDamage = rolls[rolls.length - 1];
   let model;
   if (!STATE.attacker.name || !STATE.defender.name) {
     model = {
@@ -1066,11 +1088,13 @@ function updateResultSummary(minDamage, maxDamage) {
     const finalHp = calculateStat('hp', STATE.defender.baseStats.hp, STATE.defender.sps.hp, STATE.defender.nature, true);
     const minPct = (minDamage / finalHp) * 100;
     const maxPct = (maxDamage / finalHp) * 100;
+    const verdict = computeVerdict(STATE.mode, minDamage, maxDamage, finalHp);
+    verdict.chance = koChanceLabel(STATE.mode, rolls, finalHp, verdict);
     model = {
       matchup: `${STATE.attacker.name} vs ${STATE.defender.name}`,
       move: `${STATE.move.name} (${STATE.move.power} BP)`,
       pct: `${minPct.toFixed(1)}% - ${maxPct.toFixed(1)}%`,
-      verdict: computeVerdict(STATE.mode, minDamage, maxDamage, finalHp),
+      verdict,
       minFill: Math.min(100, minPct),
       maxFill: Math.min(100, maxPct),
     };
@@ -1113,8 +1137,6 @@ function updateResultSummary(minDamage, maxDamage) {
 
 function runOptimizations() {
   const rolls = calculateDamageRolls(STATE.attacker, STATE.defender, STATE.move, STATE.modifiers);
-  const minDamage = rolls[0];
-  const maxDamage = rolls[rolls.length - 1];
 
   if (STATE.mode === 'survival') {
     const cheapest = optimizeSurvivalEVsWithNatures(STATE.attacker, STATE.defender, STATE.move, STATE.modifiers, null);
@@ -1193,7 +1215,7 @@ function runOptimizations() {
   }
 
   // Mirror the headline result into every view (mobile overlay + desktop HUD).
-  updateResultSummary(minDamage, maxDamage);
+  updateResultSummary(rolls);
 }
 
 
