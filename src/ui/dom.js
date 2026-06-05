@@ -1,107 +1,22 @@
-// Centralized DOM element references.
-// Safe to query at module load time: ES modules are deferred, so the DOM
-// is fully parsed before this file runs.
+// Centralized DOM element references for the remaining vanilla chrome.
+// Safe to query at module load time: ES modules are deferred, so the DOM is
+// fully parsed before this file runs.
+//
+// The calculator panels (attacker / defender / center / results HUD) are now
+// Preact islands that read & write STATE directly, so their old getElementById
+// registry is gone. What's left here is the still-vanilla header + the
+// export/import modal. The two search placeholders resolve to null now (the
+// search inputs live in the islands); setSearchPlaceholders guards them.
 
 export const DOM = {
-  formatSelector: document.getElementById('format-selector'),
+  // Header chrome
   brandRotom: document.getElementById('brand-rotom'),
   formatPill: document.getElementById('format-pill'),
-
-  attackerSearch: document.getElementById('attacker-search'),
-  attackerSearchWrap: document.getElementById('attacker-search-wrap'),
-  attackerSearchToggle: document.getElementById('attacker-search-toggle'),
-  attackerResults: document.getElementById('attacker-results'),
-  attackerSpinner: document.getElementById('attacker-spinner'),
-  attackerSprite: document.getElementById('attacker-sprite'),
-  attackerName: document.getElementById('attacker-name'),
-  attackerTypes: document.getElementById('attacker-types'),
-  attackerLevel: document.getElementById('attacker-level'),
-  attackerNature: document.getElementById('attacker-nature'),
-  attackerItem: document.getElementById('attacker-item'),
-  attackerAbility: document.getElementById('attacker-ability'),
-  attackerBoostAtk: document.getElementById('attacker-boost-atk'),
-  attackerBoostSpa: document.getElementById('attacker-boost-spa'),
-  attackerBoostSpe: document.getElementById('attacker-boost-spe'),
-  attackerStatAtkVal: document.getElementById('attacker-stat-atk-val'),
-  attackerStatSpaVal: document.getElementById('attacker-stat-spa-val'),
-  attackerStatSpeVal: document.getElementById('attacker-stat-spe-val'),
-  attackerEvAtk: document.getElementById('attacker-ev-atk'),
-  attackerEvSpa: document.getElementById('attacker-ev-spa'),
-  attackerEvSpe: document.getElementById('attacker-ev-spe'),
-  attackerEvAtkVal: document.getElementById('attacker-ev-atk-val'),
-  attackerEvSpaVal: document.getElementById('attacker-ev-spa-val'),
-  attackerEvSpeVal: document.getElementById('attacker-ev-spe-val'),
-  attackerEvSum: document.getElementById('attacker-ev-sum'),
-  attackerMoveSelect: document.getElementById('attacker-move-select'),
-  attackerRegTag: document.getElementById('attacker-regulation-tag'),
-  attackerSpPresets: document.getElementById('attacker-sp-presets'),
-
-  defenderSearch: document.getElementById('defender-search'),
-  defenderSearchWrap: document.getElementById('defender-search-wrap'),
-  defenderSearchToggle: document.getElementById('defender-search-toggle'),
-  defenderResults: document.getElementById('defender-results'),
-  defenderSpinner: document.getElementById('defender-spinner'),
-  defenderSprite: document.getElementById('defender-sprite'),
-  defenderName: document.getElementById('defender-name'),
-  defenderTypes: document.getElementById('defender-types'),
-  defenderLevel: document.getElementById('defender-level'),
-  defenderNature: document.getElementById('defender-nature'),
-  defenderItem: document.getElementById('defender-item'),
-  defenderAbility: document.getElementById('defender-ability'),
-  defenderBoostDef: document.getElementById('defender-boost-def'),
-  defenderBoostSpd: document.getElementById('defender-boost-spd'),
-  defenderBoostSpe: document.getElementById('defender-boost-spe'),
-  defenderStatHpVal: document.getElementById('defender-stat-hp-val'),
-  defenderStatDefVal: document.getElementById('defender-stat-def-val'),
-  defenderStatSpdVal: document.getElementById('defender-stat-spd-val'),
-  defenderStatSpeVal: document.getElementById('defender-stat-spe-val'),
-  defenderEvHp: document.getElementById('defender-ev-hp'),
-  defenderEvDef: document.getElementById('defender-ev-def'),
-  defenderEvSpd: document.getElementById('defender-ev-spd'),
-  defenderEvSpe: document.getElementById('defender-ev-spe'),
-  defenderEvHpVal: document.getElementById('defender-ev-hp-val'),
-  defenderEvDefVal: document.getElementById('defender-ev-def-val'),
-  defenderEvSpdVal: document.getElementById('defender-ev-spd-val'),
-  defenderEvSpeVal: document.getElementById('defender-ev-spe-val'),
-  defenderEvSum: document.getElementById('defender-ev-sum'),
-  defenderRegTag: document.getElementById('defender-regulation-tag'),
-  defenderSpPresets: document.getElementById('defender-sp-presets'),
-
-  moveType: document.getElementById('move-type'),
-  movePower: document.getElementById('move-power'),
-  moveCategory: document.getElementById('move-category'),
-  moveTypeBadgeContainer: document.getElementById('move-type-badge-container'),
-  moveCategoryBadgeContainer: document.getElementById('move-category-badge-container'),
-
-  modSpread: document.getElementById('mod-spread'),
-  modWeatherSelect: document.getElementById('mod-weather-select'),
-  modCrit: document.getElementById('mod-crit'),
-  modFriendGuard: document.getElementById('mod-friend-guard'),
-  modScreens: document.getElementById('mod-screens'),
-  modBurned: document.getElementById('mod-burned'),
-  modHelpingHand: document.getElementById('mod-helping-hand'),
-  modTailAtk: document.getElementById('mod-tail-atk'),
-  modTailDef: document.getElementById('mod-tail-def'),
-  modTerrainSelect: document.getElementById('mod-terrain-select'),
-  modAuraSelect: document.getElementById('mod-aura-select'),
-
-  tabSurvival: document.getElementById('tab-survival'),
-  tabOffensive: document.getElementById('tab-offensive'),
-  survivalResults: document.getElementById('survival-results'),
-  offensiveResults: document.getElementById('offensive-results'),
-
-  survivalNotPossible: document.getElementById('survival-not-possible'),
-  survivalPossibleData: document.getElementById('survival-possible-data'),
-  survivalOptionsContainer: document.getElementById('survival-options-container'),
-
-  offensiveNotPossible: document.getElementById('offensive-not-possible'),
-  offensivePossibleData: document.getElementById('offensive-possible-data'),
-  btnTargetOHKO: document.getElementById('btn-target-ohko'),
-  btnTarget2HKO: document.getElementById('btn-target-2hko'),
-  offensiveOptionsContainer: document.getElementById('offensive-options-container'),
-
+  formatSelector: document.getElementById('format-selector'),
   loadSampleBtn: document.getElementById('load-sample-btn'),
   exportImportBtn: document.getElementById('export-import-btn'),
+
+  // Export / import matchup modal
   eiModal: document.getElementById('ei-modal'),
   eiTextarea: document.getElementById('ei-textarea'),
   eiCopyBtn: document.getElementById('ei-copy-btn'),
@@ -109,24 +24,8 @@ export const DOM = {
   eiCloseBtn: document.getElementById('ei-close-btn'),
   eiStatus: document.getElementById('ei-status'),
 
-  mobOverlayMatchup: document.getElementById('mob-overlay-matchup'),
-  mobOverlayMove: document.getElementById('mob-overlay-move'),
-  mobOverlayPct: document.getElementById('mob-overlay-pct'),
-  mobOverlayBadge: document.getElementById('mob-overlay-badge'),
-  mobOverlaySpeed: document.getElementById('mob-overlay-speed'),
-  mobOverlayBarMin: document.getElementById('mob-res-bar-min'),
-  mobOverlayBarMax: document.getElementById('mob-res-bar-max'),
-  mobOverlayIcon: document.getElementById('mob-res-mode-icon'),
-  mobOverlayIconWrap: document.getElementById('mob-res-mode-icon-wrap'),
-
-  // Desktop pinned results HUD
-  resMatchup: document.getElementById('res-matchup'),
-  resMove: document.getElementById('res-move'),
-  resPct: document.getElementById('res-pct'),
-  resBadge: document.getElementById('res-badge'),
-  resSpeed: document.getElementById('res-speed'),
-  resBarMin: document.getElementById('res-bar-min'),
-  resBarMax: document.getElementById('res-bar-max'),
-  resModeIcon: document.getElementById('res-mode-icon'),
-  resModeIconWrap: document.getElementById('res-mode-icon-wrap'),
+  // Search inputs now live in the Preact islands; these are null and only read
+  // through guards in setSearchPlaceholders (kept for the loaded-count label).
+  attackerSearch: document.getElementById('attacker-search'),
+  defenderSearch: document.getElementById('defender-search'),
 };

@@ -1,40 +1,23 @@
 // Pokemon Champions VGC SP Optimizer & Damage Calculator
 // Pure Client-Side JavaScript ES6+
 
-import { calculateStat, calculateStatBoost } from './src/engine/stats.js';
-import { calculateDamageRolls, resolveEffectiveMove } from './src/engine/damage.js';
+import { calculateDamageRolls } from './src/engine/damage.js';
 import { optimizeSurvivalEVsWithNatures, optimizeOffensiveEVsWithNatures } from './src/engine/optimize.js';
-import { bst, sortDex, filterDex, isHiddenForm, isFormatLegal } from './src/data/dex.js';
 import { REGULATIONS, NATIONAL_THEME } from './src/data/regulations.js';
 import { exportMatchup, importMatchup } from './src/data/matchup-text.js';
-import {
-  NATURES,
-  ALL_TYPES,
-  OFF_VGC_ABILITIES_HELPER,
-  DEF_VGC_ABILITIES_HELPER
-} from './src/data/constants.js';
+import { OFF_VGC_ABILITIES_HELPER, DEF_VGC_ABILITIES_HELPER } from './src/data/constants.js';
 import { DOM } from './src/ui/dom.js';
 import { STATE, CACHE } from './src/state.js';
 import {
   initPokemonList,
   initStatusMovesList,
   initChampionsRoster,
-  legalSetForFormat,
   initAllMovesList,
   fetchPokemonDetails,
   fetchMoveDetails
 } from './src/api/pokeapi.js';
 import { pruneOldCaches } from './src/api/cache.js';
-import {
-  getTypeBgClass,
-  createOptionCardHTML,
-  createImpossibleOptionCardHTML,
-  updateStatsBars,
-  updateDropdownColors,
-  updateMoveDetailsVisuals,
-  setMoveTypeBadge,
-  setSearchPlaceholders,
-} from './src/ui/render.js';
+import { setSearchPlaceholders } from './src/ui/render.js';
 import { buildResultModel } from './src/ui/result-summary.js';
 import { onDexFormatChange, initDexPage, jumpToDexPokemon, getPokemonDetails } from './src/ui/dex-page.js';
 import { initAttackdexPage, jumpToAttackdexMove, getMoveDetails } from './src/ui/attackdex-page.js';
@@ -92,132 +75,6 @@ function augmentedState() {
 // ==========================================
 // 7. UI WORKFLOW & CONTROLLER BINDING
 // ==========================================
-
-
-function bindAutocomplete(inputEl, resultsEl, spinnerEl, callback) {
-  inputEl.addEventListener('input', (e) => {
-    const q = e.target.value.trim().toLowerCase();
-    if (!q) {
-      resultsEl.classList.add('hidden');
-      return;
-    }
-
-    let matches = CACHE.pokemonList.filter(p => p.name.toLowerCase().includes(q));
-    matches = matches.filter(p => !isHiddenForm(p.apiName));
-
-    const legal = legalSetForFormat(STATE.format);
-    if (legal) {
-      matches = matches.filter(p => isFormatLegal(p.apiName, legal));
-    }
-
-    // Dynamic Priority Sorting: Starts-With matches take absolute priority over containing matches!
-    matches.sort((a, b) => {
-      const aStart = a.name.toLowerCase().startsWith(q);
-      const bStart = b.name.toLowerCase().startsWith(q);
-      
-      if (aStart && !bStart) return -1; // a goes first
-      if (!aStart && bStart) return 1;  // b goes first
-      
-      // If both start with the query (or both contain it in the middle), sort alphabetically!
-      return a.name.localeCompare(b.name);
-    });
-
-    matches = matches.slice(0, 10);
-
-    if (matches.length === 0) {
-      resultsEl.innerHTML = `<div class="p-3 text-slate-500 text-xs">No legal Pokémon found in current format</div>`;
-      resultsEl.classList.remove('hidden');
-      return;
-    }
-
-    resultsEl.innerHTML = matches.map(p => {
-      const reg = REGULATIONS[STATE.format];
-      const badgeText = reg ? reg.short : 'National Dex';
-      const badgeColor = reg
-        ? 'bg-emerald-950/50 text-emerald-400 border border-emerald-900/30'
-        : 'bg-slate-800/60 text-slate-400 border border-slate-700/30';
-        
-      return `
-        <button class="w-full text-left hover:bg-slate-700/50 px-4 py-2.5 text-xs font-bold border-b border-slate-750 flex justify-between items-center transition" data-api-name="${p.apiName}">
-          <span>${p.name}</span>
-          <span class="text-[9px] px-1.5 py-0.5 rounded uppercase font-mono font-extrabold border ${badgeColor}">
-            ${badgeText}
-          </span>
-        </button>
-      `;
-    }).join('');
-    resultsEl.classList.remove('hidden');
-  });
-
-  resultsEl.addEventListener('click', async (e) => {
-    const btn = e.target.closest('button[data-api-name]');
-    if (!btn) return;
-
-    const apiName = btn.dataset.apiName;
-    inputEl.value = btn.querySelector('span').textContent;
-    resultsEl.classList.add('hidden');
-
-    spinnerEl.classList.remove('hidden');
-    try {
-      const details = await fetchPokemonDetails(apiName);
-      callback(details);
-    } catch (err) {
-      console.error('Error loading selected Pokemon details', err);
-      window.dispatchEvent(new ErrorEvent('error', { error: err, message: "Autocomplete Selection Error: " + err.message }));
-    } finally {
-      spinnerEl.classList.add('hidden');
-    }
-  });
-
-  document.addEventListener('click', (e) => {
-    if (!inputEl.contains(e.target) && !resultsEl.contains(e.target)) {
-      resultsEl.classList.add('hidden');
-    }
-  });
-}
-
-// The search field is hidden behind a magnifier in the card header to save
-// vertical space. Clicking the magnifier reveals + focuses it; picking a
-// Pokémon collapses it again (see collapseSearch in the detail setters).
-function bindSearchToggle(toggleBtn, wrapEl, inputEl) {
-  if (!toggleBtn || !wrapEl) return;
-  toggleBtn.addEventListener('click', () => {
-    const willOpen = wrapEl.classList.contains('hidden');
-    wrapEl.classList.toggle('hidden', !willOpen);
-    toggleBtn.classList.toggle('bg-slate-700/60', willOpen);
-    toggleBtn.classList.toggle('text-white', willOpen);
-    if (willOpen) { inputEl.focus(); inputEl.select(); }
-  });
-}
-
-function collapseSearch(wrapEl, toggleBtn) {
-  wrapEl?.classList.add('hidden');
-  toggleBtn?.classList.remove('bg-slate-700/60', 'text-white');
-}
-
-function updateRegulationTag(apiName, tagEl) {
-  if (!apiName) {
-    tagEl.classList.add('hidden');
-    return;
-  }
-  tagEl.classList.remove('hidden');
-
-  const reg = REGULATIONS[STATE.format];
-
-  if (reg) {
-    const isLegal = isFormatLegal(apiName, legalSetForFormat(STATE.format));
-    if (isLegal) {
-      tagEl.textContent = `${reg.label} Legal`;
-      tagEl.className = "text-[8px] font-black px-1.5 py-0.5 rounded uppercase shrink-0 bg-green-950 text-green-400 border border-green-900/50";
-    } else {
-      tagEl.textContent = `Banned in ${reg.short}`;
-      tagEl.className = "text-[8px] font-black px-1.5 py-0.5 rounded uppercase shrink-0 bg-red-950 text-red-400 border border-red-900/50";
-    }
-  } else {
-    tagEl.textContent = "National Dex";
-    tagEl.className = "text-[8px] font-black px-1.5 py-0.5 rounded uppercase shrink-0 bg-slate-800/60 text-slate-400 border border-slate-700/30 border";
-  }
-}
 
 
 function setAttackerDetails(details) {
@@ -301,41 +158,12 @@ function setDefenderDetails(details) {
 }
 
 
+// The recompute pipeline. Every island edit flows through here (via the store's
+// update()/requestRecompute), as does the format selector. The islands own all
+// input fields on STATE; the only cross-panel rule left here is the Fairy-Aura
+// lock (the ModifiersPanel renders the locked aura select from it). Then recompute
+// damage + optimizer + HUD model into DERIVED and notify the islands to re-render.
 function updateLiveStats() {
-  // Attacker fields are owned by the Preact AttackerCard island (it writes them
-  // straight to STATE); only read the vanilla card here if it's actually mounted.
-  if (DOM.attackerNature) {
-    STATE.attacker.nature = DOM.attackerNature.value;
-    STATE.attacker.item = DOM.attackerItem.value;
-    STATE.attacker.ability = DOM.attackerAbility.value;
-    STATE.attacker.sps.atk = parseInt(DOM.attackerEvAtk.value) || 0;
-    STATE.attacker.sps.spa = parseInt(DOM.attackerEvSpa.value) || 0;
-    STATE.attacker.sps.spe = parseInt(DOM.attackerEvSpe.value) || 0;
-    STATE.attacker.boosts.atk = parseInt(DOM.attackerBoostAtk.value) || 0;
-    STATE.attacker.boosts.spa = parseInt(DOM.attackerBoostSpa.value) || 0;
-    STATE.attacker.boosts.spe = parseInt(DOM.attackerBoostSpe.value) || 0;
-  }
-
-  // Defender fields are owned by the Preact DefenderCard island; only read the
-  // vanilla card here if it's actually mounted.
-  if (DOM.defenderNature) {
-    STATE.defender.nature = DOM.defenderNature.value;
-    STATE.defender.item = DOM.defenderItem.value;
-    STATE.defender.ability = DOM.defenderAbility.value;
-    STATE.defender.sps.hp = parseInt(DOM.defenderEvHp.value) || 0;
-    STATE.defender.sps.def = parseInt(DOM.defenderEvDef.value) || 0;
-    STATE.defender.sps.spd = parseInt(DOM.defenderEvSpd.value) || 0;
-    STATE.defender.sps.spe = parseInt(DOM.defenderEvSpe.value) || 0;
-    STATE.defender.boosts.def = parseInt(DOM.defenderBoostDef.value) || 0;
-    STATE.defender.boosts.spd = parseInt(DOM.defenderBoostSpd.value) || 0;
-    STATE.defender.boosts.spe = parseInt(DOM.defenderBoostSpe.value) || 0;
-  }
-
-  // Move + modifier fields are owned by the MovePanel / ModifiersPanel islands,
-  // which write them straight to STATE. The only cross-panel rule enforced here:
-  // Fairy Aura forces the field aura to Fairy while its holder is the attacker
-  // (the ModifiersPanel renders the aura select locked/disabled from this), and
-  // releasing the lock reverts a previously-forced 'fairy' back to 'none'.
   if (STATE.attacker.ability === 'fairy-aura') {
     STATE.modifiers.aura = 'fairy';
     auraLockedByFairyAura = true;
@@ -344,132 +172,7 @@ function updateLiveStats() {
     auraLockedByFairyAura = false;
   }
 
-  const attackerSPSum = STATE.attacker.sps.atk + STATE.attacker.sps.spa + STATE.attacker.sps.spe;
-  // Attacker EV-sum display is rendered by the island; guard the vanilla write.
-  if (DOM.attackerEvSum) {
-    DOM.attackerEvSum.className = attackerSPSum > 66
-      ? "text-xs font-mono text-red-400 font-bold"
-      : "text-xs font-mono text-slate-400";
-  }
-
-  const defenderSPSum = STATE.defender.sps.hp + STATE.defender.sps.def + STATE.defender.sps.spd + STATE.defender.sps.spe;
-  // Defender EV-sum display is rendered by the island; guard the vanilla write.
-  if (DOM.defenderEvSum) {
-    DOM.defenderEvSum.className = defenderSPSum > 66
-      ? "text-xs font-mono text-red-400 font-bold"
-      : "text-xs font-mono text-slate-400";
-  }
-
-  const finalAtk = calculateStatBoost(
-    calculateStat('atk', STATE.attacker.baseStats.atk, STATE.attacker.sps.atk, STATE.attacker.nature, false),
-    STATE.attacker.boosts.atk
-  );
-  const finalSpa = calculateStatBoost(
-    calculateStat('spa', STATE.attacker.baseStats.spa, STATE.attacker.sps.spa, STATE.attacker.nature, false),
-    STATE.attacker.boosts.spa
-  );
-  let finalAttackerSpe = calculateStatBoost(
-    calculateStat('spe', STATE.attacker.baseStats.spe || 100, STATE.attacker.sps.spe, STATE.attacker.nature, false),
-    STATE.attacker.boosts.spe
-  );
-  if (STATE.attacker.item === 'choice_scarf') {
-    finalAttackerSpe = Math.floor(finalAttackerSpe * 1.5);
-  }
-  if (STATE.modifiers.tailAtk) {
-    finalAttackerSpe = finalAttackerSpe * 2;
-  }
-
-  // Attacker live-stat displays are rendered by the island; guard vanilla writes.
-  if (DOM.attackerStatAtkVal) {
-    DOM.attackerStatAtkVal.textContent = finalAtk;
-    DOM.attackerStatSpaVal.textContent = finalSpa;
-    DOM.attackerStatSpeVal.textContent = finalAttackerSpe;
-  }
-
-  const finalHp = calculateStat('hp', STATE.defender.baseStats.hp, STATE.defender.sps.hp, STATE.defender.nature, true);
-  const finalDef = calculateStatBoost(
-    calculateStat('def', STATE.defender.baseStats.def, STATE.defender.sps.def, STATE.defender.nature, false),
-    STATE.defender.boosts.def
-  );
-  const finalSpd = calculateStatBoost(
-    calculateStat('spd', STATE.defender.baseStats.spd, STATE.defender.sps.spd, STATE.defender.nature, false),
-    STATE.defender.boosts.spd
-  );
-  let finalDefenderSpe = calculateStatBoost(
-    calculateStat('spe', STATE.defender.baseStats.spe || 100, STATE.defender.sps.spe, STATE.defender.nature, false),
-    STATE.defender.boosts.spe
-  );
-  if (STATE.defender.item === 'choice_scarf') {
-    finalDefenderSpe = Math.floor(finalDefenderSpe * 1.5);
-  }
-  if (STATE.modifiers.tailDef) {
-    finalDefenderSpe = finalDefenderSpe * 2;
-  }
-
-  // Defender live-stat displays are rendered by the island; guard vanilla writes.
-  if (DOM.defenderStatHpVal) {
-    DOM.defenderStatHpVal.textContent = finalHp;
-    DOM.defenderStatDefVal.textContent = finalDef;
-    DOM.defenderStatSpdVal.textContent = finalSpd;
-    DOM.defenderStatSpeVal.textContent = finalDefenderSpe;
-  }
-
-  // Attacker EV value labels are rendered by the island; guard vanilla writes.
-  if (DOM.attackerEvAtkVal) {
-    DOM.attackerEvAtkVal.textContent = STATE.attacker.sps.atk;
-    DOM.attackerEvSpaVal.textContent = STATE.attacker.sps.spa;
-    DOM.attackerEvSpeVal.textContent = STATE.attacker.sps.spe;
-    DOM.attackerEvSum.textContent = `Used: ${attackerSPSum}/66 SP`;
-  }
-
-  // Defender EV value labels are rendered by the island; guard vanilla writes.
-  if (DOM.defenderEvHpVal) {
-    DOM.defenderEvHpVal.textContent = STATE.defender.sps.hp;
-    DOM.defenderEvDefVal.textContent = STATE.defender.sps.def;
-    DOM.defenderEvSpdVal.textContent = STATE.defender.sps.spd;
-    DOM.defenderEvSpeVal.textContent = STATE.defender.sps.spe;
-    DOM.defenderEvSum.textContent = `Used: ${defenderSPSum}/66 SP`;
-  }
-
-  // Turn order (speed) is computed inside buildResultModel and rendered by the
-  // ResultsHUD island.
-
-  // Dynamic Presets Dropdowns Synchronization
-  const atkSP = STATE.attacker.sps.atk;
-  const spaSP = STATE.attacker.sps.spa;
-  const atkSpeSP = STATE.attacker.sps.spe;
-  const nat = STATE.attacker.nature;
-  let matchedAtkPreset = "";
-  if (atkSP === 32 && spaSP === 0 && atkSpeSP === 32 && nat === "+atk") {
-    matchedAtkPreset = "phys_attacker";
-  } else if (atkSP === 0 && spaSP === 32 && atkSpeSP === 32 && nat === "+spa") {
-    matchedAtkPreset = "spec_attacker";
-  } else if (atkSP === 32 && spaSP === 32 && atkSpeSP === 2 && nat === "neutral") {
-    matchedAtkPreset = "mixed_attacker";
-  }
-  if (DOM.attackerSpPresets) DOM.attackerSpPresets.value = matchedAtkPreset;
-
-  const hpSP = STATE.defender.sps.hp;
-  const defSP = STATE.defender.sps.def;
-  const spdSP = STATE.defender.sps.spd;
-  const defSpeSP = STATE.defender.sps.spe;
-  let matchedDefPreset = "";
-  if (hpSP === 32 && defSP === 32 && spdSP === 0 && defSpeSP === 0) {
-    matchedDefPreset = "max_phys_bulk";
-  } else if (hpSP === 32 && defSP === 0 && spdSP === 32 && defSpeSP === 0) {
-    matchedDefPreset = "max_spec_bulk";
-  } else if (hpSP === 32 && defSP === 17 && spdSP === 17 && defSpeSP === 0) {
-    matchedDefPreset = "balanced_def";
-  } else if (hpSP === 32 && defSP === 2 && spdSP === 0 && defSpeSP === 32) {
-    matchedDefPreset = "fast_bulky";
-  }
-  if (DOM.defenderSpPresets) DOM.defenderSpPresets.value = matchedDefPreset;
-
   runOptimizations();
-
-  // Re-render mounted Preact islands (the AttackerCard) now that STATE + derived
-  // values are current. Also fires for vanilla-driven edits (e.g. Tailwind), so
-  // the attacker speed display, which folds in Tailwind, stays in sync.
   notify();
 }
 
