@@ -9,6 +9,12 @@
     .summary { padding: 8px 12px; border-radius: 6px; margin-bottom: 16px; font-weight: bold; }
     .summary.pass { background: #052e16; color: #4ade80; border: 1px solid #166534; }
     .summary.fail { background: #450a0a; color: #f87171; border: 1px solid #991b1b; }
+    .summary-toggle { width: 100%; text-align: left; background: none; border: 0; padding: 0; margin: 0; color: inherit; font: inherit; font-weight: bold; cursor: pointer; }
+    .summary-toggle .caret { display: inline-block; width: 1em; }
+    .suite-breakdown { margin-top: 10px; padding-top: 8px; border-top: 1px solid rgba(148,163,184,0.25); font-weight: normal; }
+    .suite-row { display: flex; justify-content: space-between; gap: 16px; padding: 2px 0; font-size: 13px; }
+    .suite-row.pass { color: #86efac; }
+    .suite-row.fail { color: #fca5a5; }
     .case { border-left: 4px solid #334155; padding: 8px 12px; margin: 6px 0; background: #1e293b; border-radius: 0 6px 6px 0; }
     .case.pass { border-color: #16a34a; }
     .case.fail { border-color: #dc2626; }
@@ -26,17 +32,48 @@
   <div id="results"></div>
 
   <!-- Shared tally so the headline reflects every test block below, not just the
-       first. Each block adds its pass/fail/snap counts and re-renders. This plain
-       script runs during parsing, before the deferred module blocks. -->
+       first. Each block calls recordSuite() with its pass/fail/snap counts; the
+       headline aggregates them and the caret expands a per-suite breakdown. This
+       plain script runs during parsing, before the deferred module blocks. -->
   <script>
-    window.TESTS = { pass: 0, fail: 0, snap: 0 };
+    window.TESTS = { pass: 0, fail: 0, snap: 0, suites: [] };
+    window.__summaryOpen = false;
+
+    window.recordSuite = function (name, counts) {
+      const c = { name, pass: counts.pass || 0, fail: counts.fail || 0, snap: counts.snap || 0 };
+      window.TESTS.suites.push(c);
+      window.TESTS.pass += c.pass;
+      window.TESTS.fail += c.fail;
+      window.TESTS.snap += c.snap;
+      renderSummary();
+    };
+
     window.renderSummary = function () {
       const t = window.TESTS;
       const total = t.pass + t.fail + t.snap;
+      const open = window.__summaryOpen;
       const el = document.getElementById('summary');
-      el.textContent = `${t.pass} passed · ${t.fail} failed · ${t.snap} snapshot${t.snap === 1 ? '' : 's'} (of ${total})`;
       el.classList.remove('pass', 'fail');
       el.classList.add(t.fail === 0 ? 'pass' : 'fail');
+
+      const rows = t.suites.map(s => {
+        const bits = [`${s.pass} ✓`];
+        if (s.fail) bits.push(`${s.fail} ✗`);
+        if (s.snap) bits.push(`${s.snap} 📸`);
+        return `<div class="suite-row ${s.fail ? 'fail' : 'pass'}"><span>${s.name}</span><span>${bits.join(' · ')}</span></div>`;
+      }).join('');
+
+      el.innerHTML =
+        `<button type="button" class="summary-toggle" aria-expanded="${open ? 'true' : 'false'}">` +
+          `<span class="caret">${open ? '▾' : '▸'}</span> ` +
+          `${t.pass} passed · ${t.fail} failed · ${t.snap} snapshot${t.snap === 1 ? '' : 's'} (of ${total})` +
+        `</button>` +
+        `<div class="suite-breakdown"${open ? '' : ' hidden'}>${rows}</div>`;
+
+      el.querySelector('.summary-toggle').onclick = () => {
+        window.__summaryOpen = !window.__summaryOpen;
+        renderSummary();
+      };
     };
   </script>
 
@@ -819,8 +856,7 @@
       results.appendChild(div);
     }
 
-    TESTS.pass += pass; TESTS.fail += fail; TESTS.snap += snap;
-    renderSummary();
+    recordSuite('damage', { pass, fail, snap });
   </script>
 
   <!-- resolveEffectiveMove: the single source of truth shared by the calc + UI -->
@@ -859,8 +895,7 @@
       if (!ok) resolveFail++;
     }
 
-    TESTS.pass += RESOLVE_CASES.length - resolveFail; TESTS.fail += resolveFail;
-    renderSummary();
+    recordSuite('resolve', { pass: RESOLVE_CASES.length - resolveFail, fail: resolveFail });
   </script>
 
   <!-- Move effectiveness label/tone tests (context-aware coloring) -->
@@ -901,8 +936,7 @@
       if (!ok) effFail++;
     }
 
-    TESTS.pass += EFF_CASES.length - effFail; TESTS.fail += effFail;
-    renderSummary();
+    recordSuite('eff', { pass: EFF_CASES.length - effFail, fail: effFail });
   </script>
 
   <!-- Damage-card move-line golden tests (resolved type + BP must not drift) -->
@@ -958,8 +992,7 @@
       if (!ok) lineFail++;
     }
 
-    TESTS.pass += LINE_CASES.length - lineFail; TESTS.fail += lineFail;
-    renderSummary();
+    recordSuite('moveline', { pass: LINE_CASES.length - lineFail, fail: lineFail });
   </script>
 
   <!-- Pokédex pure-logic tests (bst / sortDex / filterDex) -->
@@ -1131,8 +1164,7 @@
     }
 
     // Keep the overall summary honest if a dex test regressed.
-    TESTS.pass += DEX_CASES.length - dexFail; TESTS.fail += dexFail;
-    renderSummary();
+    recordSuite('dex', { pass: DEX_CASES.length - dexFail, fail: dexFail });
   </script>
 
   <!-- Matchup export/import text round-trip tests -->
@@ -1225,8 +1257,7 @@
     }
 
     // Keep the overall summary honest if an export/import test regressed.
-    TESTS.pass += TEXT_CASES.length - textFail; TESTS.fail += textFail;
-    renderSummary();
+    recordSuite('text', { pass: TEXT_CASES.length - textFail, fail: textFail });
   </script>
 
   <!-- EV/nature optimizer goldens (optimizeSurvival / optimizeOffensive) -->
@@ -1321,8 +1352,7 @@
     }
 
     // Keep the overall summary honest if an optimizer test regressed.
-    TESTS.pass += OPT_CASES.length - optFail; TESTS.fail += optFail;
-    renderSummary();
+    recordSuite('opt', { pass: OPT_CASES.length - optFail, fail: optFail });
   </script>
 
   <!-- Cache versioning (cacheKey / pruneOldCaches) -->
@@ -1400,8 +1430,7 @@
     }
 
     // Keep the overall summary honest if a cache test regressed.
-    TESTS.pass += CACHE_CASES.length - cacheFail; TESTS.fail += cacheFail;
-    renderSummary();
+    recordSuite('cache', { pass: CACHE_CASES.length - cacheFail, fail: cacheFail });
   </script>
 </body>
 </html>
