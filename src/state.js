@@ -21,7 +21,11 @@ export const STATE = {
     boosts: { atk: 0, spa: 0, spe: 0 },
     types: ['???'],
     moves: [],
-    status: null
+    status: null,
+    // Render-only fields the Preact attacker island reads (the vanilla DOM used
+    // to hold these); kept on STATE so the island has a single source of truth.
+    sprite: '',
+    abilities: []
   },
 
   defender: {
