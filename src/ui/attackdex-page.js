@@ -33,6 +33,7 @@ function attackdexDom() {
     pageAttackdex: document.getElementById('page-attackdex'),
     navAttackdex: document.getElementById('nav-attackdex'),
     search: document.getElementById('attackdex-search'),
+    searchClear: document.getElementById('attackdex-search-clear'),
     rows: document.getElementById('attackdex-rows'),
     status: document.getElementById('attackdex-status'),
     header: document.getElementById('attackdex-header'),
@@ -51,6 +52,11 @@ function buildMovesRoster() {
   AttackdexPage.roster.forEach(r => { AttackdexPage.byName[r.apiName] = r; });
   AttackdexPage.built = true;
   AttackdexPage.allLoaded = false;
+}
+
+function updateAttackdexClearBtn() {
+  const { search, searchClear } = attackdexDom();
+  if (searchClear) searchClear.classList.toggle('hidden', !search.value);
 }
 
 function attackdexStatusText() {
@@ -228,6 +234,14 @@ function observeLazyRows() {
 
 // Build + render the Attackdex the first time it's shown.
 async function openAttackdexPage() {
+  if (!_preserveQuery) {
+    AttackdexPage.query = '';
+    const dom = attackdexDom();
+    if (dom.search) dom.search.value = '';
+  }
+  _preserveQuery = false;
+  updateAttackdexClearBtn();
+
   if (AttackdexPage.built && AttackdexPage.roster.length > 0) {
     renderAttackdex();
     return;
@@ -274,8 +288,10 @@ export function getMoveDetails(apiName) {
 export function jumpToAttackdexMove(apiName) {
   const dom = attackdexDom();
   const displayName = AttackdexPage.byName[apiName]?.name || formatDisplayName(apiName);
+  _preserveQuery = true;
   AttackdexPage.query = displayName;
   if (dom.search) dom.search.value = displayName;
+  updateAttackdexClearBtn();
   // Only render if already built; otherwise openAttackdexPage (triggered by
   // showPage) will render with the query already set.
   if (AttackdexPage.built) renderAttackdex();
@@ -283,6 +299,7 @@ export function jumpToAttackdexMove(apiName) {
 
 let _onPokemonClick = null;
 let _getPokemonDetails = null;
+let _preserveQuery = false;
 
 const LEARNER_CAP = 150;
 
@@ -397,9 +414,20 @@ export function initAttackdexPage({ onPokemonClick = null, getPokemonDetails = n
     handleAttackdexRowClick(row.getAttribute('data-api'));
   });
 
+  if (dom.searchClear) {
+    dom.searchClear.addEventListener('click', () => {
+      dom.search.value = '';
+      AttackdexPage.query = '';
+      updateAttackdexClearBtn();
+      renderAttackdex();
+      dom.search.focus();
+    });
+  }
+
   let searchTimer = null;
   dom.search.addEventListener('input', (e) => {
     AttackdexPage.query = e.target.value;
+    updateAttackdexClearBtn();
     clearTimeout(searchTimer);
     searchTimer = setTimeout(async () => {
       // Description search needs every row's details; load them on first query.

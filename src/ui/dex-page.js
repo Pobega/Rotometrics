@@ -29,6 +29,7 @@ function dexDom() {
     pagePokedex: document.getElementById('page-pokedex'),
     navPokedex: document.getElementById('nav-pokedex'),
     search: document.getElementById('dex-search'),
+    searchClear: document.getElementById('dex-search-clear'),
     rows: document.getElementById('dex-rows'),
     status: document.getElementById('dex-status'),
     header: document.getElementById('dex-header'),
@@ -70,6 +71,11 @@ function updateDexRegulationBadge() {
     regBadge.textContent = 'National Dex';
     regBadge.className = 'text-[8px] font-black px-1.5 py-0.5 rounded uppercase shrink-0 bg-slate-800/60 text-slate-400 border border-slate-700/30';
   }
+}
+
+function updateDexClearBtn() {
+  const { search, searchClear } = dexDom();
+  if (searchClear) searchClear.classList.toggle('hidden', !search.value);
 }
 
 function dexStatusText() {
@@ -227,6 +233,14 @@ function observeLazyDexRows() {
 
 // Build + render the dex the first time it's shown (or after a format change).
 async function openDexPage() {
+  if (!_preserveQuery) {
+    DexPage.query = '';
+    const dom = dexDom();
+    if (dom.search) dom.search.value = '';
+  }
+  _preserveQuery = false;
+  updateDexClearBtn();
+
   if (DexPage.builtForFormat === STATE.format && DexPage.roster.length > 0) {
     renderDex();
     return;
@@ -263,8 +277,10 @@ export function getPokemonDetails(apiName) {
 export function jumpToDexPokemon(apiName) {
   const dom = dexDom();
   const displayName = DexPage.byName[apiName]?.name || formatDisplayName(apiName);
+  _preserveQuery = true;
   DexPage.query = displayName;
   if (dom.search) dom.search.value = displayName;
+  updateDexClearBtn();
   // Only render if roster is built; otherwise openDexPage (triggered by
   // showPage) will render with the query already set.
   if (DexPage.roster.length > 0) renderDex();
@@ -273,6 +289,9 @@ export function jumpToDexPokemon(apiName) {
 // Module-level holders for callbacks wired in initDexPage.
 let _onMoveClick = null;
 let _getMoveDetails = null;
+// Set by jumpToDexPokemon so openDexPage knows not to clear the query that
+// was just placed by a cross-nav jump.
+let _preserveQuery = false;
 
 const MOVE_CAT_CLS = {
   physical: 'bg-red-950/50 text-red-400 border border-red-900/40',
@@ -385,9 +404,20 @@ export function initDexPage({ onMoveClick = null, getMoveDetails = null } = {}) 
     handleDexRowClick(row.getAttribute('data-api'));
   });
 
+  if (dom.searchClear) {
+    dom.searchClear.addEventListener('click', () => {
+      dom.search.value = '';
+      DexPage.query = '';
+      updateDexClearBtn();
+      renderDex();
+      dom.search.focus();
+    });
+  }
+
   let searchTimer = null;
   dom.search.addEventListener('input', (e) => {
     DexPage.query = e.target.value;
+    updateDexClearBtn();
     clearTimeout(searchTimer);
     searchTimer = setTimeout(async () => {
       // Ability search needs every row's details; in the lazy National Dex,
