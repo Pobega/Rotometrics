@@ -166,6 +166,12 @@ export function updateDropdownColors() {
   DOM.modAuraSelect.className = `w-full border rounded-lg py-1.5 px-2 text-[10px] focus:outline-none cursor-pointer font-bold transition-all duration-200 ${auraClasses[aura] || auraClasses.none}`;
 }
 
+export function setMoveTypeBadge(type) {
+  DOM.moveTypeBadgeContainer.innerHTML = `
+      <span class="text-[10px] px-2 py-0.5 font-black uppercase rounded ${getTypeBgClass(type)} text-white shadow-sm select-none">${type}</span>
+    `;
+}
+
 export function updateMoveDetailsVisuals(type, category, isCustom) {
   if (isCustom) {
     DOM.moveTypeBadgeContainer.innerHTML = "";
@@ -183,9 +189,7 @@ export function updateMoveDetailsVisuals(type, category, isCustom) {
     DOM.moveType.value = type;
     DOM.moveCategory.value = category.toLowerCase();
 
-    DOM.moveTypeBadgeContainer.innerHTML = `
-      <span class="text-[10px] px-2 py-0.5 font-black uppercase rounded ${getTypeBgClass(type)} text-white shadow-sm select-none">${type}</span>
-    `;
+    setMoveTypeBadge(type);
 
     const isPhysical = category.toLowerCase() === 'physical';
     const catColor = isPhysical ? 'bg-red-950/30 text-red-400 border border-red-900/30' : 'bg-purple-950/30 text-purple-400 border border-purple-900/30';

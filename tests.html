@@ -26,7 +26,7 @@
   <div id="results"></div>
 
   <script type="module">
-    import { calculateDamageRolls } from './src/engine/damage.js';
+    import { calculateDamageRolls, resolveEffectiveMove } from './src/engine/damage.js';
 
     // Synthetic test mons with round base stats so the math is traceable.
     const NORMAL_MON = (overrides = {}) => ({
@@ -806,6 +806,49 @@
 
     summary.textContent = `${pass} passed · ${fail} failed · ${snap} snapshot${snap === 1 ? '' : 's'} (of ${CASES.length})`;
     summary.classList.add(fail === 0 ? 'pass' : 'fail');
+  </script>
+
+  <!-- resolveEffectiveMove: the single source of truth shared by the calc + UI -->
+  <script type="module">
+    import { resolveEffectiveMove } from './src/engine/damage.js';
+
+    const results = document.getElementById('results');
+    const summary = document.getElementById('summary');
+
+    const WB = { apiName: 'weather-ball', type: 'Normal', power: 50, category: 'special' };
+    const atk = (ability = 'none') => ({ ability, types: ['Normal'] });
+    const eff = (ability, weather) => resolveEffectiveMove(atk(ability), WB, { weather });
+
+    const RESOLVE_CASES = [
+      { name: 'no weather → Normal / 50', run: () => { const m = eff('none'); return m.type === 'Normal' && m.power === 50; } },
+      { name: 'sun → Fire / 100', run: () => { const m = eff('none', 'sun'); return m.type === 'Fire' && m.power === 100; } },
+      { name: 'rain → Water / 100', run: () => { const m = eff('none', 'rain'); return m.type === 'Water' && m.power === 100; } },
+      { name: 'sandstorm → Rock / 100', run: () => { const m = eff('none', 'sandstorm'); return m.type === 'Rock' && m.power === 100; } },
+      { name: 'snow → Ice / 100', run: () => { const m = eff('none', 'snow'); return m.type === 'Ice' && m.power === 100; } },
+      { name: 'Mega Sol forces Fire / 100 with no weather', run: () => { const m = eff('mega-sol'); return m.type === 'Fire' && m.power === 100; } },
+      { name: 'Mega Sol overrides rain → Fire / 100', run: () => { const m = eff('mega-sol', 'rain'); return m.type === 'Fire' && m.power === 100; } },
+      { name: 'does not mutate the input move', run: () => { eff('none', 'sun'); return WB.type === 'Normal' && WB.power === 50; } },
+      { name: 'non-variable moves pass through unchanged', run: () => { const t = { apiName: 'tackle', type: 'Normal', power: 80, category: 'physical' }; return resolveEffectiveMove(atk(), t, { weather: 'sun' }) === t; } },
+    ];
+
+    let resolveFail = 0;
+    for (const c of RESOLVE_CASES) {
+      let ok = false, err = null;
+      try { ok = !!c.run(); } catch (e) { err = e; }
+      const div = document.createElement('div');
+      div.className = 'case ' + (ok ? 'pass' : 'fail');
+      div.innerHTML = ok
+        ? `<div class="name">✓ [resolve] ${c.name}</div>`
+        : `<div class="name">✗ [resolve] ${c.name}</div><div class="detail">${err ? err.message : 'assertion failed'}</div>`;
+      results.appendChild(div);
+      if (!ok) resolveFail++;
+    }
+
+    if (resolveFail > 0) {
+      summary.textContent = `${summary.textContent} · ${resolveFail} resolve failure${resolveFail === 1 ? '' : 's'}`;
+      summary.classList.remove('pass');
+      summary.classList.add('fail');
+    }
   </script>
 
   <!-- Pokédex pure-logic tests (bst / sortDex / filterDex) -->

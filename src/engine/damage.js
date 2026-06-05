@@ -9,18 +9,28 @@ function effectiveSpeed(mon) {
   return calculateStatBoost(base, mon.boosts.spe || 0);
 }
 
-export function calculateDamageRolls(attacker, defender, move, modifiers) {
-  // Weather Ball takes on the weather's type and doubles its power while any
-  // weather is active. Mega Sol makes the user's moves behave as if in harsh
-  // sunlight, so it turns Weather Ball into a boosted Fire move with no weather.
+// Resolve a move's effective type/power from battle state. This is the single
+// source of truth for variable-type/-power moves so the damage calc and the UI
+// (the Attack card's type badge + BP) can never drift. Currently only Weather
+// Ball is variable; add new such moves here.
+//
+// Weather Ball takes on the weather's type and doubles its power while any
+// weather is active. Mega Sol makes the user's moves behave as if in harsh
+// sunlight, so it turns Weather Ball into a boosted Fire move with no weather.
+export function resolveEffectiveMove(attacker, move, modifiers) {
   if (move.apiName === 'weather-ball') {
     const ballWeather = attacker.ability === 'mega-sol' ? 'sun' : modifiers.weather;
     const weatherBallTypes = { sun: 'Fire', rain: 'Water', sandstorm: 'Rock', snow: 'Ice' };
     const resolvedType = weatherBallTypes[ballWeather];
     if (resolvedType) {
-      move = { ...move, type: resolvedType, power: move.power * 2 };
+      return { ...move, type: resolvedType, power: move.power * 2 };
     }
   }
+  return move;
+}
+
+export function calculateDamageRolls(attacker, defender, move, modifiers) {
+  move = resolveEffectiveMove(attacker, move, modifiers);
 
   const baseIsPhysical = move.category.toLowerCase() === 'physical';
 

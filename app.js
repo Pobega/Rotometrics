@@ -2,7 +2,7 @@
 // Pure Client-Side JavaScript ES6+
 
 import { calculateStat, calculateStatBoost } from './src/engine/stats.js';
-import { calculateDamageRolls } from './src/engine/damage.js';
+import { calculateDamageRolls, resolveEffectiveMove } from './src/engine/damage.js';
 import { optimizeSurvivalEVsWithNatures, optimizeOffensiveEVsWithNatures } from './src/engine/optimize.js';
 import { bst, sortDex, filterDex, isHiddenForm, isRegulationMALegal } from './src/data/dex.js';
 import { exportMatchup, importMatchup } from './src/data/matchup-text.js';
@@ -30,6 +30,7 @@ import {
   updateStatsBars,
   updateDropdownColors,
   updateMoveDetailsVisuals,
+  setMoveTypeBadge,
   setSearchPlaceholders,
 } from './src/ui/render.js';
 import { setSpeedText, updateResultSummary } from './src/ui/result-summary.js';
@@ -298,6 +299,7 @@ function setAttackerDetails(details) {
     
     fetchMoveDetails(firstMove.apiName).then(move => {
       DOM.movePower.value = move.power;
+      DOM.movePower.dataset.basePower = move.power;
       updateMoveDetailsVisuals(move.type, move.category, false);
       updateLiveStats();
     }).catch(err => {
@@ -419,6 +421,17 @@ function updateLiveStats() {
   }
   STATE.modifiers.aura = DOM.modAuraSelect.value;
   STATE.attacker.status = DOM.modBurned.checked ? 'burned' : null;
+
+  // Variable-type/-power moves (Weather Ball) resolve from battle state. Keep
+  // STATE.move at its *base* type/power so calculateDamageRolls doubles exactly
+  // once; surface the resolved type + BP in the Attack card. Base power lives in
+  // dataset.basePower because the visible input may hold a prior resolved value.
+  if (STATE.move.apiName) {
+    STATE.move.power = parseInt(DOM.movePower.dataset.basePower) || STATE.move.power;
+    const effective = resolveEffectiveMove(STATE.attacker, STATE.move, STATE.modifiers);
+    setMoveTypeBadge(effective.type);
+    DOM.movePower.value = effective.power;
+  }
 
   const attackerSPSum = STATE.attacker.sps.atk + STATE.attacker.sps.spa + STATE.attacker.sps.spe;
   if (attackerSPSum > 66) {
@@ -803,6 +816,7 @@ function bindEvents() {
     try {
       const move = await fetchMoveDetails(val);
       DOM.movePower.value = move.power;
+      DOM.movePower.dataset.basePower = move.power;
       STATE.move.apiName = move.apiName;
       updateMoveDetailsVisuals(move.type, move.category, false);
       updateLiveStats();
@@ -1008,6 +1022,7 @@ async function applyMatchup(parsed) {
         const mv = await fetchMoveDetails(parsed.move.apiName);
         DOM.attackerMoveSelect.value = mv.apiName;
         DOM.movePower.value = mv.power;
+        DOM.movePower.dataset.basePower = mv.power;
         STATE.move.apiName = mv.apiName;
         updateMoveDetailsVisuals(mv.type, mv.category, false);
       } catch (err) {
