@@ -4,7 +4,8 @@
 // and setSpeedText mirror the model into the (already-queried) DOM elements.
 import { DOM } from './dom.js';
 import { STATE } from '../state.js';
-import { calculateStat } from '../engine/stats.js';
+import { calculateStat, getTypeEffectiveness, effectivenessInfo } from '../engine/stats.js';
+import { resolveEffectiveMove } from '../engine/damage.js';
 
 // Tone -> shared color palette (bg / text / border). Views differ only in size.
 const RESULT_TONES = {
@@ -21,6 +22,7 @@ const RESULT_VIEWS = [
   {
     matchup: DOM.mobOverlayMatchup, move: DOM.mobOverlayMove, pct: DOM.mobOverlayPct,
     badge: DOM.mobOverlayBadge,
+    moveBase: 'text-[10px] font-bold truncate leading-none mt-1.5',
     badgeBase: 'h-8 px-3 rounded-lg flex items-center justify-center text-[10px] font-black uppercase select-none tracking-wider border',
     barMin: DOM.mobOverlayBarMin, barMax: DOM.mobOverlayBarMax,
     icon: DOM.mobOverlayIcon, iconWrap: DOM.mobOverlayIconWrap,
@@ -30,6 +32,7 @@ const RESULT_VIEWS = [
   {
     matchup: DOM.resMatchup, move: DOM.resMove, pct: DOM.resPct,
     badge: DOM.resBadge,
+    moveBase: 'text-[11px] font-bold truncate leading-none mt-2',
     badgeBase: 'h-10 px-4 rounded-lg flex items-center justify-center text-sm font-black uppercase select-none tracking-wider border',
     barMin: DOM.resBarMin, barMax: DOM.resBarMax,
     icon: DOM.resModeIcon, iconWrap: DOM.resModeIconWrap,
@@ -108,6 +111,17 @@ function koChanceLabel(mode, rolls, finalHp, verdict) {
   return `${(count / n * 100).toFixed(1).replace(/\.0$/, '')}%`;
 }
 
+// Build the damage-card move line (display text + tone) from battle state. Pure
+// and DOM-free so it can be golden-tested. Reads everything off the *resolved*
+// move so variable moves (Weather Ball) report their resolved type + BP, keeping
+// the card in sync with the Attack card and the damage math.
+export function buildMoveLine(attacker, defender, move, modifiers, mode) {
+  const eff = resolveEffectiveMove(attacker, move, modifiers);
+  const mult = getTypeEffectiveness(eff.type, defender.types);
+  const info = effectivenessInfo(mult, mode);
+  return { text: `${move.name} (${eff.power} BP) · ${info.label}`, tone: info.tone };
+}
+
 // Build the summary model once, then mirror it into every result view.
 export function updateResultSummary(rolls) {
   const minDamage = rolls[0];
@@ -116,6 +130,7 @@ export function updateResultSummary(rolls) {
   if (!STATE.attacker.name || !STATE.defender.name) {
     model = {
       matchup: 'Awaiting Selection...', move: 'Select both slots to calculate',
+      moveTone: 'slate',
       pct: '0.0% - 0.0%',
       verdict: { label: 'Awaiting', tone: 'slate', roll: false }, minFill: 0, maxFill: 0,
     };
@@ -125,9 +140,11 @@ export function updateResultSummary(rolls) {
     const maxPct = (maxDamage / finalHp) * 100;
     const verdict = computeVerdict(STATE.mode, minDamage, maxDamage, finalHp);
     verdict.chance = koChanceLabel(STATE.mode, rolls, finalHp, verdict);
+    const line = buildMoveLine(STATE.attacker, STATE.defender, STATE.move, STATE.modifiers, STATE.mode);
     model = {
       matchup: `${STATE.attacker.name} vs ${STATE.defender.name}`,
-      move: `${STATE.move.name} (${STATE.move.power} BP)`,
+      move: line.text,
+      moveTone: line.tone,
       pct: `${minPct.toFixed(1)}% - ${maxPct.toFixed(1)}%`,
       verdict,
       minFill: Math.min(100, minPct),
@@ -150,6 +167,7 @@ export function updateResultSummary(rolls) {
     if (!v.matchup) continue;
     v.matchup.textContent = model.matchup;
     v.move.textContent = model.move;
+    v.move.className = `${v.moveBase} ${SPEED_TEXT_TONES[model.moveTone]}`;
     v.pct.textContent = model.pct;
     v.badge.innerHTML = verdictBadgeHTML(model.verdict);
     v.badge.className = `${v.badgeBase} ${RESULT_TONES[model.verdict.tone]}`;

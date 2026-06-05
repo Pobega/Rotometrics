@@ -851,6 +851,111 @@
     }
   </script>
 
+  <!-- Move effectiveness label/tone tests (context-aware coloring) -->
+  <script type="module">
+    import { effectivenessInfo } from './src/engine/stats.js';
+
+    const results = document.getElementById('results');
+    const summary = document.getElementById('summary');
+
+    const is = (mult, mode, label, tone) => {
+      const r = effectivenessInfo(mult, mode);
+      return r.label === label && r.tone === tone;
+    };
+
+    const EFF_CASES = [
+      { name: 'super effective is good (emerald) on offense', run: () => is(2, 'offensive', 'Super Effective', 'emerald') },
+      { name: 'super effective is bad (red) on survival', run: () => is(2, 'survival', 'Super Effective', 'red') },
+      { name: 'extremely effective label at 4x', run: () => effectivenessInfo(4, 'offensive').label === 'Extremely Effective' },
+      { name: 'not very effective is bad (red) on offense', run: () => is(0.5, 'offensive', 'Not Very Effective', 'red') },
+      { name: 'not very effective is good (emerald) on survival', run: () => is(0.5, 'survival', 'Not Very Effective', 'emerald') },
+      { name: 'extremely ineffective label at 0.25x', run: () => effectivenessInfo(0.25, 'offensive').label === 'Extremely Ineffective' },
+      { name: 'neutral is amber on offense', run: () => is(1, 'offensive', 'Neutral', 'amber') },
+      { name: 'neutral is amber on survival', run: () => is(1, 'survival', 'Neutral', 'amber') },
+      { name: 'no effect is best-case (emerald) on survival', run: () => is(0, 'survival', 'No Effect', 'emerald') },
+      { name: 'no effect is worst-case (red) on offense', run: () => is(0, 'offensive', 'No Effect', 'red') },
+    ];
+
+    let effFail = 0;
+    for (const c of EFF_CASES) {
+      let ok = false, err = null;
+      try { ok = !!c.run(); } catch (e) { err = e; }
+      const div = document.createElement('div');
+      div.className = 'case ' + (ok ? 'pass' : 'fail');
+      div.innerHTML = ok
+        ? `<div class="name">✓ [eff] ${c.name}</div>`
+        : `<div class="name">✗ [eff] ${c.name}</div><div class="detail">${err ? err.message : 'assertion failed'}</div>`;
+      results.appendChild(div);
+      if (!ok) effFail++;
+    }
+
+    if (effFail > 0) {
+      summary.textContent = `${summary.textContent} · ${effFail} eff failure${effFail === 1 ? '' : 's'}`;
+      summary.classList.remove('pass');
+      summary.classList.add('fail');
+    }
+  </script>
+
+  <!-- Damage-card move-line golden tests (resolved type + BP must not drift) -->
+  <script type="module">
+    import { buildMoveLine } from './src/ui/result-summary.js';
+
+    const results = document.getElementById('results');
+    const summary = document.getElementById('summary');
+
+    const POLITOED = { ability: 'none', types: ['Water'] };
+    const WHIMSICOTT = { types: ['Grass', 'Fairy'] };
+    const WEATHER_BALL = { name: 'Weather Ball', apiName: 'weather-ball', type: 'Normal', power: 50, category: 'special' };
+
+    const LINE_CASES = [
+      {
+        // Regression: Weather Ball in sun resolves to Fire / 100 BP, which is
+        // super effective vs Whimsicott (Grass/Fairy). The card must show the
+        // resolved BP (100), not the base 50.
+        name: 'Weather Ball in sun vs Whimsicott shows 100 BP, Super Effective',
+        run: () => {
+          const l = buildMoveLine(POLITOED, WHIMSICOTT, WEATHER_BALL, { weather: 'sun' }, 'offensive');
+          return l.text === 'Weather Ball (100 BP) · Super Effective' && l.tone === 'emerald';
+        },
+      },
+      {
+        // No weather → stays Normal / 50 BP; Normal is neutral on Grass/Fairy.
+        name: 'Weather Ball with no weather shows base 50 BP, Neutral',
+        run: () => {
+          const l = buildMoveLine(POLITOED, WHIMSICOTT, WEATHER_BALL, { weather: 'none' }, 'offensive');
+          return l.text === 'Weather Ball (50 BP) · Neutral' && l.tone === 'amber';
+        },
+      },
+      {
+        // Same sun-resolved Fire hit, but from the defender's seat it's bad news.
+        name: 'survival mode flips the resolved super-effective hit to red',
+        run: () => {
+          const l = buildMoveLine(POLITOED, WHIMSICOTT, WEATHER_BALL, { weather: 'sun' }, 'survival');
+          return l.text === 'Weather Ball (100 BP) · Super Effective' && l.tone === 'red';
+        },
+      },
+    ];
+
+    let lineFail = 0;
+    for (const c of LINE_CASES) {
+      let ok = false, err = null;
+      try { ok = !!c.run(); } catch (e) { err = e; }
+      const div = document.createElement('div');
+      div.className = 'case ' + (ok ? 'pass' : 'fail');
+      div.innerHTML = ok
+        ? `<div class="name">✓ [moveline] ${c.name}</div>`
+        : `<div class="name">✗ [moveline] ${c.name}</div><div class="detail">${err ? err.message : 'assertion failed'}</div>`;
+      results.appendChild(div);
+      if (!ok) lineFail++;
+    }
+
+    if (lineFail > 0) {
+      summary.textContent = `${summary.textContent} · ${lineFail} moveline failure${lineFail === 1 ? '' : 's'}`;
+      summary.classList.remove('pass');
+      summary.classList.add('fail');
+    }
+  </script>
+
   <!-- Pokédex pure-logic tests (bst / sortDex / filterDex) -->
   <script type="module">
     import { bst, sortDex, filterDex, STAT_KEYS, isHiddenForm, isRegulationMALegal } from './src/data/dex.js';

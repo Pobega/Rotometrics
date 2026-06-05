@@ -65,3 +65,22 @@ export function getTypeEffectiveness(moveType, defenderTypes) {
   }
   return mult;
 }
+
+// Map a type-effectiveness multiplier to a display label + favorability tone for
+// the active mode. Favor flips by mode: in offense a high multiplier is good for
+// the user (emerald); in survival a high multiplier means more damage taken, so
+// it's bad (red). Neutral (1x) is always amber. Tones match RESULT_TONES keys.
+export function effectivenessInfo(mult, mode) {
+  const LABELS = {
+    0: 'No Effect', 0.25: 'Extremely Ineffective', 0.5: 'Not Very Effective',
+    1: 'Neutral', 2: 'Super Effective', 4: 'Extremely Effective',
+  };
+  const label = LABELS[mult] ?? `${mult}×`;
+  let tone;
+  if (mult === 1) tone = 'amber';
+  else {
+    const favorable = mode === 'survival' ? mult < 1 : mult > 1;
+    tone = favorable ? 'emerald' : 'red';
+  }
+  return { label, tone };
+}
