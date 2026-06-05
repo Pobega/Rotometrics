@@ -198,7 +198,8 @@ export async function fetchMoveDetails(moveApiName) {
     // filter; `desc` backs the description column + free-text search.
     pp: data.pp ?? null,
     target: data.target ? data.target.name : null,
-    desc: moveDescription(data)
+    desc: moveDescription(data),
+    learnedBy: (data.learned_by_pokemon || []).map(p => p.name)
   };
 
   Storage.set(key, details);

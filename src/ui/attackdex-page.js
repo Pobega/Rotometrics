@@ -3,11 +3,13 @@
 // lazy-loading, client-side sort, and search/filter. Mirrors dex-page.js — holds
 // its own AttackdexPage state and queries its own DOM nodes — so it stays
 // decoupled from the calculator controller in app.js.
-import { CACHE } from '../state.js';
+import { STATE, CACHE } from '../state.js';
 import { sortMoves, filterMoves, spreadKind } from '../data/moves.js';
-import { fetchMoveDetails, initAllMovesList } from '../api/pokeapi.js';
+import { fetchMoveDetails, fetchPokemonDetails, initAllMovesList, formatDisplayName } from '../api/pokeapi.js';
+import { isHiddenForm, isRegulationMALegal } from '../data/dex.js';
 import { getTypeBgClass, escapeHtml } from './render.js';
 import { registerPage } from './page-nav.js';
+import { openDetailModal, closeDetailModal, refreshDetailModalBody } from './detail-modal.js';
 
 const AttackdexPage = {
   roster: [],          // [{ apiName, name, details|null }]
@@ -156,7 +158,7 @@ function moveRowHTML(row) {
       ? `<span class="text-[7px] px-1 py-0.5 font-black uppercase rounded bg-amber-950/50 text-amber-400 border border-amber-900/40" title="Spread move — hits both opponents">Spread</span>`
       : '';
 
-  return `<div class="attackdex-row ${GRID} hover:bg-slate-800/40 transition" data-api="${apiName}">
+  return `<div class="attackdex-row ${GRID} hover:bg-slate-800/40 transition cursor-pointer" data-api="${apiName}">
     <span class="font-bold text-slate-100 truncate flex items-center gap-1.5">${name}${spread}</span>
     <span>${typeBadge}</span>
     <span>${catBadge}</span>
@@ -262,7 +264,124 @@ async function applyFilterChange() {
   renderAttackdex();
 }
 
-export function initAttackdexPage() {
+// Narrow the Attackdex to a single move by name (called when jumping from the
+// Pokédex learnset modal). Sets the search field + re-renders.
+// Look up already-loaded move details by apiName (used by dex-page via app.js).
+export function getMoveDetails(apiName) {
+  return AttackdexPage.byName[apiName]?.details ?? null;
+}
+
+export function jumpToAttackdexMove(apiName) {
+  const dom = attackdexDom();
+  const displayName = AttackdexPage.byName[apiName]?.name || formatDisplayName(apiName);
+  AttackdexPage.query = displayName;
+  if (dom.search) dom.search.value = displayName;
+  // Only render if already built; otherwise openAttackdexPage (triggered by
+  // showPage) will render with the query already set.
+  if (AttackdexPage.built) renderAttackdex();
+}
+
+let _onPokemonClick = null;
+let _getPokemonDetails = null;
+
+const LEARNER_CAP = 150;
+
+function buildPokemonItem(n, pd, onClick) {
+  const name = escapeHtml(formatDisplayName(n));
+  if (!pd) {
+    return {
+      html: `<div class="w-8 h-8 bg-slate-800 rounded shrink-0 animate-pulse"></div><span class="font-bold text-slate-500 flex-1 truncate">${name}</span>`,
+      onClick
+    };
+  }
+  const sprite = escapeHtml(pd.sprite || '');
+  const img = `<img src="${sprite}" alt="" loading="lazy" class="w-8 h-8 object-contain shrink-0">`;
+  const types = pd.types.map(t => {
+    const type = escapeHtml(t);
+    return `<span class="text-[8px] px-1 py-0.5 font-extrabold uppercase rounded ${getTypeBgClass(t)} text-white">${type}</span>`;
+  }).join('');
+  return {
+    html: `${img}<span class="font-bold text-slate-100 flex-1 truncate min-w-0">${name}</span><div class="flex gap-1 shrink-0">${types}</div>`,
+    onClick
+  };
+}
+
+async function handleAttackdexRowClick(apiName) {
+  const row = AttackdexPage.byName[apiName];
+  if (!row) return;
+
+  if (!row.details) {
+    openDetailModal({ title: row.name, subtitle: 'Loading…', items: [] });
+    try {
+      const details = await fetchMoveDetails(apiName);
+      row.details = details;
+      renderAttackdex();
+    } catch (err) {
+      console.error(`Attackdex detail modal: failed to load ${apiName}`, err);
+      return;
+    }
+  }
+
+  const details = row.details;
+  let learners = (details.learnedBy || []).filter(n => !isHiddenForm(n));
+  if (STATE.format === 'regulation_ma') {
+    learners = learners.filter(n => isRegulationMALegal(n, CACHE.championsLegalList));
+  }
+  learners.sort((a, b) => a.localeCompare(b));
+
+  const capped = learners.length > LEARNER_CAP;
+  const visible = capped ? learners.slice(0, LEARNER_CAP) : learners;
+  const formatLabel = STATE.format === 'regulation_ma' ? 'Regulation M-A' : 'National Dex';
+
+  const localCache = new Map();
+  const getDetails = (n) => localCache.get(n) || (_getPokemonDetails && _getPokemonDetails(n));
+  const makeOnClick = (n) => () => { closeDetailModal(); if (_onPokemonClick) _onPokemonClick(n); };
+
+  const buildItems = () => {
+    const rows = visible.map(n => buildPokemonItem(n, getDetails(n), makeOnClick(n)));
+    if (capped) {
+      rows.push({ label: `…and ${learners.length - LEARNER_CAP} more — switch to Regulation M-A to narrow the list`, onClick: null });
+    }
+    return rows;
+  };
+
+  openDetailModal({
+    title: `Who learns ${details.name}`,
+    subtitle: `${learners.length} Pokémon · ${formatLabel}`,
+    items: buildItems()
+  });
+
+  // Fetch details for Pokémon not yet in any cache.
+  const toFetch = visible.filter(n => !getDetails(n));
+  if (toFetch.length === 0) return;
+
+  const CONCURRENCY = 8;
+  let cursor = 0;
+  let sinceRefresh = 0;
+
+  async function worker() {
+    while (cursor < toFetch.length) {
+      const n = toFetch[cursor++];
+      try {
+        const pd = await fetchPokemonDetails(n);
+        localCache.set(n, pd);
+        if (++sinceRefresh >= CONCURRENCY) {
+          sinceRefresh = 0;
+          refreshDetailModalBody(buildItems());
+        }
+      } catch (err) {
+        console.error(`Failed to load Pokémon ${n}`, err);
+      }
+    }
+  }
+
+  await Promise.all(Array.from({ length: CONCURRENCY }, worker));
+  refreshDetailModalBody(buildItems());
+}
+
+export function initAttackdexPage({ onPokemonClick = null, getPokemonDetails = null } = {}) {
+  _onPokemonClick = onPokemonClick;
+  _getPokemonDetails = getPokemonDetails;
   const dom = attackdexDom();
   if (!dom.navAttackdex) return;
 
@@ -270,6 +389,12 @@ export function initAttackdexPage() {
     navBtn: dom.navAttackdex,
     pageEl: dom.pageAttackdex,
     onShow: openAttackdexPage
+  });
+
+  dom.rows.addEventListener('click', e => {
+    const row = e.target.closest('.attackdex-row[data-api]');
+    if (!row) return;
+    handleAttackdexRowClick(row.getAttribute('data-api'));
   });
 
   let searchTimer = null;

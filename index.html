@@ -1095,7 +1095,23 @@
     </div>
   </div>
 
+  <!-- Detail modal: learnset (Pokémon → moves) and learned-by (move → Pokémon) -->
+  <div id="detail-modal" class="hidden fixed inset-0 z-[300] flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4">
+    <div class="bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl w-full max-w-md flex flex-col gap-3 p-5 max-h-[80vh]">
+      <div class="flex items-center justify-between gap-3 border-b border-slate-700 pb-3">
+        <div class="min-w-0">
+          <h3 id="detail-modal-title" class="text-sm font-extrabold text-amber-400 truncate"></h3>
+          <p id="detail-modal-subtitle" class="text-[11px] text-slate-500 mt-0.5"></p>
+        </div>
+        <button id="detail-modal-close" class="text-slate-400 hover:text-white text-lg leading-none px-1 shrink-0" title="Close">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+      <div id="detail-modal-body" class="overflow-y-auto flex flex-col min-h-0 flex-1"></div>
+    </div>
+  </div>
+
   <!-- Script imports -->
-  <script type="module" src="app.js?v=1.0.18"></script>
+  <script type="module" src="app.js?v=1.0.19"></script>
 </body>
 </html>

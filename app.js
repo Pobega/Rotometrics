@@ -33,9 +33,10 @@ import {
   setSearchPlaceholders,
 } from './src/ui/render.js';
 import { setSpeedText, updateResultSummary } from './src/ui/result-summary.js';
-import { onDexFormatChange, initDexPage } from './src/ui/dex-page.js';
-import { initAttackdexPage } from './src/ui/attackdex-page.js';
-import { registerPage } from './src/ui/page-nav.js';
+import { onDexFormatChange, initDexPage, jumpToDexPokemon, getPokemonDetails } from './src/ui/dex-page.js';
+import { initAttackdexPage, jumpToAttackdexMove, getMoveDetails } from './src/ui/attackdex-page.js';
+import { registerPage, showPage } from './src/ui/page-nav.js';
+import { initDetailModal } from './src/ui/detail-modal.js';
 
 // Each format gets a Rotom-form accent: the brand Rotom's glow and the format
 // pill borrow that form's signature color. Regulation M-A wears Heat Rotom's warm
@@ -1098,8 +1099,15 @@ async function init() {
     navBtn: document.getElementById('nav-calculator'),
     pageEl: document.getElementById('page-calculator')
   });
-  initDexPage();
-  initAttackdexPage();
+  initDetailModal();
+  initDexPage({
+    onMoveClick: (apiName) => { jumpToAttackdexMove(apiName); showPage('attackdex'); },
+    getMoveDetails
+  });
+  initAttackdexPage({
+    onPokemonClick: (apiName) => { jumpToDexPokemon(apiName); showPage('pokedex'); },
+    getPokemonDetails
+  });
 
   bindAutocomplete(
     DOM.attackerSearch,

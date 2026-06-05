@@ -5,9 +5,10 @@
 // calculator controller in app.js.
 import { STATE, CACHE } from '../state.js';
 import { bst, sortDex, filterDex, isHiddenForm, isRegulationMALegal } from '../data/dex.js';
-import { fetchPokemonDetails, initPokemonList, initChampionsLegalList } from '../api/pokeapi.js';
+import { fetchPokemonDetails, fetchMoveDetails, formatDisplayName, initPokemonList, initChampionsLegalList } from '../api/pokeapi.js';
 import { getTypeBgClass, setSearchPlaceholders, escapeHtml } from './render.js';
 import { registerPage } from './page-nav.js';
+import { openDetailModal, closeDetailModal, refreshDetailModalBody } from './detail-modal.js';
 
 const DexPage = {
   roster: [],          // [{ apiName, name, details|null }]
@@ -158,7 +159,7 @@ function dexRowHTML(row) {
   const total = bst(s);
   const cell = (v) => `<span class="text-right font-mono text-slate-300">${v}</span>`;
 
-  return `<div class="dex-row grid grid-cols-[minmax(150px,1.6fr)_110px_minmax(140px,1.4fr)_repeat(6,46px)_58px] items-center gap-2 px-3 py-1.5 border-b border-slate-800/70 text-xs hover:bg-slate-800/40 transition" data-api="${apiName}">
+  return `<div class="dex-row grid grid-cols-[minmax(150px,1.6fr)_110px_minmax(140px,1.4fr)_repeat(6,46px)_58px] items-center gap-2 px-3 py-1.5 border-b border-slate-800/70 text-xs hover:bg-slate-800/40 transition cursor-pointer" data-api="${apiName}">
     <div class="flex items-center gap-2 min-w-0">
       <img src="${escapeHtml(d.sprite || '')}" alt="" loading="lazy" class="w-8 h-8 object-contain shrink-0">
       <span class="font-bold text-slate-100 truncate">${name}</span>
@@ -251,6 +252,112 @@ async function openDexPage() {
   }
 }
 
+// Look up already-loaded Pokémon details by apiName (used by attackdex-page via
+// app.js to enrich the "who learns" list without a circular import).
+export function getPokemonDetails(apiName) {
+  return DexPage.byName[apiName]?.details ?? null;
+}
+
+// Narrow the Pokédex to a single Pokémon by name (called when jumping from the
+// Attackdex "learned by" modal). Sets the search field + re-renders.
+export function jumpToDexPokemon(apiName) {
+  const dom = dexDom();
+  const displayName = DexPage.byName[apiName]?.name || formatDisplayName(apiName);
+  DexPage.query = displayName;
+  if (dom.search) dom.search.value = displayName;
+  // Only render if roster is built; otherwise openDexPage (triggered by
+  // showPage) will render with the query already set.
+  if (DexPage.roster.length > 0) renderDex();
+}
+
+// Module-level holders for callbacks wired in initDexPage.
+let _onMoveClick = null;
+let _getMoveDetails = null;
+
+const MOVE_CAT_CLS = {
+  physical: 'bg-red-950/50 text-red-400 border border-red-900/40',
+  special:  'bg-blue-950/50 text-blue-400 border border-blue-900/40',
+  status:   'bg-slate-800/60 text-slate-400 border border-slate-700/40'
+};
+
+function buildMoveItem(move, md, onClick) {
+  const name = escapeHtml(move.name);
+  if (!md) {
+    return { html: `<span class="font-bold text-slate-200 flex-1 truncate animate-pulse text-slate-500">${name}</span>`, onClick };
+  }
+  const type = escapeHtml(md.type);
+  const typeBadge = `<span class="text-[8px] px-1 py-0.5 font-extrabold uppercase rounded ${getTypeBgClass(md.type)} text-white shrink-0">${type}</span>`;
+  const catCls = MOVE_CAT_CLS[md.category] || MOVE_CAT_CLS.status;
+  const catLabel = md.category ? md.category.charAt(0).toUpperCase() + md.category.slice(1) : '—';
+  const catBadge = `<span class="text-[8px] px-1 py-0.5 font-extrabold uppercase rounded ${catCls} shrink-0">${catLabel}</span>`;
+  const power = md.power ? `<span class="font-mono text-amber-400 w-8 text-right shrink-0">${md.power}</span>` : `<span class="font-mono text-slate-600 w-8 text-right shrink-0">—</span>`;
+  return { html: `<span class="font-bold text-slate-100 flex-1 truncate min-w-0">${name}</span>${typeBadge}${catBadge}${power}`, onClick };
+}
+
+async function handleDexRowClick(apiName) {
+  const row = DexPage.byName[apiName];
+  if (!row) return;
+
+  if (!row.details) {
+    openDetailModal({ title: row.name, subtitle: 'Loading…', items: [] });
+    try {
+      const details = await fetchPokemonDetails(apiName);
+      row.details = details;
+      renderDex();
+    } catch (err) {
+      console.error(`Pokédex detail modal: failed to load ${apiName}`, err);
+      return;
+    }
+  }
+
+  const details = row.details;
+  const seen = new Set();
+  const moves = details.moves.filter(m => {
+    if (seen.has(m.apiName)) return false;
+    seen.add(m.apiName);
+    return true;
+  }).sort((a, b) => a.name.localeCompare(b.name));
+
+  // Local cache for details fetched during this modal session.
+  const localCache = new Map();
+  const getDetails = (m) => localCache.get(m.apiName) || (_getMoveDetails && _getMoveDetails(m.apiName));
+  const makeOnClick = (m) => () => { closeDetailModal(); if (_onMoveClick) _onMoveClick(m.apiName); };
+  const buildItems = () => moves.map(m => buildMoveItem(m, getDetails(m), makeOnClick(m)));
+
+  openDetailModal({
+    title: `${details.name}'s Moves`,
+    subtitle: `${moves.length} moves`,
+    items: buildItems()
+  });
+
+  // Fetch details for moves not yet cached anywhere.
+  const toFetch = moves.filter(m => !getDetails(m));
+  if (toFetch.length === 0) return;
+
+  const CONCURRENCY = 8;
+  let cursor = 0;
+  let sinceRefresh = 0;
+
+  async function worker() {
+    while (cursor < toFetch.length) {
+      const move = toFetch[cursor++];
+      try {
+        const md = await fetchMoveDetails(move.apiName);
+        localCache.set(move.apiName, md);
+        if (++sinceRefresh >= CONCURRENCY) {
+          sinceRefresh = 0;
+          refreshDetailModalBody(buildItems());
+        }
+      } catch (err) {
+        console.error(`Failed to load move ${move.apiName}`, err);
+      }
+    }
+  }
+
+  await Promise.all(Array.from({ length: CONCURRENCY }, worker));
+  refreshDetailModalBody(buildItems());
+}
+
 export function onDexFormatChange() {
   const dom = dexDom();
   if (!dom.pagePokedex) return;
@@ -260,7 +367,9 @@ export function onDexFormatChange() {
   }
 }
 
-export function initDexPage() {
+export function initDexPage({ onMoveClick = null, getMoveDetails = null } = {}) {
+  _onMoveClick = onMoveClick;
+  _getMoveDetails = getMoveDetails;
   const dom = dexDom();
   if (!dom.navPokedex) return;
 
@@ -268,6 +377,12 @@ export function initDexPage() {
     navBtn: dom.navPokedex,
     pageEl: dom.pagePokedex,
     onShow: openDexPage
+  });
+
+  dom.rows.addEventListener('click', e => {
+    const row = e.target.closest('.dex-row[data-api]');
+    if (!row) return;
+    handleDexRowClick(row.getAttribute('data-api'));
   });
 
   let searchTimer = null;
