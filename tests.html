@@ -9,12 +9,17 @@
     .summary { padding: 8px 12px; border-radius: 6px; margin-bottom: 16px; font-weight: bold; }
     .summary.pass { background: #052e16; color: #4ade80; border: 1px solid #166534; }
     .summary.fail { background: #450a0a; color: #f87171; border: 1px solid #991b1b; }
-    .summary-toggle { width: 100%; text-align: left; background: none; border: 0; padding: 0; margin: 0; color: inherit; font: inherit; font-weight: bold; cursor: pointer; }
-    .summary-toggle .caret { display: inline-block; width: 1em; }
-    .suite-breakdown { margin-top: 10px; padding-top: 8px; border-top: 1px solid rgba(148,163,184,0.25); font-weight: normal; }
-    .suite-row { display: flex; justify-content: space-between; gap: 16px; padding: 2px 0; font-size: 13px; }
-    .suite-row.pass { color: #86efac; }
-    .suite-row.fail { color: #fca5a5; }
+    .summary-toggle { display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; text-align: left; background: none; border: 0; padding: 0; margin: 0; color: inherit; font: inherit; font-weight: bold; cursor: pointer; }
+    .summary-toggle .caret { flex-shrink: 0; opacity: 0.7; font-size: 24px; line-height: 0; transform: translateY(-1px); }
+    .suite-breakdown { margin-top: 10px; padding-top: 10px; border-top: 1px solid rgba(148,163,184,0.25); font-weight: normal; display: grid; gap: 4px; }
+    .suite-breakdown[hidden] { display: none; }
+    .suite-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 6px 10px; font-size: 13px; background: rgba(15,23,42,0.5); border-radius: 6px; border-left: 3px solid #334155; }
+    .suite-row.pass { border-left-color: #16a34a; }
+    .suite-row.fail { border-left-color: #dc2626; }
+    .suite-name { color: #e2e8f0; font-weight: 600; }
+    .suite-count { font-variant-numeric: tabular-nums; letter-spacing: 0.02em; }
+    .suite-row.pass .suite-count { color: #86efac; }
+    .suite-row.fail .suite-count { color: #fca5a5; }
     .case { border-left: 4px solid #334155; padding: 8px 12px; margin: 6px 0; background: #1e293b; border-radius: 0 6px 6px 0; }
     .case.pass { border-color: #16a34a; }
     .case.fail { border-color: #dc2626; }
@@ -60,13 +65,13 @@
         const bits = [`${s.pass} ✓`];
         if (s.fail) bits.push(`${s.fail} ✗`);
         if (s.snap) bits.push(`${s.snap} 📸`);
-        return `<div class="suite-row ${s.fail ? 'fail' : 'pass'}"><span>${s.name}</span><span>${bits.join(' · ')}</span></div>`;
+        return `<div class="suite-row ${s.fail ? 'fail' : 'pass'}"><span class="suite-name">${s.name}</span><span class="suite-count">${bits.join(' · ')}</span></div>`;
       }).join('');
 
       el.innerHTML =
         `<button type="button" class="summary-toggle" aria-expanded="${open ? 'true' : 'false'}">` +
-          `<span class="caret">${open ? '▾' : '▸'}</span> ` +
-          `${t.pass} passed · ${t.fail} failed · ${t.snap} snapshot${t.snap === 1 ? '' : 's'} (of ${total})` +
+          `<span>${t.pass} passed · ${t.fail} failed · ${t.snap} snapshot${t.snap === 1 ? '' : 's'} (of ${total})</span>` +
+          `<span class="caret">${open ? '▾' : '▸'}</span>` +
         `</button>` +
         `<div class="suite-breakdown"${open ? '' : ' hidden'}>${rows}</div>`;
 
