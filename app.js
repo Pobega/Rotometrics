@@ -1051,12 +1051,17 @@ async function init() {
   await initStatusMovesList();
   await initChampionsRoster();
 
-  // Fire preloaded sample scenario instantly on startup!
+  // Fire preloaded sample scenario instantly on startup! Await it, then notify()
+  // once more: the islands subscribe to the store in a layout effect after mount,
+  // so an early notify() during the sample load could land before they're listening.
+  // A trailing notify() (subscriptions guaranteed registered by now) makes the
+  // islands reflect the loaded matchup instead of staying on their empty state.
   try {
-    loadSampleVGCScenario();
+    await loadSampleVGCScenario();
   } catch (err) {
     console.error("Preloader error:", err);
   }
+  notify();
 
   // Fetch massive search databases quietly in the background without blocking!
   initPokemonList().then(setSearchPlaceholders);
