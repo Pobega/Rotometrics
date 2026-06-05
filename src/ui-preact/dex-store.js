@@ -178,7 +178,7 @@ export async function openDexPage() {
   }
 }
 
-// Look up already-loaded Pokémon details by apiName (used by attackdex-page via
+// Look up already-loaded Pokémon details by apiName (used by attackdex-store via
 // app.js to enrich the "who learns" list without a circular import).
 export function getPokemonDetails(apiName) {
   return DexStore.byName[apiName]?.details ?? null;

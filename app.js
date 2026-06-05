@@ -21,7 +21,8 @@ import { setSearchPlaceholders } from './src/ui/render.js';
 import { buildResultModel } from './src/ui/result-summary.js';
 import { onDexFormatChange, initDexStore, openDexPage, jumpToDexPokemon, getPokemonDetails } from './src/ui-preact/dex-store.js';
 import { DexView } from './src/ui-preact/DexView.js';
-import { initAttackdexPage, jumpToAttackdexMove, getMoveDetails } from './src/ui/attackdex-page.js';
+import { initAttackdexStore, openAttackdexPage, jumpToAttackdexMove, getMoveDetails } from './src/ui-preact/attackdex-store.js';
+import { AttackdexView } from './src/ui-preact/AttackdexView.js';
 import { registerPage, showPage } from './src/ui/page-nav.js';
 import { initDetailModal } from './src/ui/detail-modal.js';
 import { render, h } from 'preact';
@@ -560,9 +561,17 @@ async function init() {
     pageEl: document.getElementById('page-pokedex'),
     onShow: openDexPage
   });
-  initAttackdexPage({
+  // Attackdex is a Preact island too: wire its store callbacks, mount the view
+  // into the persistent #page-attackdex container, and register its onShow.
+  initAttackdexStore({
     onPokemonClick: (apiName) => { jumpToDexPokemon(apiName); showPage('pokedex'); },
     getPokemonDetails
+  });
+  render(h(AttackdexView), document.getElementById('page-attackdex'));
+  registerPage('attackdex', {
+    navBtn: document.getElementById('nav-attackdex'),
+    pageEl: document.getElementById('page-attackdex'),
+    onShow: openAttackdexPage
   });
 
   // Both search/autocomplete flows live inside their Preact islands.
