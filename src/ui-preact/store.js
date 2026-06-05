@@ -20,6 +20,8 @@ export const DERIVED = {
   // Each card is either an option { type, theme, title, nature, ...applyData }
   // or an impossible placeholder { impossible:true, theme, title, nature }.
   optimizer: { notPossible: false, cards: [] },
+  // Headline result-summary model (see buildResultModel) for the ResultsHUD island.
+  model: null,
 };
 
 const listeners = new Set();

@@ -35,7 +35,7 @@ import {
   setMoveTypeBadge,
   setSearchPlaceholders,
 } from './src/ui/render.js';
-import { setSpeedText, updateResultSummary } from './src/ui/result-summary.js';
+import { buildResultModel } from './src/ui/result-summary.js';
 import { onDexFormatChange, initDexPage, jumpToDexPokemon, getPokemonDetails } from './src/ui/dex-page.js';
 import { initAttackdexPage, jumpToAttackdexMove, getMoveDetails } from './src/ui/attackdex-page.js';
 import { registerPage, showPage } from './src/ui/page-nav.js';
@@ -44,6 +44,7 @@ import { render, h } from 'preact';
 import { AttackerCard } from './src/ui-preact/AttackerCard.js';
 import { DefenderCard } from './src/ui-preact/DefenderCard.js';
 import { CenterPanel } from './src/ui-preact/OptimizerPanel.js';
+import { ResultsHUD } from './src/ui-preact/ResultsHUD.js';
 import { setRecompute, notify, DERIVED } from './src/ui-preact/store.js';
 
 // Each format gets a Rotom-form accent: the brand Rotom's glow and the format
@@ -430,24 +431,8 @@ function updateLiveStats() {
     DOM.defenderEvSum.textContent = `Used: ${defenderSPSum}/66 SP`;
   }
 
-  // Turn-order chips (the full banner was removed; the HUD/mobile chips carry speed
-  // now). Always framed around the mode's own Pokémon (the attacker in offense mode,
-  // the defender in survival mode): green when it moves first, red when it moves
-  // second — i.e. green is always the favorable turn order for that Pokémon.
-  if (!STATE.attacker.name || !STATE.defender.name) {
-    setSpeedText("Awaiting Speed", "slate");
-  } else {
-    const survival = STATE.mode === 'survival';
-    const subjectName = survival ? STATE.defender.name : STATE.attacker.name;
-    const subjectSpe = survival ? finalDefenderSpe : finalAttackerSpe;
-    const otherSpe = survival ? finalAttackerSpe : finalDefenderSpe;
-    if (subjectSpe === otherSpe) {
-      setSpeedText("Speed Tie", "amber");
-    } else {
-      const first = subjectSpe > otherSpe;
-      setSpeedText(`${subjectName} moves ${first ? '1st' : '2nd'}`, first ? "emerald" : "red");
-    }
-  }
+  // Turn order (speed) is computed inside buildResultModel and rendered by the
+  // ResultsHUD island.
 
   // Dynamic Presets Dropdowns Synchronization
   const atkSP = STATE.attacker.sps.atk;
@@ -546,8 +531,8 @@ function runOptimizations() {
 
   DERIVED.optimizer = { notPossible, cards };
 
-  // Mirror the headline result into every view (mobile overlay + desktop HUD).
-  updateResultSummary(rolls);
+  // Headline result model for both HUD views (rendered by the ResultsHUD island).
+  DERIVED.model = buildResultModel(rolls, STATE);
 }
 
 function bindEvents() {
@@ -844,6 +829,8 @@ async function init() {
   render(h(AttackerCard, { onChoose: setAttackerDetails }), document.getElementById('panel-attacker'));
   render(h(DefenderCard, { onChoose: setDefenderDetails }), document.getElementById('panel-defender'));
   render(h(CenterPanel), document.getElementById('panel-center'));
+  render(h(ResultsHUD, { variant: 'desktop' }), document.getElementById('results-hud'));
+  render(h(ResultsHUD, { variant: 'mobile' }), document.getElementById('mobile-floating-overlay'));
   // Build the format dropdown from the regulation registry (+ the unrestricted
   // "None" view) up front so it's never empty, even before the async loads below.
   // Adding a regulation is then purely a data change in regulations.js.
