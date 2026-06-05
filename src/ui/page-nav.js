@@ -2,8 +2,8 @@
 // Each view registers its nav button + page container (and an optional onShow
 // callback); this module owns the active/idle button styling, the per-view
 // header Rotom form + tagline swap, and hiding the calculator-only damage HUDs
-// when a dex view is active. Pulling this out of dex-page.js lets any number of
-// views coexist instead of a hard-coded two-way toggle.
+// when a dex view is active. Pulling this out of the dex page logic lets any
+// number of views coexist instead of a hard-coded two-way toggle.
 
 const ACTIVE_CLS = "text-[9px] sm:text-[10px] font-extrabold uppercase tracking-wider py-1.5 px-2.5 rounded-md transition bg-amber-950/40 text-amber-400 shadow";
 const IDLE_CLS = "text-[9px] sm:text-[10px] font-extrabold uppercase tracking-wider py-1.5 px-2.5 rounded-md transition text-slate-400 hover:text-white";

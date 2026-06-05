@@ -1,8 +1,9 @@
 // Attackdex move-browser page: a self-contained view (toggled via the nav) that
 // lists every move with its type, category, power, PP, and description, with
-// lazy-loading, client-side sort, and search/filter. Mirrors dex-page.js — holds
-// its own AttackdexPage state and queries its own DOM nodes — so it stays
-// decoupled from the calculator controller in app.js.
+// lazy-loading, client-side sort, and search/filter. The last still-vanilla page
+// (the Pokédex moved to the Preact DexView in Phase 2) — holds its own
+// AttackdexPage state and queries its own DOM nodes — so it stays decoupled from
+// the calculator controller in app.js. Converted to Preact in Phase 3.
 import { STATE, CACHE } from '../state.js';
 import { sortMoves, filterMoves, spreadKind } from '../data/moves.js';
 import { fetchMoveDetails, fetchPokemonDetails, initAllMovesList, formatDisplayName, legalSetForFormat } from '../api/pokeapi.js';
@@ -281,7 +282,7 @@ async function applyFilterChange() {
 
 // Narrow the Attackdex to a single move by name (called when jumping from the
 // Pokédex learnset modal). Sets the search field + re-renders.
-// Look up already-loaded move details by apiName (used by dex-page via app.js).
+// Look up already-loaded move details by apiName (used by dex-store via app.js).
 export function getMoveDetails(apiName) {
   return AttackdexPage.byName[apiName]?.details ?? null;
 }
