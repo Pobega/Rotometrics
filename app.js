@@ -19,7 +19,8 @@ import {
 import { pruneOldCaches } from './src/api/cache.js';
 import { setSearchPlaceholders } from './src/ui/render.js';
 import { buildResultModel } from './src/ui/result-summary.js';
-import { onDexFormatChange, initDexPage, jumpToDexPokemon, getPokemonDetails } from './src/ui/dex-page.js';
+import { onDexFormatChange, initDexStore, openDexPage, jumpToDexPokemon, getPokemonDetails } from './src/ui-preact/dex-store.js';
+import { DexView } from './src/ui-preact/DexView.js';
 import { initAttackdexPage, jumpToAttackdexMove, getMoveDetails } from './src/ui/attackdex-page.js';
 import { registerPage, showPage } from './src/ui/page-nav.js';
 import { initDetailModal } from './src/ui/detail-modal.js';
@@ -547,9 +548,17 @@ async function init() {
     pageEl: document.getElementById('page-calculator')
   });
   initDetailModal();
-  initDexPage({
+  // Pokédex is a Preact island: wire its store callbacks, mount the view into the
+  // persistent #page-pokedex container, and register its onShow (build + load).
+  initDexStore({
     onMoveClick: (apiName) => { jumpToAttackdexMove(apiName); showPage('attackdex'); },
     getMoveDetails
+  });
+  render(h(DexView), document.getElementById('page-pokedex'));
+  registerPage('pokedex', {
+    navBtn: document.getElementById('nav-pokedex'),
+    pageEl: document.getElementById('page-pokedex'),
+    onShow: openDexPage
   });
   initAttackdexPage({
     onPokemonClick: (apiName) => { jumpToDexPokemon(apiName); showPage('pokedex'); },
