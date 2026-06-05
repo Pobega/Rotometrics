@@ -302,14 +302,16 @@ const MOVE_CAT_CLS = {
 function buildMoveItem(move, md, onClick) {
   const name = escapeHtml(move.name);
   if (!md) {
-    return { html: `<span class="font-bold text-slate-200 flex-1 truncate animate-pulse text-slate-500">${name}</span>`, onClick };
+    return { html: `<span class="font-bold text-slate-500 flex-1 truncate animate-pulse">${name}</span>`, onClick };
   }
   const type = escapeHtml(md.type);
-  const typeBadge = `<span class="text-[8px] px-1 py-0.5 font-extrabold uppercase rounded ${getTypeBgClass(md.type)} text-white shrink-0">${type}</span>`;
+  const typeBadge = `<div class="w-14 shrink-0"><span class="text-[8px] px-1 py-0.5 font-extrabold uppercase rounded ${getTypeBgClass(md.type)} text-white">${type}</span></div>`;
   const catCls = MOVE_CAT_CLS[md.category] || MOVE_CAT_CLS.status;
   const catLabel = md.category ? md.category.charAt(0).toUpperCase() + md.category.slice(1) : '—';
-  const catBadge = `<span class="text-[8px] px-1 py-0.5 font-extrabold uppercase rounded ${catCls} shrink-0">${catLabel}</span>`;
-  const power = md.power ? `<span class="font-mono text-amber-400 w-8 text-right shrink-0">${md.power}</span>` : `<span class="font-mono text-slate-600 w-8 text-right shrink-0">—</span>`;
+  const catBadge = `<div class="w-16 shrink-0"><span class="text-[8px] px-1 py-0.5 font-extrabold uppercase rounded ${catCls}">${catLabel}</span></div>`;
+  const power = md.power
+    ? `<span class="font-mono text-amber-400 w-7 text-right shrink-0 text-[11px]">${md.power}</span>`
+    : `<span class="font-mono text-slate-600 w-7 text-right shrink-0 text-[11px]">—</span>`;
   return { html: `<span class="font-bold text-slate-100 flex-1 truncate min-w-0">${name}</span>${typeBadge}${catBadge}${power}`, onClick };
 }
 
