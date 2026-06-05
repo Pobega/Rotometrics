@@ -42,6 +42,7 @@ import { registerPage, showPage } from './src/ui/page-nav.js';
 import { initDetailModal } from './src/ui/detail-modal.js';
 import { render, h } from 'preact';
 import { AttackerCard } from './src/ui-preact/AttackerCard.js';
+import { DefenderCard } from './src/ui-preact/DefenderCard.js';
 import { setRecompute, notify } from './src/ui-preact/store.js';
 
 // Each format gets a Rotom-form accent: the brand Rotom's glow and the format
@@ -90,23 +91,14 @@ function augmentedState() {
 
 
 function populateDropdowns() {
-  // Attacker nature options are rendered by the Preact AttackerCard island; only
-  // the still-vanilla defender select is populated here.
-  NATURES.forEach(n => {
-    const optDefender = document.createElement('option');
-    optDefender.value = n.id;
-    optDefender.textContent = n.name;
-    DOM.defenderNature.appendChild(optDefender);
-  });
-
+  // Both nature selects are rendered by their Preact islands; only the still-vanilla
+  // move-type select is populated here.
   ALL_TYPES.forEach(t => {
     const opt = document.createElement('option');
     opt.value = t;
     opt.textContent = t;
     DOM.moveType.appendChild(opt);
   });
-
-  DOM.defenderNature.value = STATE.defender.nature;
 }
 
 function bindAutocomplete(inputEl, resultsEl, spinnerEl, callback) {
@@ -300,42 +292,19 @@ function setDefenderDetails(details) {
   STATE.defender.apiName = details.apiName;
   STATE.defender.baseStats = details.baseStats;
   STATE.defender.types = details.types;
+  // Render-only fields the DefenderCard island reads.
+  STATE.defender.sprite = details.sprite;
+  STATE.defender.abilities = details.abilities || [];
 
-  DOM.defenderName.textContent = details.name;
-  DOM.defenderSprite.src = details.sprite;
-  DOM.defenderSprite.classList.remove('opacity-20', 'animate-pulse');  // clear the ghost-Rotom placeholder
-  DOM.defenderTypes.innerHTML = details.types.map(t => `
-    <span class="text-[10px] px-2 py-0.5 font-extrabold uppercase rounded ${getTypeBgClass(t)} text-white">${t}</span>
-  `).join('');
-
-  updateRegulationTag(details.apiName, DOM.defenderRegTag);
-  updateStatsBars(details.baseStats, 'defender');
-  collapseSearch(DOM.defenderSearchWrap, DOM.defenderSearchToggle);
-
-  // Filter custom VGC defensive abilities to ONLY those this Pokemon learns!
+  // Symmetrical mega lock: fixed item + single (first learnable) ability. The
+  // island renders the lock from STATE; here we just set the values.
   const learnableDefensive = DEF_VGC_ABILITIES_HELPER(details.abilities);
-  DOM.defenderAbility.innerHTML = `<option value="none">No defensive ability</option>` + 
-    learnableDefensive.map(a => `<option value="${a.apiName}">${a.name}</option>`).join('');
-  DOM.defenderAbility.value = "none";
-
-  // Symmetrical Defender Mega lock: fixed item + single ability.
   const isMega = details.apiName.includes('-mega');
   if (isMega) {
-    DOM.defenderItem.value = "mega_stone";
-    DOM.defenderItem.disabled = true;
-    DOM.defenderItem.className = "w-full bg-slate-800/50 border border-slate-700 rounded-xl py-2 px-3 text-xs text-slate-400 cursor-not-allowed";
-
-    if (learnableDefensive.length > 0) {
-      DOM.defenderAbility.value = learnableDefensive[0].apiName;
-    }
-    DOM.defenderAbility.disabled = true;
-    DOM.defenderAbility.className = "w-full bg-slate-800/50 border border-slate-700 rounded-xl py-2 px-3 text-slate-400 cursor-not-allowed";
+    STATE.defender.item = "mega_stone";
+    STATE.defender.ability = learnableDefensive.length > 0 ? learnableDefensive[0].apiName : "none";
   } else {
-    DOM.defenderItem.disabled = false;
-    DOM.defenderItem.className = "w-full bg-slate-900 border border-slate-700 rounded-xl py-2 px-3 focus:outline-none focus:border-blue-500 text-slate-100 cursor-pointer";
-
-    DOM.defenderAbility.disabled = false;
-    DOM.defenderAbility.className = "w-full bg-slate-900 border border-slate-700 rounded-xl py-2 px-3 focus:outline-none focus:border-blue-500 text-slate-100 cursor-pointer";
+    STATE.defender.ability = "none";
   }
 
   updateLiveStats();
@@ -358,16 +327,20 @@ function updateLiveStats() {
     STATE.attacker.boosts.spe = parseInt(DOM.attackerBoostSpe.value) || 0;
   }
 
-  STATE.defender.nature = DOM.defenderNature.value;
-  STATE.defender.item = DOM.defenderItem.value;
-  STATE.defender.ability = DOM.defenderAbility.value;
-  STATE.defender.sps.hp = parseInt(DOM.defenderEvHp.value) || 0;
-  STATE.defender.sps.def = parseInt(DOM.defenderEvDef.value) || 0;
-  STATE.defender.sps.spd = parseInt(DOM.defenderEvSpd.value) || 0;
-  STATE.defender.sps.spe = parseInt(DOM.defenderEvSpe.value) || 0;
-  STATE.defender.boosts.def = parseInt(DOM.defenderBoostDef.value) || 0;
-  STATE.defender.boosts.spd = parseInt(DOM.defenderBoostSpd.value) || 0;
-  STATE.defender.boosts.spe = parseInt(DOM.defenderBoostSpe.value) || 0;
+  // Defender fields are owned by the Preact DefenderCard island; only read the
+  // vanilla card here if it's actually mounted.
+  if (DOM.defenderNature) {
+    STATE.defender.nature = DOM.defenderNature.value;
+    STATE.defender.item = DOM.defenderItem.value;
+    STATE.defender.ability = DOM.defenderAbility.value;
+    STATE.defender.sps.hp = parseInt(DOM.defenderEvHp.value) || 0;
+    STATE.defender.sps.def = parseInt(DOM.defenderEvDef.value) || 0;
+    STATE.defender.sps.spd = parseInt(DOM.defenderEvSpd.value) || 0;
+    STATE.defender.sps.spe = parseInt(DOM.defenderEvSpe.value) || 0;
+    STATE.defender.boosts.def = parseInt(DOM.defenderBoostDef.value) || 0;
+    STATE.defender.boosts.spd = parseInt(DOM.defenderBoostSpd.value) || 0;
+    STATE.defender.boosts.spe = parseInt(DOM.defenderBoostSpe.value) || 0;
+  }
 
   const selectedMoveOpt = DOM.attackerMoveSelect.options[DOM.attackerMoveSelect.selectedIndex];
   let moveName = selectedMoveOpt ? selectedMoveOpt.textContent : "Custom Move";
@@ -420,10 +393,11 @@ function updateLiveStats() {
   }
 
   const defenderSPSum = STATE.defender.sps.hp + STATE.defender.sps.def + STATE.defender.sps.spd + STATE.defender.sps.spe;
-  if (defenderSPSum > 66) {
-    DOM.defenderEvSum.className = "text-xs font-mono text-red-400 font-bold";
-  } else {
-    DOM.defenderEvSum.className = "text-xs font-mono text-slate-400";
+  // Defender EV-sum display is rendered by the island; guard the vanilla write.
+  if (DOM.defenderEvSum) {
+    DOM.defenderEvSum.className = defenderSPSum > 66
+      ? "text-xs font-mono text-red-400 font-bold"
+      : "text-xs font-mono text-slate-400";
   }
 
   const finalAtk = calculateStatBoost(
@@ -472,10 +446,13 @@ function updateLiveStats() {
     finalDefenderSpe = finalDefenderSpe * 2;
   }
 
-  DOM.defenderStatHpVal.textContent = finalHp;
-  DOM.defenderStatDefVal.textContent = finalDef;
-  DOM.defenderStatSpdVal.textContent = finalSpd;
-  DOM.defenderStatSpeVal.textContent = finalDefenderSpe;
+  // Defender live-stat displays are rendered by the island; guard vanilla writes.
+  if (DOM.defenderStatHpVal) {
+    DOM.defenderStatHpVal.textContent = finalHp;
+    DOM.defenderStatDefVal.textContent = finalDef;
+    DOM.defenderStatSpdVal.textContent = finalSpd;
+    DOM.defenderStatSpeVal.textContent = finalDefenderSpe;
+  }
 
   // Attacker EV value labels are rendered by the island; guard vanilla writes.
   if (DOM.attackerEvAtkVal) {
@@ -485,11 +462,14 @@ function updateLiveStats() {
     DOM.attackerEvSum.textContent = `Used: ${attackerSPSum}/66 SP`;
   }
 
-  DOM.defenderEvHpVal.textContent = STATE.defender.sps.hp;
-  DOM.defenderEvDefVal.textContent = STATE.defender.sps.def;
-  DOM.defenderEvSpdVal.textContent = STATE.defender.sps.spd;
-  DOM.defenderEvSpeVal.textContent = STATE.defender.sps.spe;
-  DOM.defenderEvSum.textContent = `Used: ${defenderSPSum}/66 SP`;
+  // Defender EV value labels are rendered by the island; guard vanilla writes.
+  if (DOM.defenderEvHpVal) {
+    DOM.defenderEvHpVal.textContent = STATE.defender.sps.hp;
+    DOM.defenderEvDefVal.textContent = STATE.defender.sps.def;
+    DOM.defenderEvSpdVal.textContent = STATE.defender.sps.spd;
+    DOM.defenderEvSpeVal.textContent = STATE.defender.sps.spe;
+    DOM.defenderEvSum.textContent = `Used: ${defenderSPSum}/66 SP`;
+  }
 
   // Turn-order chips (the full banner was removed; the HUD/mobile chips carry speed
   // now). Always framed around the mode's own Pokémon (the attacker in offense mode,
@@ -539,7 +519,7 @@ function updateLiveStats() {
   } else if (hpSP === 32 && defSP === 2 && spdSP === 0 && defSpeSP === 32) {
     matchedDefPreset = "fast_bulky";
   }
-  DOM.defenderSpPresets.value = matchedDefPreset;
+  if (DOM.defenderSpPresets) DOM.defenderSpPresets.value = matchedDefPreset;
 
   runOptimizations();
 
@@ -647,16 +627,17 @@ function bindApplyButtonsListeners() {
         const def = parseInt(dataset.def);
 
         if (!isNaN(hp)) {
-          DOM.defenderEvHp.value = hp;
+          // Defender fields live on STATE (island-owned), not the DOM.
+          STATE.defender.sps.hp = hp;
           if (statType === 'def') {
-            DOM.defenderEvDef.value = def;
-            DOM.defenderEvSpd.value = 0;
+            STATE.defender.sps.def = def;
+            STATE.defender.sps.spd = 0;
           } else {
-            DOM.defenderEvSpd.value = def;
-            DOM.defenderEvDef.value = 0;
+            STATE.defender.sps.spd = def;
+            STATE.defender.sps.def = 0;
           }
           if (nature) {
-            DOM.defenderNature.value = nature;
+            STATE.defender.nature = nature;
           }
           updateLiveStats();
         }
@@ -683,12 +664,9 @@ function bindApplyButtonsListeners() {
 }
 
 function bindEvents() {
-  // Attacker inputs are wired inside the Preact AttackerCard island; only the
-  // still-vanilla defender / move / modifier inputs are bound here.
+  // Attacker + defender inputs are wired inside their Preact islands; only the
+  // still-vanilla move / modifier inputs are bound here.
   const inputs = [
-    DOM.defenderNature, DOM.defenderItem, DOM.defenderAbility,
-    DOM.defenderBoostDef, DOM.defenderBoostSpd, DOM.defenderBoostSpe,
-    DOM.defenderEvHp, DOM.defenderEvDef, DOM.defenderEvSpd, DOM.defenderEvSpe,
     DOM.moveType, DOM.movePower, DOM.moveCategory,
     DOM.modSpread, DOM.modWeatherSelect, DOM.modCrit,
     DOM.modFriendGuard, DOM.modScreens, DOM.modBurned, DOM.modHelpingHand,
@@ -702,43 +680,13 @@ function bindEvents() {
   DOM.formatSelector.addEventListener('change', (e) => {
     STATE.format = e.target.value;
     applyFormTheme(STATE.format);
-    // Attacker regulation tag is rendered by the island (refreshed via notify()
-    // at the end of updateLiveStats); only the vanilla defender tag is set here.
-    updateRegulationTag(STATE.defender.apiName, DOM.defenderRegTag);
+    // Both regulation tags are rendered by their islands (refreshed via notify()
+    // at the end of updateLiveStats).
     updateLiveStats();
     onDexFormatChange();
   });
 
-  // Attacker SP presets are handled inside the AttackerCard island.
-
-  DOM.defenderSpPresets.addEventListener('change', (e) => {
-    const val = e.target.value;
-    if (!val) return;
-
-    if (val === 'max_phys_bulk') {
-      DOM.defenderEvHp.value = 32;
-      DOM.defenderEvDef.value = 32;
-      DOM.defenderEvSpd.value = 0;
-      DOM.defenderEvSpe.value = 0;
-    } else if (val === 'max_spec_bulk') {
-      DOM.defenderEvHp.value = 32;
-      DOM.defenderEvDef.value = 0;
-      DOM.defenderEvSpd.value = 32;
-      DOM.defenderEvSpe.value = 0;
-    } else if (val === 'balanced_def') {
-      DOM.defenderEvHp.value = 32;
-      DOM.defenderEvDef.value = 17;
-      DOM.defenderEvSpd.value = 17;
-      DOM.defenderEvSpe.value = 0;
-    } else if (val === 'fast_bulky') {
-      DOM.defenderEvHp.value = 32;
-      DOM.defenderEvDef.value = 2;
-      DOM.defenderEvSpd.value = 0;
-      DOM.defenderEvSpe.value = 32;
-    }
-
-    updateLiveStats();
-  });
+  // Attacker + defender SP presets are handled inside their islands.
 
   DOM.tabSurvival.addEventListener('click', () => {
     STATE.mode = 'survival';
@@ -886,11 +834,8 @@ async function loadSampleVGCScenario() {
   setAttackerDetails(attackerDetails);
   setDefenderDetails(defenderDetails);
 
-  // Populate search input fields (defender is still vanilla; attacker search
-  // lives in the island and resets itself on the next render)
-  DOM.defenderSearch.value = "Whimsicott";
-
-  // Override specific sample scenario parameters! Attacker fields live on STATE.
+  // Override specific sample scenario parameters! Both mons' fields live on STATE
+  // (search inputs live in the islands and reset themselves on the next render).
   STATE.attacker.nature = "+atk";
   STATE.attacker.item = "none"; // no held item -> Acrobatics doubles
   STATE.attacker.sps.atk = 32;
@@ -899,12 +844,12 @@ async function loadSampleVGCScenario() {
   STATE.attacker.ability = "none";
 
   // Max physical bulk Whimsicott
-  DOM.defenderNature.value = "+def";
-  DOM.defenderItem.value = "none";
-  DOM.defenderEvHp.value = 32;
-  DOM.defenderEvDef.value = 32;
-  DOM.defenderEvSpd.value = 0;
-  DOM.defenderEvSpe.value = 0;
+  STATE.defender.nature = "+def";
+  STATE.defender.item = "none";
+  STATE.defender.sps.hp = 32;
+  STATE.defender.sps.def = 32;
+  STATE.defender.sps.spd = 0;
+  STATE.defender.sps.spe = 0;
 
   // Pre-select Flying-type Acrobatics move
   DOM.attackerMoveSelect.value = "acrobatics";
@@ -943,10 +888,9 @@ async function applyMatchup(parsed) {
 
     setAttackerDetails(aDetails);
     setDefenderDetails(dDetails);
-    DOM.defenderSearch.value = dDetails.name;
 
-    // Attacker fields live on STATE (island-owned). An ability this Pokémon can't
-    // learn simply won't appear as an option, mirroring the old select behavior.
+    // Both mons' fields live on STATE (island-owned). An ability this Pokémon
+    // can't learn simply won't appear as an option, mirroring old select behavior.
     STATE.attacker.nature = parsed.attacker.nature;
     STATE.attacker.item = parsed.attacker.item;
     STATE.attacker.ability = parsed.attacker.ability;
@@ -957,17 +901,16 @@ async function applyMatchup(parsed) {
     STATE.attacker.boosts.spa = parsed.attacker.boosts.spa;
     STATE.attacker.boosts.spe = parsed.attacker.boosts.spe;
 
-    // Defender inputs.
-    DOM.defenderNature.value = parsed.defender.nature;
-    DOM.defenderItem.value = parsed.defender.item;
-    DOM.defenderAbility.value = parsed.defender.ability;
-    DOM.defenderEvHp.value = parsed.defender.sps.hp;
-    DOM.defenderEvDef.value = parsed.defender.sps.def;
-    DOM.defenderEvSpd.value = parsed.defender.sps.spd;
-    DOM.defenderEvSpe.value = parsed.defender.sps.spe;
-    DOM.defenderBoostDef.value = parsed.defender.boosts.def;
-    DOM.defenderBoostSpd.value = parsed.defender.boosts.spd;
-    DOM.defenderBoostSpe.value = parsed.defender.boosts.spe;
+    STATE.defender.nature = parsed.defender.nature;
+    STATE.defender.item = parsed.defender.item;
+    STATE.defender.ability = parsed.defender.ability;
+    STATE.defender.sps.hp = parsed.defender.sps.hp;
+    STATE.defender.sps.def = parsed.defender.sps.def;
+    STATE.defender.sps.spd = parsed.defender.sps.spd;
+    STATE.defender.sps.spe = parsed.defender.sps.spe;
+    STATE.defender.boosts.def = parsed.defender.boosts.def;
+    STATE.defender.boosts.spd = parsed.defender.boosts.spd;
+    STATE.defender.boosts.spe = parsed.defender.boosts.spe;
 
     // Modifiers.
     const mod = parsed.modifiers;
@@ -1077,6 +1020,7 @@ async function init() {
   // run the same updateLiveStats the vanilla inputs use, then mount the island.
   setRecompute(updateLiveStats);
   render(h(AttackerCard, { onChoose: setAttackerDetails }), document.getElementById('panel-attacker'));
+  render(h(DefenderCard, { onChoose: setDefenderDetails }), document.getElementById('panel-defender'));
   populateDropdowns();
   // Build the format dropdown from the regulation registry (+ the unrestricted
   // "None" view) up front so it's never empty, even before the async loads below.
@@ -1100,15 +1044,7 @@ async function init() {
     getPokemonDetails
   });
 
-  // Attacker search/autocomplete lives inside the AttackerCard island.
-  bindAutocomplete(
-    DOM.defenderSearch,
-    DOM.defenderResults,
-    DOM.defenderSpinner,
-    setDefenderDetails
-  );
-
-  bindSearchToggle(DOM.defenderSearchToggle, DOM.defenderSearchWrap, DOM.defenderSearch);
+  // Both search/autocomplete flows live inside their Preact islands.
 
   // The status-move filter list must be ready before any move dropdown is
   // built, otherwise non-damaging moves leak through unfiltered.

@@ -43,10 +43,10 @@ export function escapeHtml(value) {
 // the background fetch).
 export function setSearchPlaceholders({ count, fallback }) {
   const label = fallback ? 'Fallbacks loaded' : `${count} loaded`;
-  // The attacker search input now lives in the Preact island, so its ref may be
-  // absent here; only the still-vanilla defender placeholder is set.
+  // Both search inputs now live in the Preact islands, so their refs may be absent
+  // here; guard the writes (kept for the pre-island vanilla layout / tests).
   if (DOM.attackerSearch) DOM.attackerSearch.placeholder = `Search Attacker (${label})...`;
-  DOM.defenderSearch.placeholder = `Search Defender (${label})...`;
+  if (DOM.defenderSearch) DOM.defenderSearch.placeholder = `Search Defender (${label})...`;
 }
 
 const NATURE_DISPLAY = {

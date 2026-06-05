@@ -39,7 +39,10 @@ export const STATE = {
     sps: { hp: 32, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 },
     ivs: { hp: 31, atk: 31, def: 31, spa: 31, spd: 31, spe: 31 },
     boosts: { def: 0, spd: 0, spe: 0 },
-    types: ['???']
+    types: ['???'],
+    // Render-only fields the Preact defender island reads.
+    sprite: '',
+    abilities: []
   },
 
   move: {
