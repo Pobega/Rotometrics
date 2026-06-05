@@ -113,6 +113,56 @@ export function formatDisplayName(apiName) {
     .join(' ');
 }
 
+// Union `additions` ({ name, apiName }) into `target` in place, skipping any move
+// already present. Shared by the Mega and pre-evolution learnset merges below.
+function mergeMoves(target, additions) {
+  const seen = new Set(target.map(m => m.apiName));
+  for (const move of additions) {
+    if (seen.has(move.apiName)) continue;
+    seen.add(move.apiName);
+    target.push(move);
+  }
+}
+
+// Regional form suffixes whose pre-evolution should resolve to the matching
+// regional variety (Alolan Ninetales -> Alolan Vulpix, not Kantonian Vulpix).
+const REGIONAL_FORM_SUFFIXES = ['alola', 'galar', 'hisui', 'paldea'];
+
+// Trimmed pokemon-species lookup: the species this one evolves from and the list
+// of its varieties (forms). Cached like every other PokéAPI resource.
+async function fetchSpeciesEvo(speciesName) {
+  const key = cacheKey(`species_evo_${speciesName}`);
+  const cached = Storage.get(key);
+  if (cached) return cached;
+
+  const res = await fetch(`${API_BASE}/pokemon-species/${speciesName}`);
+  const data = await res.json();
+  const evo = {
+    evolvesFrom: data.evolves_from_species ? data.evolves_from_species.name : null,
+    varieties: data.varieties.map(v => v.pokemon.name)
+  };
+  Storage.set(key, evo);
+  return evo;
+}
+
+// Moves of `speciesName`'s immediate pre-evolution, resolved to the regional
+// variety matching `apiName` when there is one. Returns [] for base-stage forms.
+async function fetchPreEvolutionMoves(speciesName, apiName) {
+  const species = await fetchSpeciesEvo(speciesName);
+  if (!species.evolvesFrom) return [];
+
+  let variety = species.evolvesFrom;
+  const suffix = REGIONAL_FORM_SUFFIXES.find(s => apiName.endsWith(`-${s}`));
+  if (suffix) {
+    const preEvo = await fetchSpeciesEvo(species.evolvesFrom);
+    const regional = preEvo.varieties.find(v => v.endsWith(`-${suffix}`));
+    if (regional) variety = regional;
+  }
+
+  const details = await fetchPokemonDetails(variety);
+  return details.moves;
+}
+
 export async function fetchPokemonDetails(apiName) {
   const key = cacheKey(`pokemon_details_${apiName}`);
   const cached = Storage.get(key);
@@ -134,18 +184,23 @@ export async function fetchPokemonDetails(apiName) {
       const baseSpeciesName = apiName.split('-mega')[0];
       const baseRes = await fetch(`${API_BASE}/pokemon/${baseSpeciesName}`);
       const baseData = await baseRes.json();
-      const seen = new Set(movesMapped.map(m => m.apiName));
-      baseData.moves.forEach(m => {
-        if (seen.has(m.move.name)) return;
-        seen.add(m.move.name);
-        movesMapped.push({
-          name: formatDisplayName(m.move.name),
-          apiName: m.move.name
-        });
-      });
+      mergeMoves(movesMapped, baseData.moves.map(m => ({
+        name: formatDisplayName(m.move.name),
+        apiName: m.move.name
+      })));
     } catch (err) {
       console.error(`Failed to merge base species moves for ${apiName}`, err);
     }
+  }
+
+  // PokéAPI doesn't always carry a pre-evolution's moves onto the evolved form's
+  // learnset — e.g. Alolan Ninetales is missing Freeze-Dry, which Alolan Vulpix
+  // learns by level-up. Merge in the immediate pre-evolution's moves; that lookup
+  // recurses through fetchPokemonDetails, so the whole pre-evolution chain is covered.
+  try {
+    mergeMoves(movesMapped, await fetchPreEvolutionMoves(data.species.name, apiName));
+  } catch (err) {
+    console.error(`Failed to merge pre-evolution moves for ${apiName}`, err);
   }
 
   const details = {

@@ -7,7 +7,7 @@
 // once, and pruneOldCaches() sweeps the stale keys on boot.
 
 // Bump to invalidate every cached PokéAPI resource for all users.
-export const CACHE_VERSION = 10;
+export const CACHE_VERSION = 11;
 
 const PREFIX = `vgc_v${CACHE_VERSION}_`;
 
