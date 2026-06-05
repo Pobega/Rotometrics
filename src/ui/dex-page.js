@@ -7,6 +7,7 @@ import { STATE, CACHE } from '../state.js';
 import { bst, sortDex, filterDex, isHiddenForm, isRegulationMALegal } from '../data/dex.js';
 import { fetchPokemonDetails, fetchMoveDetails, formatDisplayName, initPokemonList, initChampionsLegalList } from '../api/pokeapi.js';
 import { getTypeBgClass, setSearchPlaceholders, escapeHtml } from './render.js';
+import { spreadKind } from '../data/moves.js';
 import { registerPage } from './page-nav.js';
 import { openDetailModal, closeDetailModal, refreshDetailModalBody } from './detail-modal.js';
 
@@ -312,7 +313,13 @@ function buildMoveItem(move, md, onClick) {
   const power = md.power
     ? `<span class="font-mono text-amber-400 w-7 text-right shrink-0 text-[11px]">${md.power}</span>`
     : `<span class="font-mono text-slate-600 w-7 text-right shrink-0 text-[11px]">—</span>`;
-  return { html: `<span class="font-bold text-slate-100 flex-1 truncate min-w-0">${name}</span>${typeBadge}${catBadge}${power}`, onClick };
+  const kind = spreadKind(md);
+  const spreadBadge = kind === 'ally'
+    ? `<span class="text-[7px] px-1 py-0.5 font-black uppercase rounded bg-rose-950/50 text-rose-400 border border-rose-900/40" title="Also hits your ally">Spread+Ally</span>`
+    : kind === 'opponents'
+      ? `<span class="text-[7px] px-1 py-0.5 font-black uppercase rounded bg-amber-950/50 text-amber-400 border border-amber-900/40" title="Hits both opponents">Spread</span>`
+      : '';
+  return { html: `<span class="font-bold text-slate-100 flex-1 flex items-center gap-1.5 min-w-0"><span class="truncate">${name}</span>${spreadBadge}</span>${typeBadge}${catBadge}${power}`, onClick };
 }
 
 async function handleDexRowClick(apiName) {
