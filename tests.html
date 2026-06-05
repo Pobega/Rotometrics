@@ -25,6 +25,21 @@
   <div id="summary" class="summary">Running…</div>
   <div id="results"></div>
 
+  <!-- Shared tally so the headline reflects every test block below, not just the
+       first. Each block adds its pass/fail/snap counts and re-renders. This plain
+       script runs during parsing, before the deferred module blocks. -->
+  <script>
+    window.TESTS = { pass: 0, fail: 0, snap: 0 };
+    window.renderSummary = function () {
+      const t = window.TESTS;
+      const total = t.pass + t.fail + t.snap;
+      const el = document.getElementById('summary');
+      el.textContent = `${t.pass} passed · ${t.fail} failed · ${t.snap} snapshot${t.snap === 1 ? '' : 's'} (of ${total})`;
+      el.classList.remove('pass', 'fail');
+      el.classList.add(t.fail === 0 ? 'pass' : 'fail');
+    };
+  </script>
+
   <script type="module">
     import { calculateDamageRolls, resolveEffectiveMove } from './src/engine/damage.js';
 
@@ -804,8 +819,8 @@
       results.appendChild(div);
     }
 
-    summary.textContent = `${pass} passed · ${fail} failed · ${snap} snapshot${snap === 1 ? '' : 's'} (of ${CASES.length})`;
-    summary.classList.add(fail === 0 ? 'pass' : 'fail');
+    TESTS.pass += pass; TESTS.fail += fail; TESTS.snap += snap;
+    renderSummary();
   </script>
 
   <!-- resolveEffectiveMove: the single source of truth shared by the calc + UI -->
@@ -844,11 +859,8 @@
       if (!ok) resolveFail++;
     }
 
-    if (resolveFail > 0) {
-      summary.textContent = `${summary.textContent} · ${resolveFail} resolve failure${resolveFail === 1 ? '' : 's'}`;
-      summary.classList.remove('pass');
-      summary.classList.add('fail');
-    }
+    TESTS.pass += RESOLVE_CASES.length - resolveFail; TESTS.fail += resolveFail;
+    renderSummary();
   </script>
 
   <!-- Move effectiveness label/tone tests (context-aware coloring) -->
@@ -889,11 +901,8 @@
       if (!ok) effFail++;
     }
 
-    if (effFail > 0) {
-      summary.textContent = `${summary.textContent} · ${effFail} eff failure${effFail === 1 ? '' : 's'}`;
-      summary.classList.remove('pass');
-      summary.classList.add('fail');
-    }
+    TESTS.pass += EFF_CASES.length - effFail; TESTS.fail += effFail;
+    renderSummary();
   </script>
 
   <!-- Damage-card move-line golden tests (resolved type + BP must not drift) -->
@@ -949,11 +958,8 @@
       if (!ok) lineFail++;
     }
 
-    if (lineFail > 0) {
-      summary.textContent = `${summary.textContent} · ${lineFail} moveline failure${lineFail === 1 ? '' : 's'}`;
-      summary.classList.remove('pass');
-      summary.classList.add('fail');
-    }
+    TESTS.pass += LINE_CASES.length - lineFail; TESTS.fail += lineFail;
+    renderSummary();
   </script>
 
   <!-- Pokédex pure-logic tests (bst / sortDex / filterDex) -->
@@ -1125,11 +1131,8 @@
     }
 
     // Keep the overall summary honest if a dex test regressed.
-    if (dexFail > 0) {
-      summary.textContent = `${summary.textContent} · ${dexFail} dex failure${dexFail === 1 ? '' : 's'}`;
-      summary.classList.remove('pass');
-      summary.classList.add('fail');
-    }
+    TESTS.pass += DEX_CASES.length - dexFail; TESTS.fail += dexFail;
+    renderSummary();
   </script>
 
   <!-- Matchup export/import text round-trip tests -->
@@ -1222,11 +1225,8 @@
     }
 
     // Keep the overall summary honest if an export/import test regressed.
-    if (textFail > 0) {
-      summary.textContent = `${summary.textContent} · ${textFail} text failure${textFail === 1 ? '' : 's'}`;
-      summary.classList.remove('pass');
-      summary.classList.add('fail');
-    }
+    TESTS.pass += TEXT_CASES.length - textFail; TESTS.fail += textFail;
+    renderSummary();
   </script>
 
   <!-- EV/nature optimizer goldens (optimizeSurvival / optimizeOffensive) -->
@@ -1321,11 +1321,8 @@
     }
 
     // Keep the overall summary honest if an optimizer test regressed.
-    if (optFail > 0) {
-      summary.textContent = `${summary.textContent} · ${optFail} optimizer failure${optFail === 1 ? '' : 's'}`;
-      summary.classList.remove('pass');
-      summary.classList.add('fail');
-    }
+    TESTS.pass += OPT_CASES.length - optFail; TESTS.fail += optFail;
+    renderSummary();
   </script>
 
   <!-- Cache versioning (cacheKey / pruneOldCaches) -->
@@ -1403,11 +1400,8 @@
     }
 
     // Keep the overall summary honest if a cache test regressed.
-    if (cacheFail > 0) {
-      summary.textContent = `${summary.textContent} · ${cacheFail} cache failure${cacheFail === 1 ? '' : 's'}`;
-      summary.classList.remove('pass');
-      summary.classList.add('fail');
-    }
+    TESTS.pass += CACHE_CASES.length - cacheFail; TESTS.fail += cacheFail;
+    renderSummary();
   </script>
 </body>
 </html>
