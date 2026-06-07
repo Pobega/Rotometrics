@@ -167,10 +167,28 @@ function updateLiveStats() {
 // Compute the damage rolls + optimizer suggestion cards into the DERIVED stash.
 // The OptimizerPanel + ResultsHUD islands render from DERIVED; this no longer
 // touches the DOM. Card shape is documented on DERIVED in store.js.
+// The EV/nature search is the expensive part (thousands of damage rolls); cache
+// it on a key of its real inputs so updates that don't touch them — a format
+// switch, a render-only field — reuse the last result instead of re-searching.
+let _optCacheKey = null;
+let _optCacheVal = null;
+
 function runOptimizations() {
   const rolls = calculateDamageRolls(STATE.attacker, STATE.defender, STATE.move, STATE.modifiers);
   DERIVED.rolls = rolls;
 
+  const key = JSON.stringify([STATE.mode, STATE.targetKO, STATE.attacker, STATE.defender, STATE.move, STATE.modifiers]);
+  if (key !== _optCacheKey) {
+    _optCacheKey = key;
+    _optCacheVal = computeOptimizer();
+  }
+  DERIVED.optimizer = _optCacheVal;
+
+  // Headline result model for both HUD views (rendered by the ResultsHUD island).
+  DERIVED.model = buildResultModel(rolls, STATE);
+}
+
+function computeOptimizer() {
   const cards = [];
   let notPossible = false;
 
@@ -219,10 +237,7 @@ function runOptimizations() {
     }
   }
 
-  DERIVED.optimizer = { notPossible, cards };
-
-  // Headline result model for both HUD views (rendered by the ResultsHUD island).
-  DERIVED.model = buildResultModel(rolls, STATE);
+  return { notPossible, cards };
 }
 
 async function loadSampleVGCScenario() {
