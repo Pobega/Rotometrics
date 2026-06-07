@@ -265,7 +265,7 @@ export async function handleAttackdexRowClick(apiName) {
     return items;
   };
 
-  openDetailModal({
+  const session = openDetailModal({
     title: `Who learns ${details.name}`,
     subtitle: `${learners.length} Pokémon · ${formatLabel}`,
     items: buildItems()
@@ -287,7 +287,7 @@ export async function handleAttackdexRowClick(apiName) {
         localCache.set(n, pd);
         if (++sinceRefresh >= CONCURRENCY) {
           sinceRefresh = 0;
-          refreshDetailModalBody(buildItems());
+          refreshDetailModalBody(buildItems(), session);
         }
       } catch (err) {
         console.error(`Failed to load Pokémon ${n}`, err);
@@ -296,5 +296,5 @@ export async function handleAttackdexRowClick(apiName) {
   }
 
   await Promise.all(Array.from({ length: CONCURRENCY }, worker));
-  refreshDetailModalBody(buildItems());
+  refreshDetailModalBody(buildItems(), session);
 }

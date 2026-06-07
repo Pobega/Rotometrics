@@ -274,7 +274,7 @@ export async function handleDexRowClick(apiName) {
   const makeOnClick = (m) => () => { closeDetailModal(); if (_onMoveClick) _onMoveClick(m.apiName); };
   const buildItems = () => moves.map(m => buildMoveItem(m, getDetails(m), makeOnClick(m)));
 
-  openDetailModal({
+  const session = openDetailModal({
     title: `${details.name}'s Moves`,
     subtitle: `${moves.length} moves`,
     items: buildItems()
@@ -296,7 +296,7 @@ export async function handleDexRowClick(apiName) {
         localCache.set(move.apiName, md);
         if (++sinceRefresh >= CONCURRENCY) {
           sinceRefresh = 0;
-          refreshDetailModalBody(buildItems());
+          refreshDetailModalBody(buildItems(), session);
         }
       } catch (err) {
         console.error(`Failed to load move ${move.apiName}`, err);
@@ -305,5 +305,5 @@ export async function handleDexRowClick(apiName) {
   }
 
   await Promise.all(Array.from({ length: CONCURRENCY }, worker));
-  refreshDetailModalBody(buildItems());
+  refreshDetailModalBody(buildItems(), session);
 }

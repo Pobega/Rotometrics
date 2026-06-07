@@ -10,8 +10,10 @@
 // because it rebuilt innerHTML).
 import { html, useState, useLayoutEffect } from './preact.js';
 
-// Reactive modal state with its own listener set.
-const modal = { open: false, title: '', subtitle: '', items: [] };
+// Reactive modal state with its own listener set. `session` bumps on every
+// open/close so an async worker streaming rows into a modal it opened can tell
+// when it's been superseded (the user closed it or opened a different one).
+const modal = { open: false, title: '', subtitle: '', items: [], session: 0 };
 const listeners = new Set();
 function notify() { listeners.forEach((l) => l()); }
 
@@ -20,23 +22,30 @@ function notify() { listeners.forEach((l) => l()); }
 //   label?:   plain-text fallback used when `node` is absent
 //   onClick?: () => void   — omit for non-interactive note rows
 // }]
+// Returns the session token for this open; pass it to refreshDetailModalBody so
+// a stale worker can't overwrite a later modal.
 export function openDetailModal({ title, subtitle, items }) {
   modal.open = true;
   modal.title = title;
   modal.subtitle = subtitle || '';
   modal.items = items;
+  modal.session += 1;
   notify();
+  return modal.session;
 }
 
 export function closeDetailModal() {
   modal.open = false;
+  modal.session += 1;
   notify();
 }
 
 // Re-render just the item list (e.g. as async details stream in). No-op when the
-// modal is closed, matching the old guard.
-export function refreshDetailModalBody(items) {
+// modal is closed, or when `session` belongs to a superseded open (a different
+// modal was opened, or this one was closed and reopened, since the worker began).
+export function refreshDetailModalBody(items, session) {
   if (!modal.open) return;
+  if (session !== undefined && session !== modal.session) return;
   modal.items = items;
   notify();
 }
