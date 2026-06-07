@@ -103,15 +103,14 @@ export function DexView() {
   const statusText = DexStore.loading && DexStore.roster.length === 0 ? 'loading roster…' : dexStatusText();
 
   // Lazy National-Dex loading: fetch placeholder rows as they scroll into view.
-  // Re-runs every render (the placeholder set shrinks as rows load and changes
-  // on sort/search); recreate + disconnect the observer each time, mirroring the
-  // old vanilla observeLazyDexRows. Skipped once everything is loaded (regulation
-  // rosters eager-load, so they're fully loaded and never observed).
+  // Skipped once everything is loaded (regulation rosters eager-load).
   const rowsRef = useRef(null);
-  useEffect(() => {
-    const container = rowsRef.current;
-    if (!container || DexStore.allLoaded) return;
+  const observerRef = useRef(null);
+  const observedRef = useRef(null);
 
+  // Create the observer once and keep it across renders; disconnect on unmount.
+  // (Re-creating it every render re-observes the whole ~1259-row dex each time.)
+  useEffect(() => {
     const observer = new IntersectionObserver((entries) => {
       const toLoad = [];
       entries.forEach((entry) => {
@@ -123,13 +122,23 @@ export function DexView() {
       });
       if (toLoad.length) loadDexDetails(toLoad);
     }, { rootMargin: '200px' });
+    observerRef.current = observer;
+    observedRef.current = new WeakSet();
+    return () => { observer.disconnect(); observerRef.current = null; };
+  }, []);
 
+  // Each render, observe only newly-mounted placeholder rows (the WeakSet skips
+  // rows already being observed), so growth is incremental rather than O(rows²).
+  useEffect(() => {
+    const container = rowsRef.current;
+    const observer = observerRef.current;
+    const observed = observedRef.current;
+    if (!container || !observer || DexStore.allLoaded) return;
     container.querySelectorAll('[data-api]').forEach((el) => {
+      if (observed.has(el)) return;
       const row = DexStore.byName[el.getAttribute('data-api')];
-      if (row && !row.details) observer.observe(el);
+      if (row && !row.details) { observer.observe(el); observed.add(el); }
     });
-
-    return () => observer.disconnect();
   });
 
   return html`

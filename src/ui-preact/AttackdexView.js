@@ -101,12 +101,13 @@ export function AttackdexView() {
   const statusText = AdxStore.loading && AdxStore.roster.length === 0 ? 'loading moves…' : attackdexStatusText();
 
   // Lazy loading: fetch placeholder rows as they scroll into view (mirrors
-  // DexView). Recreate + disconnect the observer each render.
+  // DexView). Skipped once everything is loaded.
   const rowsRef = useRef(null);
-  useEffect(() => {
-    const container = rowsRef.current;
-    if (!container || AdxStore.allLoaded) return;
+  const observerRef = useRef(null);
+  const observedRef = useRef(null);
 
+  // Create the observer once and keep it across renders; disconnect on unmount.
+  useEffect(() => {
     const observer = new IntersectionObserver((entries) => {
       const toLoad = [];
       entries.forEach((entry) => {
@@ -118,13 +119,23 @@ export function AttackdexView() {
       });
       if (toLoad.length) loadMoveDetails(toLoad);
     }, { rootMargin: '200px' });
+    observerRef.current = observer;
+    observedRef.current = new WeakSet();
+    return () => { observer.disconnect(); observerRef.current = null; };
+  }, []);
 
+  // Each render, observe only newly-mounted placeholder rows (WeakSet skips
+  // rows already being observed).
+  useEffect(() => {
+    const container = rowsRef.current;
+    const observer = observerRef.current;
+    const observed = observedRef.current;
+    if (!container || !observer || AdxStore.allLoaded) return;
     container.querySelectorAll('[data-api]').forEach((el) => {
+      if (observed.has(el)) return;
       const r = AdxStore.byName[el.getAttribute('data-api')];
-      if (r && !r.details) observer.observe(el);
+      if (r && !r.details) { observer.observe(el); observed.add(el); }
     });
-
-    return () => observer.disconnect();
   });
 
   const spreadOn = AdxStore.filterSpread;
