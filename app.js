@@ -15,7 +15,7 @@ import {
 } from './src/api/pokeapi.js';
 import { pruneOldCaches } from './src/api/cache.js';
 import { buildResultModel } from './src/ui/result-summary.js';
-import { onDexFormatChange, initDexStore, openDexPage, jumpToDexPokemon, getPokemonDetails } from './src/ui-preact/dex-store.js';
+import { initDexStore, openDexPage, jumpToDexPokemon, getPokemonDetails } from './src/ui-preact/dex-store.js';
 import { DexView } from './src/ui-preact/DexView.js';
 import { initAttackdexStore, openAttackdexPage, jumpToAttackdexMove, getMoveDetails } from './src/ui-preact/attackdex-store.js';
 import { AttackdexView } from './src/ui-preact/AttackdexView.js';
