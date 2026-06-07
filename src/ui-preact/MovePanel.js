@@ -15,13 +15,20 @@ function damagingMoves() {
     .sort((a, b) => a.name.localeCompare(b.name));
 }
 
+// Monotonic token: every selection bumps it, and a fetch only applies if it's
+// still the latest. Guards against out-of-order resolution — picking move Y
+// after X must not be overwritten when X's slower fetch lands second.
+let selectToken = 0;
+
 async function onSelect(value) {
+  const token = ++selectToken;
   if (value === 'custom') {
     update((s) => { s.move.apiName = ''; s.move.name = 'Custom Move'; });
     return;
   }
   try {
     const mv = await fetchMoveDetails(value);
+    if (token !== selectToken) return; // a newer selection superseded this one
     const entry = (STATE.attacker.moves || []).find((m) => m.apiName === value);
     update((s) => {
       s.move.apiName = mv.apiName;
