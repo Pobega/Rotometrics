@@ -8,7 +8,7 @@ import { STATE, CACHE } from '../state.js';
 import { isHiddenForm, isFormatLegal } from '../data/dex.js';
 import { REGULATIONS } from '../data/regulations.js';
 import { fetchPokemonDetails, fetchMoveDetails, formatDisplayName, initPokemonList, initChampionsRoster, legalSetForFormat } from '../api/pokeapi.js';
-import { getTypeBgClass } from '../ui/render.js';
+import { getTypeBgClass, getCategoryBadge } from '../ui/render.js';
 import { openDetailModal, closeDetailModal, refreshDetailModalBody } from './DetailModal.js';
 import { spreadKind } from '../data/moves.js';
 import { html } from './preact.js';
@@ -221,18 +221,13 @@ export function onDexFormatChange() {
 
 // --- Row-click detail modal (reuses the shared vanilla detail-modal.js) ---
 
-const MOVE_CAT_CLS = {
-  physical: 'bg-red-950/50 text-red-400 border border-red-900/40',
-  special:  'bg-blue-950/50 text-blue-400 border border-blue-900/40',
-  status:   'bg-slate-800/60 text-slate-400 border border-slate-700/40'
-};
-
 function buildMoveItem(move, md, onClick) {
   if (!md) {
     return { node: html`<span class="font-bold text-slate-500 flex-1 truncate animate-pulse">${move.name}</span>`, onClick };
   }
-  const catCls = MOVE_CAT_CLS[md.category] || MOVE_CAT_CLS.status;
-  const catLabel = md.category ? md.category.charAt(0).toUpperCase() + md.category.slice(1) : '—';
+  const cat = getCategoryBadge(md.category);
+  const catCls = cat.cls;
+  const catLabel = cat.label;
   const kind = spreadKind(md);
   const spreadBadge = kind === 'ally'
     ? html`<span class="text-[7px] px-1 py-0.5 font-black uppercase rounded bg-rose-950/50 text-rose-400 border border-rose-900/40" title="Also hits your ally">Spread+Ally</span>`

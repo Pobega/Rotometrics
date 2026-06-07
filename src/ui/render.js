@@ -28,6 +28,19 @@ export function getTypeBgClass(type) {
   return TYPE_BG_CLASSES[type] || 'bg-slate-700';
 }
 
+// Move-category badge ({ label, cls }) shared by the Attackdex table and the
+// Pokédex learnset modal. (The calculator's MovePanel uses its own icon-badge
+// styling and intentionally does not share this.)
+const CATEGORY_BADGE = {
+  physical: { label: 'Physical', cls: 'bg-red-950/50 text-red-400 border border-red-900/40' },
+  special:  { label: 'Special',  cls: 'bg-blue-950/50 text-blue-400 border border-blue-900/40' },
+  status:   { label: 'Status',   cls: 'bg-slate-800/60 text-slate-400 border border-slate-700/40' },
+};
+
+export function getCategoryBadge(category) {
+  return CATEGORY_BADGE[category] || CATEGORY_BADGE.status;
+}
+
 const NATURE_DISPLAY = {
   'neutral': 'Neutral',
   '+atk': '+Atk',

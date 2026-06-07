@@ -5,7 +5,8 @@
 // an IntersectionObserver, mirroring DexView.
 import { html, useState, useEffect, useLayoutEffect, useRef } from './preact.js';
 import { sortMoves, filterMoves, spreadKind } from '../data/moves.js';
-import { getTypeBgClass } from '../ui/render.js';
+import { getTypeBgClass, getCategoryBadge } from '../ui/render.js';
+import { ALL_TYPES } from '../data/constants.js';
 import {
   AdxStore, subscribeAdx, attackdexStatusText,
   setAdxSort, setAdxQuery, clearAdxQuery, setAdxType, setAdxCategory, toggleAdxSpread,
@@ -17,17 +18,7 @@ function useAdxStore() {
   useLayoutEffect(() => subscribeAdx(() => force((n) => n + 1)), []);
 }
 
-const TYPES = ['Normal', 'Fire', 'Water', 'Grass', 'Electric', 'Ice', 'Fighting',
-  'Poison', 'Ground', 'Flying', 'Psychic', 'Bug', 'Rock', 'Ghost', 'Dragon',
-  'Dark', 'Steel', 'Fairy'];
-
-const CATEGORY_BADGE = {
-  physical: { label: 'Physical', cls: 'bg-red-950/50 text-red-400 border border-red-900/40' },
-  special:  { label: 'Special',  cls: 'bg-blue-950/50 text-blue-400 border border-blue-900/40' },
-  status:   { label: 'Status',   cls: 'bg-slate-800/60 text-slate-400 border border-slate-700/40' }
-};
-
-const ROW_GRID = 'grid grid-cols-[minmax(140px,1.4fr)_72px_72px_48px_40px_minmax(220px,2.8fr)] items-center gap-2 px-3 py-1.5 border-b border-slate-800/70 text-xs';
+const ROW_GRID ='grid grid-cols-[minmax(140px,1.4fr)_72px_72px_48px_40px_minmax(220px,2.8fr)] items-center gap-2 px-3 py-1.5 border-b border-slate-800/70 text-xs';
 
 function PlaceholderRow({ row }) {
   // Lazy placeholder; data-api lets the observer know what to fetch. Clicking a
@@ -48,7 +39,7 @@ function MoveRow({ row }) {
   const d = row.details;
   if (!d) return html`<${PlaceholderRow} row=${row} />`;
 
-  const cat = CATEGORY_BADGE[d.category] || CATEGORY_BADGE.status;
+  const cat = getCategoryBadge(d.category);
   const power = d.power ? d.power : '—';
   const pp = (d.pp === null || d.pp === undefined) ? '—' : d.pp;
   // Two flavours of spread: foes-only ('Spread') vs also-hits-your-ally
@@ -173,7 +164,7 @@ export function AttackdexView() {
           <span class="text-[9px] font-extrabold text-slate-500 uppercase tracking-wider">Type</span>
           <select class=${selCls} value=${AdxStore.filterType} onChange=${(e) => setAdxType(e.target.value)}>
             <option value="" class="bg-slate-800">All</option>
-            ${TYPES.map((t) => html`<option value=${t} class="bg-slate-800">${t}</option>`)}
+            ${ALL_TYPES.map((t) => html`<option value=${t} class="bg-slate-800">${t}</option>`)}
           </select>
         </div>
         <div class="flex items-center gap-1.5 bg-slate-900 border border-slate-700 rounded-xl px-3 py-1.5">
