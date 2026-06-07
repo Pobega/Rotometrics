@@ -167,16 +167,23 @@ export async function openDexPage() {
   // species while the full variety list supplies their Mega and regional forms.
   notifyDex(); // show "loading roster…" via dexStatusText / loading flag
   DexStore.loading = true;
-  const pending = [];
-  if (REGULATIONS[STATE.format]) pending.push(initChampionsRoster());
-  if (!CACHE.pokemonList || CACHE.pokemonList.length === 0) {
-    pending.push(initPokemonList());
+  try {
+    const pending = [];
+    if (REGULATIONS[STATE.format]) pending.push(initChampionsRoster());
+    if (!CACHE.pokemonList || CACHE.pokemonList.length === 0) {
+      pending.push(initPokemonList());
+    }
+    if (pending.length) await Promise.all(pending);
+    buildDexRoster();
+  } catch (err) {
+    // Leave builtForFormat unset so reopening retries; clear the flag in finally
+    // so the page isn't wedged on "loading roster…" after a network failure.
+    console.error('Pokédex: failed to load roster', err);
+    return;
+  } finally {
+    DexStore.loading = false;
+    notifyDex();
   }
-  if (pending.length) await Promise.all(pending);
-
-  buildDexRoster();
-  DexStore.loading = false;
-  notifyDex();
   // A regulation roster is bounded — eager-load everything so sort/search work
   // instantly. The National Dex (~1259 rows) stays lazy: DexView's observer
   // fetches placeholder rows as they scroll into view (ensureDexFullyLoaded

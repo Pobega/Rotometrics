@@ -177,13 +177,20 @@ export async function openAttackdexPage() {
 
   AdxStore.loading = true;
   notifyAdx(); // show "loading moves…"
-  if (!CACHE.allMoves || CACHE.allMoves.length === 0) {
-    await initAllMovesList();
+  try {
+    if (!CACHE.allMoves || CACHE.allMoves.length === 0) {
+      await initAllMovesList();
+    }
+    buildMovesRoster();
+  } catch (err) {
+    // Leave AdxStore.built unset so reopening retries; clear the flag in finally
+    // so the page isn't wedged on "loading moves…" after a network failure.
+    console.error('Attackdex: failed to load move roster', err);
+    return;
+  } finally {
+    AdxStore.loading = false;
+    notifyAdx();
   }
-
-  buildMovesRoster();
-  AdxStore.loading = false;
-  notifyAdx();
 }
 
 // Look up already-loaded move details by apiName (used by dex-store via app.js).
