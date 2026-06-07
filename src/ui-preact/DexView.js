@@ -2,8 +2,8 @@
 // existing #page-pokedex container. Reads the reactive DexStore and re-renders on
 // notifyDex(); all data + loading logic lives in dex-store.js. Row click opens the
 // shared vanilla detail modal. (Lazy National-Dex loading is restored in 2b.)
-import { html, useEffect, useRef } from './preact.js';
-import { useSubscription } from './reactive.js';
+import { html, useRef } from './preact.js';
+import { useSubscription, useLazyRowLoader } from './reactive.js';
 import { STATE } from '../state.js';
 import { bst, sortDex, filterDex } from '../data/dex.js';
 import { REGULATIONS } from '../data/regulations.js';
@@ -98,43 +98,9 @@ export function DexView() {
   const statusText = DexStore.loading && DexStore.roster.length === 0 ? 'loading roster…' : dexStatusText();
 
   // Lazy National-Dex loading: fetch placeholder rows as they scroll into view.
-  // Skipped once everything is loaded (regulation rosters eager-load).
+  // (Regulation rosters eager-load, so allLoaded short-circuits the observer.)
   const rowsRef = useRef(null);
-  const observerRef = useRef(null);
-  const observedRef = useRef(null);
-
-  // Create the observer once and keep it across renders; disconnect on unmount.
-  // (Re-creating it every render re-observes the whole ~1259-row dex each time.)
-  useEffect(() => {
-    const observer = new IntersectionObserver((entries) => {
-      const toLoad = [];
-      entries.forEach((entry) => {
-        if (!entry.isIntersecting) return;
-        const apiName = entry.target.getAttribute('data-api');
-        const row = DexStore.byName[apiName];
-        if (row && !row.details) toLoad.push(apiName);
-        observer.unobserve(entry.target);
-      });
-      if (toLoad.length) loadDexDetails(toLoad);
-    }, { rootMargin: '200px' });
-    observerRef.current = observer;
-    observedRef.current = new WeakSet();
-    return () => { observer.disconnect(); observerRef.current = null; };
-  }, []);
-
-  // Each render, observe only newly-mounted placeholder rows (the WeakSet skips
-  // rows already being observed), so growth is incremental rather than O(rows²).
-  useEffect(() => {
-    const container = rowsRef.current;
-    const observer = observerRef.current;
-    const observed = observedRef.current;
-    if (!container || !observer || DexStore.allLoaded) return;
-    container.querySelectorAll('[data-api]').forEach((el) => {
-      if (observed.has(el)) return;
-      const row = DexStore.byName[el.getAttribute('data-api')];
-      if (row && !row.details) { observer.observe(el); observed.add(el); }
-    });
-  });
+  useLazyRowLoader(rowsRef, DexStore, loadDexDetails);
 
   return html`
     <section class="bg-slate-950/20 border border-slate-800/80 rounded-3xl p-5 lg:p-5 flex flex-col gap-4">

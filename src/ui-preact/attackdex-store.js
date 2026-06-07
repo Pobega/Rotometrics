@@ -12,6 +12,7 @@ import { getTypeBgClass } from '../ui/render.js';
 import { openDetailModal, closeDetailModal, refreshDetailModalBody } from './DetailModal.js';
 import { html } from './preact.js';
 import { createEmitter } from './reactive.js';
+import { runPool } from './load-pool.js';
 
 // Shared, reactive Attackdex state. AttackdexView reads these directly and
 // re-renders on notifyAdx(). Same shape/semantics as the old vanilla AttackdexPage.
@@ -68,29 +69,16 @@ export async function loadMoveDetails(apiNames, { rerenderEachBatch = true } = {
   if (queue.length === 0) return;
   AdxStore.loading = true;
 
-  const CONCURRENCY = 8;
-  const RENDER_EVERY = 24; // re-notify periodically, not on every fetch
-  let cursor = 0;
-  let sinceRender = 0;
-
-  async function worker() {
-    while (cursor < queue.length) {
-      const apiName = queue[cursor++];
-      try {
-        const details = await fetchMoveDetails(apiName);
-        const row = AdxStore.byName[apiName];
-        if (row) row.details = details;
-      } catch (err) {
-        console.error(`Attackdex: failed to load ${apiName}`, err);
-      }
-      if (rerenderEachBatch && ++sinceRender >= RENDER_EVERY) {
-        sinceRender = 0;
-        notifyAdx();
-      }
+  await runPool(queue, async (apiName) => {
+    try {
+      const details = await fetchMoveDetails(apiName);
+      const row = AdxStore.byName[apiName];
+      if (row) row.details = details;
+    } catch (err) {
+      console.error(`Attackdex: failed to load ${apiName}`, err);
     }
-  }
+  }, { batchEvery: rerenderEachBatch ? 24 : 0, onProgress: notifyAdx });
 
-  await Promise.all(Array.from({ length: CONCURRENCY }, worker));
   AdxStore.loading = false;
   AdxStore.allLoaded = AdxStore.roster.every(r => r.details);
   notifyAdx();
@@ -282,26 +270,13 @@ export async function handleAttackdexRowClick(apiName) {
   const toFetch = visible.filter(n => !getDetails(n));
   if (toFetch.length === 0) return;
 
-  const CONCURRENCY = 8;
-  let cursor = 0;
-  let sinceRefresh = 0;
-
-  async function worker() {
-    while (cursor < toFetch.length) {
-      const n = toFetch[cursor++];
-      try {
-        const pd = await fetchPokemonDetails(n);
-        localCache.set(n, pd);
-        if (++sinceRefresh >= CONCURRENCY) {
-          sinceRefresh = 0;
-          refreshDetailModalBody(buildItems(), session);
-        }
-      } catch (err) {
-        console.error(`Failed to load Pokémon ${n}`, err);
-      }
+  await runPool(toFetch, async (n) => {
+    try {
+      const pd = await fetchPokemonDetails(n);
+      localCache.set(n, pd);
+    } catch (err) {
+      console.error(`Failed to load Pokémon ${n}`, err);
     }
-  }
-
-  await Promise.all(Array.from({ length: CONCURRENCY }, worker));
+  }, { batchEvery: 8, onProgress: () => refreshDetailModalBody(buildItems(), session) });
   refreshDetailModalBody(buildItems(), session);
 }

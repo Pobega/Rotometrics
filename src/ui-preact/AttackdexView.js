@@ -3,8 +3,8 @@
 // re-renders on notifyAdx(); all data + loading logic lives in attackdex-store.js.
 // Row click opens the shared vanilla detail modal ("Who learns …"). Lazy rows via
 // an IntersectionObserver, mirroring DexView.
-import { html, useEffect, useRef } from './preact.js';
-import { useSubscription } from './reactive.js';
+import { html, useRef } from './preact.js';
+import { useSubscription, useLazyRowLoader } from './reactive.js';
 import { sortMoves, filterMoves, spreadKind } from '../data/moves.js';
 import { getTypeBgClass, getCategoryBadge } from '../ui/render.js';
 import { ALL_TYPES } from '../data/constants.js';
@@ -87,43 +87,9 @@ export function AttackdexView() {
   const sorted = sortMoves(filtered, AdxStore.sortKey, AdxStore.sortDir);
   const statusText = AdxStore.loading && AdxStore.roster.length === 0 ? 'loading moves…' : attackdexStatusText();
 
-  // Lazy loading: fetch placeholder rows as they scroll into view (mirrors
-  // DexView). Skipped once everything is loaded.
+  // Lazy loading: fetch placeholder rows as they scroll into view (mirrors DexView).
   const rowsRef = useRef(null);
-  const observerRef = useRef(null);
-  const observedRef = useRef(null);
-
-  // Create the observer once and keep it across renders; disconnect on unmount.
-  useEffect(() => {
-    const observer = new IntersectionObserver((entries) => {
-      const toLoad = [];
-      entries.forEach((entry) => {
-        if (!entry.isIntersecting) return;
-        const apiName = entry.target.getAttribute('data-api');
-        const r = AdxStore.byName[apiName];
-        if (r && !r.details) toLoad.push(apiName);
-        observer.unobserve(entry.target);
-      });
-      if (toLoad.length) loadMoveDetails(toLoad);
-    }, { rootMargin: '200px' });
-    observerRef.current = observer;
-    observedRef.current = new WeakSet();
-    return () => { observer.disconnect(); observerRef.current = null; };
-  }, []);
-
-  // Each render, observe only newly-mounted placeholder rows (WeakSet skips
-  // rows already being observed).
-  useEffect(() => {
-    const container = rowsRef.current;
-    const observer = observerRef.current;
-    const observed = observedRef.current;
-    if (!container || !observer || AdxStore.allLoaded) return;
-    container.querySelectorAll('[data-api]').forEach((el) => {
-      if (observed.has(el)) return;
-      const r = AdxStore.byName[el.getAttribute('data-api')];
-      if (r && !r.details) { observer.observe(el); observed.add(el); }
-    });
-  });
+  useLazyRowLoader(rowsRef, AdxStore, loadMoveDetails);
 
   const spreadOn = AdxStore.filterSpread;
   const spreadCls = spreadOn
