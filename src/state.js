@@ -21,7 +21,11 @@ export const STATE = {
     boosts: { atk: 0, spa: 0, spe: 0 },
     types: ['???'],
     moves: [],
-    status: null
+    status: null,
+    // Render-only fields the Preact attacker island reads (the vanilla DOM used
+    // to hold these); kept on STATE so the island has a single source of truth.
+    sprite: '',
+    abilities: []
   },
 
   defender: {
@@ -35,7 +39,10 @@ export const STATE = {
     sps: { hp: 32, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 },
     ivs: { hp: 31, atk: 31, def: 31, spa: 31, spd: 31, spe: 31 },
     boosts: { def: 0, spd: 0, spe: 0 },
-    types: ['???']
+    types: ['???'],
+    // Render-only fields the Preact defender island reads.
+    sprite: '',
+    abilities: []
   },
 
   move: {
@@ -49,7 +56,13 @@ export const STATE = {
     spread: false,
     weather: 'none', // 'none', 'sun', 'rain', 'sandstorm', 'snow'
     crit: false,
-    helpingHand: false
+    helpingHand: false,
+    friendGuard: false,
+    screens: false,
+    terrain: 'none', // 'none', 'electric', 'grassy', 'psychic', 'misty'
+    aura: 'none',    // 'none', 'fairy', 'dark'
+    tailAtk: false,  // attacker Tailwind (2x Speed) — was read off the DOM
+    tailDef: false   // defender Tailwind (2x Speed)
     // movesFirst (Bolt Beak / Fishious Rend) is left unset so the engine
     // infers turn order from effective Speed; set it to override that.
   }

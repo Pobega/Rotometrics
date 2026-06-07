@@ -3,7 +3,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "python3 -m http.server 8765 >/dev/null 2>&1 & sleep 2 && node ci/run-tests.mjs; kill %1"
+    "test": "python3 -m http.server 8765 >/dev/null 2>&1 & sleep 2 && node ci/run-tests.mjs; kill %1",
+    "smoke": "node ci/smoke.mjs"
   },
   "devDependencies": {
     "playwright": "^1.49.0"
