@@ -118,13 +118,15 @@ export function isHiddenForm(apiName) {
 }
 
 // Forms that PokéAPI lists but that are never selectable in Regulation M-A:
-// Gigantamax, Totem, cosplay/cap Pikachu, Eternal Floette, Ash-Greninja
-// (Battle Bond), Let's Go starters, the non-canon "-mega-z" forms
-// (absol/garchomp/lucario), etc.
+// Gigantamax, Totem, cosplay/cap Pikachu, Ash-Greninja (Battle Bond), Let's Go
+// starters, the non-canon "-mega-z" forms (absol/garchomp/lucario), etc.
+// Eternal Floette is intentionally NOT here: it's the only pre-Mega form for
+// Mega Floette (and the sole carrier of Light of Ruin), so it stays legal
+// wherever its base species is.
 const NON_LEGAL_FORMS = [
   '-totem', '-cap', '-battle-bond', '-gmax', '-eternamax', '-starter',
   '-cosplay', '-rock-star', '-belle', '-pop-star', '-phd', '-libre',
-  '-eternal', '-mega-z', 'greninja-ash'
+  '-mega-z', 'greninja-ash'
 ];
 
 // Whether `apiName` is legal under a regulation, given that regulation's legal
