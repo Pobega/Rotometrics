@@ -1,7 +1,7 @@
 // Defender card — Preact island mirroring AttackerCard, mounted into
 // #panel-defender. Differs in: HP/Def/SpD/Spe dashboard (HP has no boost),
 // defensive item/ability lists, four EV sliders, and the bulk presets.
-import { html, useState, useStore } from './preact.js';
+import { html, useState, useEffect, useRef, useStore } from './preact.js';
 import { STATE, CACHE, update } from './store.js';
 import { calculateStat, calculateStatBoost } from '../engine/stats.js';
 import { getTypeBgClass } from '../ui/render.js';
@@ -80,7 +80,30 @@ export function DefenderCard({ onChoose }) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
   const [results, setResults] = useState([]);
+  // Index of the keyboard-highlighted result. Typing resets it to 0 so the top
+  // match is always the active one (Enter chooses it); Up/Down move it.
+  const [highlight, setHighlight] = useState(0);
   const [spinner, setSpinner] = useState(false);
+  const inputRef = useRef(null);
+  const listRef = useRef(null);
+
+  // Opening the search drops the caret straight into the box and highlights any
+  // leftover text, so the user can type a new name without reaching for the mouse.
+  useEffect(() => {
+    if (open && inputRef.current) {
+      inputRef.current.focus();
+      inputRef.current.select();
+    }
+  }, [open]);
+
+  // Keep the highlighted row scrolled into view as Up/Down walk past the visible
+  // window of the (max-h-60, scrollable) results dropdown.
+  useEffect(() => {
+    const list = listRef.current;
+    if (!list) return;
+    const row = list.children[highlight];
+    if (row) row.scrollIntoView({ block: 'nearest' });
+  }, [highlight, results]);
 
   const selected = !!d.apiName;
   const isMega = d.apiName.includes('-mega');
@@ -108,6 +131,7 @@ export function DefenderCard({ onChoose }) {
 
   function runSearch(q) {
     setQuery(q);
+    setHighlight(0); // top match is always active while typing
     const term = q.trim().toLowerCase();
     if (!term) {
       setResults([]);
@@ -150,6 +174,25 @@ export function DefenderCard({ onChoose }) {
     }
   }
 
+  // Keyboard control for the search box: Up/Down walk the results, Enter commits
+  // the highlighted one (and closes the box), Escape backs out.
+  function onKeyDown(e) {
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setHighlight((i) => Math.min(i + 1, results.length - 1));
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setHighlight((i) => Math.max(i - 1, 0));
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      const choice = results[highlight];
+      if (choice) pick(choice);
+    } else if (e.key === 'Escape') {
+      e.preventDefault();
+      setOpen(false);
+    }
+  }
+
   const reg = REGULATIONS[STATE.format];
   const badgeText = reg ? reg.short : 'National Dex';
   const badgeColor = reg
@@ -180,8 +223,8 @@ export function DefenderCard({ onChoose }) {
         html`
       <div class="relative">
         <div class="relative">
-          <input type="text" placeholder="Search (e.g. Amoonguss, Garchomp...)" autofocus
-            value=${query} onInput=${(e) => runSearch(e.target.value)}
+          <input type="text" placeholder="Search (e.g. Amoonguss, Garchomp...)" ref=${inputRef}
+            value=${query} onInput=${(e) => runSearch(e.target.value)} onKeyDown=${onKeyDown}
             class="w-full bg-slate-900 border border-slate-700 rounded-xl py-2 pl-9 pr-4 text-xs text-slate-100 focus:outline-none focus:border-slate-500 transition" />
           <i class="fa-solid fa-magnifying-glass absolute left-3 top-3 text-slate-500 text-[10px]"></i>
           ${spinner && html`<div class="absolute right-3 top-2"><img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/479.png" alt="Loading" class="w-6 h-6 animate-spin" style="image-rendering: pixelated;" /></div>`}
@@ -189,11 +232,12 @@ export function DefenderCard({ onChoose }) {
         ${
           results.length > 0 &&
           html`
-        <div class="absolute z-50 left-0 right-0 mt-1 bg-slate-800 border border-slate-700 rounded-xl shadow-2xl max-h-60 overflow-y-auto">
+        <div ref=${listRef} class="absolute z-50 left-0 right-0 mt-1 bg-slate-800 border border-slate-700 rounded-xl shadow-2xl max-h-60 overflow-y-auto">
           ${results.map(
-            (p) => html`
-            <button onClick=${() => pick(p)}
-              class="w-full text-left hover:bg-slate-700/50 px-4 py-2.5 text-xs font-bold border-b border-slate-750 flex justify-between items-center transition">
+            (p, i) => html`
+            <button onClick=${() => pick(p)} onMouseMove=${() => setHighlight(i)}
+              aria-selected=${i === highlight}
+              class=${`w-full text-left px-4 py-2.5 text-xs font-bold border-b border-slate-750 flex justify-between items-center transition ${i === highlight ? 'bg-slate-700/60' : 'hover:bg-slate-700/50'}`}>
               <span>${p.name}</span>
               <span class=${`text-[9px] px-1.5 py-0.5 rounded uppercase font-mono font-extrabold border ${badgeColor}`}>${badgeText}</span>
             </button>`
