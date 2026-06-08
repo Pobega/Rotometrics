@@ -4,26 +4,19 @@
 // header Rotom form + tagline swap, and hiding the calculator-only damage HUDs
 // when a dex view is active. Pulling this out of the dex page logic lets any
 // number of views coexist instead of a hard-coded two-way toggle.
+import { STATE } from '../state.js';
+import { notify } from '../ui-preact/store.js';
 
 const ACTIVE_CLS = "text-[9px] sm:text-[10px] font-extrabold uppercase tracking-wider py-1.5 px-2.5 rounded-md transition bg-amber-950/40 text-amber-400 shadow";
 const IDLE_CLS = "text-[9px] sm:text-[10px] font-extrabold uppercase tracking-wider py-1.5 px-2.5 rounded-md transition text-slate-400 hover:text-white";
 
-// The header Rotom swaps form per view: base Rotom drives the calculator, Wash
-// Rotom presides over the Pokédex, and Mow Rotom (its grass-cutting form, all
-// sharp edges) fronts the Attackdex.
-const BRAND_BY_PAGE = {
-  calculator: {
-    sprite: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/versions/generation-v/black-white/animated/479.gif',
-    subtitle: 'VGC Spread Optimizer',
-  },
-  pokedex: {
-    sprite: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/versions/generation-v/black-white/animated/10009.gif',
-    subtitle: 'Pokémon Champions Pokédex',
-  },
-  attackdex: {
-    sprite: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/versions/generation-v/black-white/animated/10008.gif',
-    subtitle: 'Pokémon Champions Attackdex',
-  },
+// Per-view header tagline. The matching Rotom form swap lives on the Brand island
+// (src/ui-preact/HeaderControls.js), keyed off STATE.page; showPage sets that and
+// notifies. The subtitle is a plain <p> the island doesn't own, so it stays here.
+const SUBTITLE_BY_PAGE = {
+  calculator: 'VGC Spread Optimizer',
+  pokedex: 'Pokémon Champions Pokédex',
+  attackdex: 'Pokémon Champions Attackdex',
 };
 
 const pages = new Map(); // id -> { navBtn, pageEl, onShow }
@@ -32,7 +25,6 @@ let domCache = null;
 function navDom() {
   if (domCache) return domCache;
   domCache = {
-    brandRotom: document.getElementById('brand-rotom'),
     brandSubtitle: document.getElementById('brand-subtitle'),
     mobileOverlay: document.getElementById('mobile-floating-overlay'),
     desktopResultsBar: document.getElementById('results-hud'),
@@ -51,12 +43,12 @@ export function registerPage(id, { navBtn, pageEl, onShow = null }) {
 export function showPage(id) {
   const dom = navDom();
 
-  // Swap the header Rotom form + tagline to match the active view.
-  const brand = BRAND_BY_PAGE[id] || BRAND_BY_PAGE.calculator;
-  if (dom.brandRotom && dom.brandRotom.getAttribute('src') !== brand.sprite) {
-    dom.brandRotom.src = brand.sprite;
-  }
-  if (dom.brandSubtitle) dom.brandSubtitle.textContent = brand.subtitle;
+  // Swap the header Rotom form + tagline to match the active view. The sprite is
+  // owned by the Brand island, so record the view on STATE and notify it; the
+  // subtitle is a plain <p> the island doesn't own, so set it directly.
+  STATE.page = id;
+  notify();
+  if (dom.brandSubtitle) dom.brandSubtitle.textContent = SUBTITLE_BY_PAGE[id] || SUBTITLE_BY_PAGE.calculator;
 
   for (const [pid, cfg] of pages) {
     const active = pid === id;
