@@ -12,7 +12,7 @@ import {
   abilitydexStatusText,
   setAbdQuery,
   clearAbdQuery,
-  toggleAbdVgc,
+  setAbdTag,
   handleAbilitydexRowClick,
   loadAbilityDetails,
 } from './abilitydex-store.js';
@@ -60,7 +60,7 @@ export function AbilitydexView() {
 
   const filtered = filterAbilities(AbdStore.roster, {
     query: AbdStore.query,
-    vgcOnly: AbdStore.filterVgc,
+    tag: AbdStore.filterTag,
   });
   const sorted = sortAbilities(filtered, 'asc');
   const statusText =
@@ -72,10 +72,13 @@ export function AbilitydexView() {
   const rowsRef = useRef(null);
   useLazyRowLoader(rowsRef, AbdStore, loadAbilityDetails);
 
-  const vgcOn = AbdStore.filterVgc;
-  const vgcCls = vgcOn
-    ? 'shrink-0 text-[10px] font-extrabold uppercase tracking-wider py-2 px-3 rounded-xl transition bg-amber-950/40 text-amber-400 border border-amber-900/50'
-    : 'shrink-0 text-[10px] font-extrabold uppercase tracking-wider py-2 px-3 rounded-xl transition bg-slate-900 text-slate-400 border border-slate-700 hover:text-white';
+  // Off/Def tag filter as a segmented control. Each button toggles its tag (a
+  // second click on the active one clears back to "all"). Off/Def keep their
+  // amber/sky accents when active so they echo the row Tag badges.
+  const tagBtnCls = (tag, accent) =>
+    AbdStore.filterTag === tag
+      ? `shrink-0 text-[10px] font-extrabold uppercase tracking-wider py-2 px-3 rounded-xl transition ${accent}`
+      : 'shrink-0 text-[10px] font-extrabold uppercase tracking-wider py-2 px-3 rounded-xl transition bg-slate-900 text-slate-400 border border-slate-700 hover:text-white';
 
   return html`
     <section class="bg-slate-950/20 border border-slate-800/80 rounded-3xl p-5 lg:p-5 flex flex-col gap-4">
@@ -103,11 +106,18 @@ export function AbilitydexView() {
         </div>
       </div>
 
-      <!-- Filter: VGC only -->
+      <!-- Filter: VGC damage-relevant abilities (Offensive / Defensive) -->
       <div class="flex flex-wrap items-center gap-2">
-        <button type="button" aria-pressed=${vgcOn ? 'true' : 'false'} class=${vgcCls}
-          onClick=${toggleAbdVgc}>
-          VGC only
+        <span class="text-[9px] font-extrabold text-slate-500 uppercase tracking-wider">VGC</span>
+        <button type="button" aria-pressed=${AbdStore.filterTag === 'off' ? 'true' : 'false'}
+          class=${tagBtnCls('off', 'bg-amber-950/40 text-amber-400 border border-amber-900/50')}
+          onClick=${() => setAbdTag('off')}>
+          Offensive
+        </button>
+        <button type="button" aria-pressed=${AbdStore.filterTag === 'def' ? 'true' : 'false'}
+          class=${tagBtnCls('def', 'bg-sky-950/40 text-sky-400 border border-sky-900/50')}
+          onClick=${() => setAbdTag('def')}>
+          Defensive
         </button>
       </div>
 

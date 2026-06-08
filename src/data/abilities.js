@@ -35,14 +35,14 @@ export function sortAbilities(rows, dir = 'asc') {
 }
 
 // Filters the roster by a free-text query (matched against the ability name and
-// its effect description) and the VGC-only flag. Rows without loaded details can
-// only match the name (their desc is unknown until fetched), mirroring the
-// lazy-load behaviour of filterMoves / filterDex.
-export function filterAbilities(rows, { query = '', vgcOnly = false } = {}) {
+// its effect description) and a VGC tag filter ('' = all, 'off', or 'def'). Rows
+// without loaded details can only match the name (their desc is unknown until
+// fetched), mirroring the lazy-load behaviour of filterMoves / filterDex.
+export function filterAbilities(rows, { query = '', tag = '' } = {}) {
   const q = (query || '').trim().toLowerCase();
 
   return rows.filter((row) => {
-    if (vgcOnly && !isVgcAbility(row.apiName)) return false;
+    if (tag && vgcTag(row.apiName) !== tag) return false;
 
     if (q) {
       const d = row.details;

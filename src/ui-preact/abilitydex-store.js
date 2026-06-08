@@ -25,7 +25,7 @@ export const AbdStore = {
   roster: [], // [{ apiName, name, details|null }]
   byName: {}, // apiName -> row (same object refs as roster)
   query: '',
-  filterVgc: false, // true = only curated VGC abilities
+  filterTag: '', // '' = all, 'off' = offensive VGC, 'def' = defensive VGC
   built: false,
   allLoaded: false, // every roster row has details loaded
   loading: false,
@@ -105,11 +105,11 @@ async function ensureAllLoaded() {
 }
 
 // True when the current view depends on loaded ability details. The effect-text
-// search needs them; the VGC-only filter keys off apiName (always known) so it
+// search needs them; the Off/Def tag filter keys off apiName (always known) so it
 // does not, but we still full-load on it so the desc column fills in for the
 // narrowed list.
 function needsFullLoad() {
-  return !!(AbdStore.query.trim() || AbdStore.filterVgc);
+  return !!(AbdStore.query.trim() || AbdStore.filterTag);
 }
 
 // --- Mutators (notify, and force-load details when the new view needs them) ---
@@ -128,8 +128,10 @@ export function clearAbdQuery() {
   notifyAbd();
 }
 
-export async function toggleAbdVgc() {
-  AbdStore.filterVgc = !AbdStore.filterVgc;
+// Set the Off/Def tag filter ('' = all, 'off', 'def'). Clicking the active tag
+// again clears it back to "all".
+export async function setAbdTag(tag) {
+  AbdStore.filterTag = AbdStore.filterTag === tag ? '' : tag;
   notifyAbd(); // reflect control state immediately
   if (needsFullLoad() && !AbdStore.allLoaded) {
     await ensureAllLoaded();

@@ -1393,11 +1393,12 @@
         },
       },
       {
-        name: 'filterAbilities: vgcOnly keeps only curated VGC abilities',
+        name: 'filterAbilities: tag filter keeps only the matching VGC side',
         run: () => {
           const rows = [abRow('Huge Power', 'huge-power'), abRow('Multiscale', 'multiscale'), abRow('Run Away', 'run-away')];
-          return JSON.stringify(names(filterAbilities(rows, { vgcOnly: true })))
-            === JSON.stringify(['huge-power', 'multiscale']);
+          return JSON.stringify(names(filterAbilities(rows, { tag: 'off' }))) === JSON.stringify(['huge-power'])
+            && JSON.stringify(names(filterAbilities(rows, { tag: 'def' }))) === JSON.stringify(['multiscale'])
+            && names(filterAbilities(rows, { tag: '' })).length === 3;
         },
       },
     ];
