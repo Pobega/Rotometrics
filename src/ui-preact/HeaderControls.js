@@ -16,12 +16,24 @@ import { openExportImport } from './ExportImportModal.js';
 
 const themeFor = (format) => REGULATIONS[format]?.theme || NATIONAL_THEME;
 
-// Brand Rotom sprite — its drop-shadow glow follows the active format's accent.
+// The header Rotom swaps form per view: base Rotom drives the calculator, Wash
+// Rotom presides over the Pokédex, and Mow Rotom (its grass-cutting form) fronts
+// the Attackdex. page-nav records the active view on STATE.page and notifies.
+const SPRITE_BASE = 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/versions/generation-v/black-white/animated';
+const ROTOM_BY_PAGE = {
+  calculator: `${SPRITE_BASE}/479.gif`,
+  pokedex: `${SPRITE_BASE}/10009.gif`,
+  attackdex: `${SPRITE_BASE}/10008.gif`,
+};
+
+// Brand Rotom sprite — its form follows the active view and its drop-shadow glow
+// follows the active format's accent.
 export function Brand() {
   useStore();
   const t = themeFor(STATE.format);
+  const sprite = ROTOM_BY_PAGE[STATE.page] || ROTOM_BY_PAGE.calculator;
   return html`
-    <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/versions/generation-v/black-white/animated/479.gif"
+    <img src=${sprite}
       alt="Rotom" class="w-11 h-11 object-contain transition-[filter]"
       style=${{ filter: `drop-shadow(0 0 5px ${t.glow})` }} />`;
 }
