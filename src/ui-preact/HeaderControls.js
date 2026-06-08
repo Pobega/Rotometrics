@@ -19,7 +19,8 @@ const themeFor = (format) => REGULATIONS[format]?.theme || NATIONAL_THEME;
 // The header Rotom swaps form per view: base Rotom drives the calculator, Wash
 // Rotom presides over the Pokédex, and Mow Rotom (its grass-cutting form) fronts
 // the Attackdex. page-nav records the active view on STATE.page and notifies.
-const SPRITE_BASE = 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/versions/generation-v/black-white/animated';
+const SPRITE_BASE =
+  'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/versions/generation-v/black-white/animated';
 const ROTOM_BY_PAGE = {
   calculator: `${SPRITE_BASE}/479.gif`,
   pokedex: `${SPRITE_BASE}/10009.gif`,
@@ -41,7 +42,9 @@ export function Brand() {
 function onFormatChange(value) {
   // Changing the format runs the shared recompute (re-tags both mons via their
   // islands) then rebuilds the Pokédex roster for the new legality set.
-  update((s) => { s.format = value; });
+  update((s) => {
+    s.format = value;
+  });
   onDexFormatChange();
 }
 

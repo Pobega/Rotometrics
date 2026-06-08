@@ -14,7 +14,7 @@
 const SPREAD_OPPONENTS = 'all-opponents';
 const SPREAD_INCLUDES_ALLY = new Set([
   'all-other-pokemon', // Earthquake, Surf, Discharge, Explosion, …
-  'all-pokemon'        // (rare) field-wide hits, also reaching the user
+  'all-pokemon', // (rare) field-wide hits, also reaching the user
 ]);
 
 // Classifies a move's spread behaviour: 'opponents' (foes only), 'ally' (also
@@ -37,7 +37,7 @@ export function isSpreadMove(details) {
 function moveValue(row, key) {
   if (!row.details) return null;
   const v = row.details[key];
-  return (v === null || v === undefined) ? null : v;
+  return v === null || v === undefined ? null : v;
 }
 
 // Returns a new array sorted by `key` ('name', 'power', or 'pp') in the given

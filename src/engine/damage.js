@@ -42,22 +42,44 @@ export function calculateDamageRolls(attacker, defender, move, modifiers) {
   let defStatName = baseIsPhysical ? 'def' : 'spd';
 
   if (move.apiName === 'body-press') {
-    atkStatName = 'def';                       // damage scales off the user's Defense
+    atkStatName = 'def'; // damage scales off the user's Defense
   } else if (move.apiName === 'foul-play') {
-    offMon = defender;                         // uses the target's Attack stat
+    offMon = defender; // uses the target's Attack stat
     atkStatName = 'atk';
-  } else if (move.apiName === 'psyshock' || move.apiName === 'psystrike' || move.apiName === 'secret-sword') {
-    defStatName = 'def';                       // special move that hits physical Defense
+  } else if (
+    move.apiName === 'psyshock' ||
+    move.apiName === 'psystrike' ||
+    move.apiName === 'secret-sword'
+  ) {
+    defStatName = 'def'; // special move that hits physical Defense
   } else if (move.apiName === 'photon-geyser' || move.apiName === 'tera-blast') {
-    const atkVal = calculateStatBoost(calculateStat('atk', attacker.baseStats.atk, attacker.sps.atk, attacker.nature, false), attacker.boosts.atk || 0);
-    const spaVal = calculateStatBoost(calculateStat('spa', attacker.baseStats.spa, attacker.sps.spa, attacker.nature, false), attacker.boosts.spa || 0);
-    isPhysical = atkVal >= spaVal;             // uses whichever offensive stat is higher
+    const atkVal = calculateStatBoost(
+      calculateStat('atk', attacker.baseStats.atk, attacker.sps.atk, attacker.nature, false),
+      attacker.boosts.atk || 0
+    );
+    const spaVal = calculateStatBoost(
+      calculateStat('spa', attacker.baseStats.spa, attacker.sps.spa, attacker.nature, false),
+      attacker.boosts.spa || 0
+    );
+    isPhysical = atkVal >= spaVal; // uses whichever offensive stat is higher
     atkStatName = isPhysical ? 'atk' : 'spa';
     defStatName = isPhysical ? 'def' : 'spd';
   }
 
-  let baseAtkVal = calculateStat(atkStatName, offMon.baseStats[atkStatName], offMon.sps[atkStatName], offMon.nature, false);
-  let baseDefVal = calculateStat(defStatName, defender.baseStats[defStatName], defender.sps[defStatName], defender.nature, false);
+  let baseAtkVal = calculateStat(
+    atkStatName,
+    offMon.baseStats[atkStatName],
+    offMon.sps[atkStatName],
+    offMon.nature,
+    false
+  );
+  let baseDefVal = calculateStat(
+    defStatName,
+    defender.baseStats[defStatName],
+    defender.sps[defStatName],
+    defender.nature,
+    false
+  );
 
   let effectiveAtk = calculateStatBoost(baseAtkVal, offMon.boosts[atkStatName] || 0);
   let effectiveDef = calculateStatBoost(baseDefVal, defender.boosts[defStatName] || 0);
@@ -82,7 +104,11 @@ export function calculateDamageRolls(attacker, defender, move, modifiers) {
     effectiveDef = Math.floor(effectiveDef * 1.5);
   }
 
-  if (modifiers.weather === 'sandstorm' && defender.types.includes('Rock') && defStatName === 'spd') {
+  if (
+    modifiers.weather === 'sandstorm' &&
+    defender.types.includes('Rock') &&
+    defStatName === 'spd'
+  ) {
     effectiveDef = Math.floor(effectiveDef * 1.5);
   }
   if (modifiers.weather === 'snow' && defender.types.includes('Ice') && defStatName === 'def') {
@@ -108,18 +134,20 @@ export function calculateDamageRolls(attacker, defender, move, modifiers) {
     // Doubles if the user moves first. Default to comparing effective Speed,
     // but let an explicit modifier override it (Trick Room, Choice Scarf,
     // switch-ins, etc.).
-    const movesFirst = modifiers.movesFirst != null
-      ? modifiers.movesFirst
-      : effectiveSpeed(attacker) > effectiveSpeed(defender);
+    const movesFirst =
+      modifiers.movesFirst != null
+        ? modifiers.movesFirst
+        : effectiveSpeed(attacker) > effectiveSpeed(defender);
     if (movesFirst) {
       effectivePower *= 2;
     }
   }
   if (move.apiName === 'payback') {
     // The inverse of Bolt Beak: doubles when the user moves last.
-    const movesSecond = modifiers.movesFirst != null
-      ? !modifiers.movesFirst
-      : effectiveSpeed(attacker) < effectiveSpeed(defender);
+    const movesSecond =
+      modifiers.movesFirst != null
+        ? !modifiers.movesFirst
+        : effectiveSpeed(attacker) < effectiveSpeed(defender);
     if (movesSecond) {
       effectivePower *= 2;
     }
@@ -128,7 +156,11 @@ export function calculateDamageRolls(attacker, defender, move, modifiers) {
   // Variable base power. PokeAPI reports 0/1 for these, so compute it here.
   if (move.apiName === 'return' || move.apiName === 'frustration') {
     effectivePower = 102; // max happiness / min happiness, the competitive default
-  } else if (move.apiName === 'eruption' || move.apiName === 'water-spout' || move.apiName === 'dragon-energy') {
+  } else if (
+    move.apiName === 'eruption' ||
+    move.apiName === 'water-spout' ||
+    move.apiName === 'dragon-energy'
+  ) {
     effectivePower = 150; // scales with the user's current HP; a calc assumes full HP
   } else if (move.apiName === 'gyro-ball') {
     const userSpe = effectiveSpeed(attacker);
@@ -140,7 +172,8 @@ export function calculateDamageRolls(attacker, defender, move, modifiers) {
   }
 
   const levelFactor = 22;
-  const baseDamageFor = (power) => Math.floor(Math.floor((levelFactor * power * effectiveAtk) / 50) / effectiveDef) + 2;
+  const baseDamageFor = (power) =>
+    Math.floor(Math.floor((levelFactor * power * effectiveAtk) / 50) / effectiveDef) + 2;
 
   let mod = 1.0;
 
@@ -166,7 +199,7 @@ export function calculateDamageRolls(attacker, defender, move, modifiers) {
   }
 
   if (modifiers.crit) {
-    mod *= (attacker.ability === 'sniper' ? 2.25 : 1.5);
+    mod *= attacker.ability === 'sniper' ? 2.25 : 1.5;
   }
 
   let stab = 1.0;
@@ -175,10 +208,17 @@ export function calculateDamageRolls(attacker, defender, move, modifiers) {
   }
   mod *= stab;
 
-  const typeMult = getTypeEffectiveness(move.type, defender.types, { scrappy: attacker.ability === 'scrappy' });
+  const typeMult = getTypeEffectiveness(move.type, defender.types, {
+    scrappy: attacker.ability === 'scrappy',
+  });
   mod *= typeMult;
 
-  if (isPhysical && attacker.ability !== 'guts' && attacker.status === 'burned' && move.apiName !== 'facade') {
+  if (
+    isPhysical &&
+    attacker.ability !== 'guts' &&
+    attacker.status === 'burned' &&
+    move.apiName !== 'facade'
+  ) {
     mod *= 0.5;
   }
 
@@ -195,15 +235,31 @@ export function calculateDamageRolls(attacker, defender, move, modifiers) {
   mod *= defenderAbilityMultiplier(defender.ability, abilityCtx);
 
   let terrainMod = 1.0;
-  if (modifiers.terrain === 'electric' && move.type === 'Electric' && !attacker.types.includes('Flying')) {
+  if (
+    modifiers.terrain === 'electric' &&
+    move.type === 'Electric' &&
+    !attacker.types.includes('Flying')
+  ) {
     terrainMod = 1.3;
-  } else if (modifiers.terrain === 'grassy' && move.type === 'Grass' && !attacker.types.includes('Flying')) {
+  } else if (
+    modifiers.terrain === 'grassy' &&
+    move.type === 'Grass' &&
+    !attacker.types.includes('Flying')
+  ) {
     terrainMod = 1.3;
   } else if (modifiers.terrain === 'grassy' && move.type === 'Ground') {
     terrainMod = 0.5;
-  } else if (modifiers.terrain === 'psychic' && move.type === 'Psychic' && !attacker.types.includes('Flying')) {
+  } else if (
+    modifiers.terrain === 'psychic' &&
+    move.type === 'Psychic' &&
+    !attacker.types.includes('Flying')
+  ) {
     terrainMod = 1.3;
-  } else if (modifiers.terrain === 'misty' && move.type === 'Dragon' && !defender.types.includes('Flying')) {
+  } else if (
+    modifiers.terrain === 'misty' &&
+    move.type === 'Dragon' &&
+    !defender.types.includes('Flying')
+  ) {
     terrainMod = 0.5;
   }
   mod *= terrainMod;
@@ -240,9 +296,10 @@ export function calculateDamageRolls(attacker, defender, move, modifiers) {
   // shared `mod` (incl. full-HP defender abilities like Multiscale and the
   // spread reduction) is applied uniformly to both hits rather than recomputed
   // against the defender's reduced HP after the first hit — acceptable here.
-  const hitPowers = attacker.ability === 'parental-bond'
-    ? [effectivePower, Math.floor(effectivePower * 0.25)]
-    : [effectivePower];
+  const hitPowers =
+    attacker.ability === 'parental-bond'
+      ? [effectivePower, Math.floor(effectivePower * 0.25)]
+      : [effectivePower];
 
   const rolls = [];
   for (let r = 85; r <= 100; r++) {

@@ -11,12 +11,22 @@ function applyCard(card) {
   update((s) => {
     if (card.type === 'survival') {
       s.defender.sps.hp = card.hp;
-      if (card.stat === 'def') { s.defender.sps.def = card.def; s.defender.sps.spd = 0; }
-      else { s.defender.sps.spd = card.def; s.defender.sps.def = 0; }
+      if (card.stat === 'def') {
+        s.defender.sps.def = card.def;
+        s.defender.sps.spd = 0;
+      } else {
+        s.defender.sps.spd = card.def;
+        s.defender.sps.def = 0;
+      }
       if (card.nature) s.defender.nature = card.nature;
     } else {
-      if (card.stat === 'atk') { s.attacker.sps.atk = card.sp; s.attacker.sps.spa = 0; }
-      else { s.attacker.sps.spa = card.sp; s.attacker.sps.atk = 0; }
+      if (card.stat === 'atk') {
+        s.attacker.sps.atk = card.sp;
+        s.attacker.sps.spa = 0;
+      } else {
+        s.attacker.sps.spa = card.sp;
+        s.attacker.sps.atk = 0;
+      }
       if (card.nature) s.attacker.nature = card.nature;
     }
   });
@@ -39,9 +49,15 @@ function OptionCard({ card }) {
   }
   const isSurvival = card.theme === 'blue';
   const themeText = isSurvival ? 'text-blue-400' : 'text-amber-400';
-  const themeBg = isSurvival ? 'bg-blue-950/25 border-blue-900/40 hover:border-blue-800/60' : 'bg-amber-950/25 border-amber-900/40 hover:border-amber-800/60';
-  const themeBtn = isSurvival ? 'bg-blue-600 hover:bg-blue-500 focus:ring-blue-800' : 'bg-amber-600 hover:bg-amber-500 focus:ring-amber-800';
-  const spread = isSurvival ? `${card.hp} HP / ${card.def} ${card.statName}` : `${card.sp} ${card.statName.toUpperCase()}`;
+  const themeBg = isSurvival
+    ? 'bg-blue-950/25 border-blue-900/40 hover:border-blue-800/60'
+    : 'bg-amber-950/25 border-amber-900/40 hover:border-amber-800/60';
+  const themeBtn = isSurvival
+    ? 'bg-blue-600 hover:bg-blue-500 focus:ring-blue-800'
+    : 'bg-amber-600 hover:bg-amber-500 focus:ring-amber-800';
+  const spread = isSurvival
+    ? `${card.hp} HP / ${card.def} ${card.statName}`
+    : `${card.sp} ${card.statName.toUpperCase()}`;
   return html`
     <div class=${`border rounded-xl p-3 flex flex-col gap-2 transition text-left ${themeBg}`}>
       <div class="flex justify-between items-start gap-3">
@@ -63,13 +79,20 @@ export function OptimizerPanel() {
   const survival = STATE.mode === 'survival';
   const { notPossible, cards } = DERIVED.optimizer;
 
-  const tabBase = 'flex-1 text-center py-1.5 text-xs font-bold rounded-lg transition flex items-center justify-center gap-1.5';
-  const offCls = survival ? `${tabBase} text-slate-400 hover:text-white` : `${tabBase} bg-amber-600 text-white shadow`;
-  const survCls = survival ? `${tabBase} bg-blue-600 text-white shadow` : `${tabBase} text-slate-400 hover:text-white`;
+  const tabBase =
+    'flex-1 text-center py-1.5 text-xs font-bold rounded-lg transition flex items-center justify-center gap-1.5';
+  const offCls = survival
+    ? `${tabBase} text-slate-400 hover:text-white`
+    : `${tabBase} bg-amber-600 text-white shadow`;
+  const survCls = survival
+    ? `${tabBase} bg-blue-600 text-white shadow`
+    : `${tabBase} text-slate-400 hover:text-white`;
 
   const ohko = STATE.targetKO === 'ohko';
-  const targetOn = 'bg-amber-600 hover:bg-amber-500 text-white font-bold py-2 rounded-xl border border-amber-500/30 transition';
-  const targetOff = 'bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold py-2 rounded-xl border border-slate-700 transition';
+  const targetOn =
+    'bg-amber-600 hover:bg-amber-500 text-white font-bold py-2 rounded-xl border border-amber-500/30 transition';
+  const targetOff =
+    'bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold py-2 rounded-xl border border-slate-700 transition';
 
   const optionsBody = notPossible
     ? html`<div class="text-xs text-slate-500 italic p-4 text-center border border-slate-800 rounded-xl bg-slate-800/20">${survival ? 'Survival is impossible even with maximum defensive Nature & allocations' : 'Secure KO is impossible even with maximum offensive Nature & allocations'}</div>`
@@ -81,22 +104,37 @@ export function OptimizerPanel() {
     <div class="bg-gradient-to-b from-slate-800 to-slate-900 border border-slate-700 border-t-2 border-t-amber-500/80 rounded-2xl p-5 shadow-xl flex flex-col min-h-[250px] pokemon-card">
       <div class="flex flex-col gap-3">
         <div class="bg-slate-900/50 border border-slate-700 rounded-xl p-1 flex w-full">
-          <button class=${offCls} onClick=${() => update((s) => { s.mode = 'offensive'; })}>
+          <button class=${offCls} onClick=${() =>
+            update((s) => {
+              s.mode = 'offensive';
+            })}>
             <i class="fa-solid fa-hand-fist"></i> Attacking
           </button>
-          <button class=${survCls} onClick=${() => update((s) => { s.mode = 'survival'; })}>
+          <button class=${survCls} onClick=${() =>
+            update((s) => {
+              s.mode = 'survival';
+            })}>
             <i class="fa-solid fa-shield-halved"></i> Survival
           </button>
         </div>
 
-        ${!survival && html`
+        ${
+          !survival &&
+          html`
           <div class="flex flex-col gap-3">
             <label class="block text-xs font-bold text-slate-400 uppercase flex text-left">Target Outcome</label>
             <div class="grid grid-cols-2 gap-2 text-xs">
-              <button class=${ohko ? targetOn : targetOff} onClick=${() => update((s) => { s.targetKO = 'ohko'; })}>Guaranteed OHKO</button>
-              <button class=${!ohko ? targetOn : targetOff} onClick=${() => update((s) => { s.targetKO = '2hko'; })}>Guaranteed 2HKO</button>
+              <button class=${ohko ? targetOn : targetOff} onClick=${() =>
+                update((s) => {
+                  s.targetKO = 'ohko';
+                })}>Guaranteed OHKO</button>
+              <button class=${!ohko ? targetOn : targetOff} onClick=${() =>
+                update((s) => {
+                  s.targetKO = '2hko';
+                })}>Guaranteed 2HKO</button>
             </div>
-          </div>`}
+          </div>`
+        }
 
         <div class="flex flex-col gap-3.5">
           <div class="text-xs font-bold text-slate-400 uppercase tracking-wider text-left">Suggested Options:</div>

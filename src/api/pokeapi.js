@@ -24,10 +24,10 @@ export async function initPokemonList() {
     const res = await fetch(`${API_BASE}/pokemon?limit=1500`);
     const data = await res.json();
 
-    CACHE.pokemonList = data.results.map(p => ({
+    CACHE.pokemonList = data.results.map((p) => ({
       name: formatDisplayName(p.name),
       apiName: p.name,
-      url: p.url
+      url: p.url,
     }));
 
     Storage.set(cacheKey('pokemon_list'), CACHE.pokemonList);
@@ -42,7 +42,7 @@ export async function initPokemonList() {
       { name: 'Rillaboom', apiName: 'rillaboom' },
       { name: 'Calyrex Shadow', apiName: 'calyrex-shadow' },
       { name: 'Ogerpon Hearthflame', apiName: 'ogerpon-hearthflame' },
-      { name: 'Tornadus', apiName: 'tornadus' }
+      { name: 'Tornadus', apiName: 'tornadus' },
     ];
     return { count: CACHE.pokemonList.length, fallback: true };
   }
@@ -58,12 +58,12 @@ export async function initStatusMovesList() {
       const data = await res.json();
 
       statusMoves = {};
-      data.moves.forEach(m => {
+      data.moves.forEach((m) => {
         statusMoves[m.name] = true;
       });
       Storage.set(key, statusMoves);
     } catch (err) {
-      console.error("Failed to fetch status moves list", err);
+      console.error('Failed to fetch status moves list', err);
       statusMoves = {};
     }
   }
@@ -89,12 +89,30 @@ export async function initChampionsRoster() {
     CACHE.championsRoster = await res.json();
     Storage.set(key, CACHE.championsRoster);
   } catch (err) {
-    console.error("Failed to fetch Champions roster JSON, loading fallback", err);
+    console.error('Failed to fetch Champions roster JSON, loading fallback', err);
     // High-fidelity VGC roster fallback (Scenario templates!)
     CACHE.championsRoster = [
-      'crabominable', 'incineroar', 'flutter-mane', 'amoonguss', 'rillaboom', 'tornadus',
-      'urshifu', 'gholdengo', 'kingambit', 'sneasler', 'garchomp', 'basculegion',
-      'charizard', 'venusaur', 'blastoise', 'beedrill', 'pidgeot', 'pikachu', 'raichu', 'clefable', 'ninetales'
+      'crabominable',
+      'incineroar',
+      'flutter-mane',
+      'amoonguss',
+      'rillaboom',
+      'tornadus',
+      'urshifu',
+      'gholdengo',
+      'kingambit',
+      'sneasler',
+      'garchomp',
+      'basculegion',
+      'charizard',
+      'venusaur',
+      'blastoise',
+      'beedrill',
+      'pidgeot',
+      'pikachu',
+      'raichu',
+      'clefable',
+      'ninetales',
     ];
   }
 }
@@ -140,7 +158,7 @@ export function formatDisplayName(apiName) {
   if (DISPLAY_NAME_OVERRIDES[apiName]) return DISPLAY_NAME_OVERRIDES[apiName];
   return apiName
     .split('-')
-    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
     .join(' ');
 }
 
@@ -154,7 +172,7 @@ const MEGA_BASE_OVERRIDES = {
 // Union `additions` ({ name, apiName }) into `target` in place, skipping any move
 // already present. Shared by the Mega and pre-evolution learnset merges below.
 function mergeMoves(target, additions) {
-  const seen = new Set(target.map(m => m.apiName));
+  const seen = new Set(target.map((m) => m.apiName));
   for (const move of additions) {
     if (seen.has(move.apiName)) continue;
     seen.add(move.apiName);
@@ -177,7 +195,7 @@ async function fetchSpeciesEvo(speciesName) {
   const data = await res.json();
   const evo = {
     evolvesFrom: data.evolves_from_species ? data.evolves_from_species.name : null,
-    varieties: data.varieties.map(v => v.pokemon.name)
+    varieties: data.varieties.map((v) => v.pokemon.name),
   };
   Storage.set(key, evo);
   return evo;
@@ -190,10 +208,10 @@ async function fetchPreEvolutionMoves(speciesName, apiName) {
   if (!species.evolvesFrom) return [];
 
   let variety = species.evolvesFrom;
-  const suffix = REGIONAL_FORM_SUFFIXES.find(s => apiName.endsWith(`-${s}`));
+  const suffix = REGIONAL_FORM_SUFFIXES.find((s) => apiName.endsWith(`-${s}`));
   if (suffix) {
     const preEvo = await fetchSpeciesEvo(species.evolvesFrom);
-    const regional = preEvo.varieties.find(v => v.endsWith(`-${suffix}`));
+    const regional = preEvo.varieties.find((v) => v.endsWith(`-${suffix}`));
     if (regional) variety = regional;
   }
 
@@ -209,9 +227,9 @@ export async function fetchPokemonDetails(apiName) {
   const res = await fetch(`${API_BASE}/pokemon/${apiName}`);
   const data = await res.json();
 
-  let movesMapped = data.moves.map(m => ({
+  let movesMapped = data.moves.map((m) => ({
     name: formatDisplayName(m.move.name),
-    apiName: m.move.name
+    apiName: m.move.name,
   }));
 
   // A Mega Evolution shares its base form's movepool (you only Mega-evolve mid-battle),
@@ -222,10 +240,13 @@ export async function fetchPokemonDetails(apiName) {
       const baseSpeciesName = MEGA_BASE_OVERRIDES[apiName] || apiName.split('-mega')[0];
       const baseRes = await fetch(`${API_BASE}/pokemon/${baseSpeciesName}`);
       const baseData = await baseRes.json();
-      mergeMoves(movesMapped, baseData.moves.map(m => ({
-        name: formatDisplayName(m.move.name),
-        apiName: m.move.name
-      })));
+      mergeMoves(
+        movesMapped,
+        baseData.moves.map((m) => ({
+          name: formatDisplayName(m.move.name),
+          apiName: m.move.name,
+        }))
+      );
     } catch (err) {
       console.error(`Failed to merge base species moves for ${apiName}`, err);
     }
@@ -245,20 +266,20 @@ export async function fetchPokemonDetails(apiName) {
     name: formatDisplayName(data.name),
     apiName: data.name,
     sprite: data.sprites.other['official-artwork'].front_default || data.sprites.front_default,
-    types: data.types.map(t => formatDisplayName(t.type.name)),
+    types: data.types.map((t) => formatDisplayName(t.type.name)),
     baseStats: {
       hp: data.stats[0].base_stat,
       atk: data.stats[1].base_stat,
       def: data.stats[2].base_stat,
       spa: data.stats[3].base_stat,
       spd: data.stats[4].base_stat,
-      spe: data.stats[5].base_stat
+      spe: data.stats[5].base_stat,
     },
     moves: movesMapped,
-    abilities: data.abilities.map(a => ({
+    abilities: data.abilities.map((a) => ({
       name: formatDisplayName(a.ability.name),
-      apiName: a.ability.name
-    }))
+      apiName: a.ability.name,
+    })),
   };
 
   Storage.set(key, details);
@@ -271,7 +292,7 @@ export async function fetchPokemonDetails(apiName) {
 // the Attackdex's free-text search ("burn", "paralyze", …) and its description
 // column. Returns '' when no English entry exists.
 function moveDescription(data) {
-  const entry = (data.effect_entries || []).find(e => e.language && e.language.name === 'en');
+  const entry = (data.effect_entries || []).find((e) => e.language && e.language.name === 'en');
   if (!entry) return '';
   let text = entry.short_effect || entry.effect || '';
   if (data.effect_chance != null) {
@@ -299,7 +320,7 @@ export async function fetchMoveDetails(moveApiName) {
     pp: data.pp ?? null,
     target: data.target ? data.target.name : null,
     desc: moveDescription(data),
-    learnedBy: (data.learned_by_pokemon || []).map(p => p.name)
+    learnedBy: (data.learned_by_pokemon || []).map((p) => p.name),
   };
 
   Storage.set(key, details);
@@ -321,9 +342,9 @@ export async function initAllMovesList() {
   try {
     const res = await fetch(`${API_BASE}/move?limit=2000`);
     const data = await res.json();
-    const list = (data.results || []).map(m => ({
+    const list = (data.results || []).map((m) => ({
       name: formatDisplayName(m.name),
-      apiName: m.name
+      apiName: m.name,
     }));
     CACHE.allMoves = list;
     Storage.set(key, list);

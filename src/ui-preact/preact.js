@@ -46,4 +46,3 @@ import { useSubscription } from './reactive.js';
 export function useStore() {
   useSubscription(subscribe);
 }
-

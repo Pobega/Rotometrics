@@ -8,7 +8,13 @@ import { NATURES } from '../data/constants.js';
 // Cheapest HP/Def(SpD) spread (and nature) that lets `defender` survive the
 // attacker's max roll. Returns { hp, def, nature, total } or null if no spread
 // within the budget survives.
-export function optimizeSurvivalEVsWithNatures(attacker, defender, move, modifiers, allowedNatures) {
+export function optimizeSurvivalEVsWithNatures(
+  attacker,
+  defender,
+  move,
+  modifiers,
+  allowedNatures
+) {
   const isPhysical = move.category.toLowerCase() === 'physical';
   const defStatName = isPhysical ? 'def' : 'spd';
 
@@ -20,7 +26,7 @@ export function optimizeSurvivalEVsWithNatures(attacker, defender, move, modifie
   const testAttacker = structuredClone(attacker);
   const testDefender = structuredClone(defender);
 
-  NATURES.forEach(nat => {
+  NATURES.forEach((nat) => {
     if (allowedNatures && !allowedNatures.includes(nat.id)) return;
     testDefender.nature = nat.id;
 
@@ -68,7 +74,14 @@ export function optimizeSurvivalEVsWithNatures(attacker, defender, move, modifie
 
 // Cheapest Atk(SpA) spread (and nature) that secures the target KO (OHKO on the
 // min roll, or 2HKO via half the defender's HP). Returns { sp, nature } or null.
-export function optimizeOffensiveEVsWithNatures(attacker, defender, move, modifiers, targetKO, allowedNatures) {
+export function optimizeOffensiveEVsWithNatures(
+  attacker,
+  defender,
+  move,
+  modifiers,
+  targetKO,
+  allowedNatures
+) {
   const isPhysical = move.category.toLowerCase() === 'physical';
   const atkStatName = isPhysical ? 'atk' : 'spa';
 
@@ -81,7 +94,7 @@ export function optimizeOffensiveEVsWithNatures(attacker, defender, move, modifi
 
   const defHP = calculateStat('hp', defender.baseStats.hp, defender.sps.hp, defender.nature, true);
 
-  NATURES.forEach(nat => {
+  NATURES.forEach((nat) => {
     if (allowedNatures && !allowedNatures.includes(nat.id)) return;
     testAttacker.nature = nat.id;
 

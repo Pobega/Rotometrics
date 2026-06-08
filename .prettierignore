@@ -1,0 +1,5 @@
+node_modules/
+favicon.png
+
+# 64 KB of hand-written test-case markup; reformatting adds noise with no benefit.
+tests.html

@@ -10,13 +10,28 @@ export const NATURES = [
   { id: '+spa', name: '+Sp. Attack' },
   { id: '+def', name: '+Defense' },
   { id: '+spd', name: '+Sp. Defense' },
-  { id: '+spe', name: '+Speed' }
+  { id: '+spe', name: '+Speed' },
 ];
 
 export const ALL_TYPES = [
-  'Normal', 'Fire', 'Water', 'Grass', 'Electric', 'Ice', 'Fighting',
-  'Poison', 'Ground', 'Flying', 'Psychic', 'Bug', 'Rock', 'Ghost',
-  'Dragon', 'Dark', 'Steel', 'Fairy'
+  'Normal',
+  'Fire',
+  'Water',
+  'Grass',
+  'Electric',
+  'Ice',
+  'Fighting',
+  'Poison',
+  'Ground',
+  'Flying',
+  'Psychic',
+  'Bug',
+  'Rock',
+  'Ghost',
+  'Dragon',
+  'Dark',
+  'Steel',
+  'Fairy',
 ];
 
 export const OFFENSIVE_VGC_ABILITIES = [
@@ -36,7 +51,7 @@ export const OFFENSIVE_VGC_ABILITIES = [
   { apiName: 'mega-sol', name: 'Mega Sol (Always Sunny)' },
   { apiName: 'fairy-aura', name: 'Fairy Aura (1.33x Fairy moves)' },
   { apiName: 'scrappy', name: 'Scrappy (Hit Ghosts w/ Normal/Fighting)' },
-  { apiName: 'parental-bond', name: 'Parental Bond (Hits twice, 2nd at 0.25x)' }
+  { apiName: 'parental-bond', name: 'Parental Bond (Hits twice, 2nd at 0.25x)' },
 ];
 
 export const DEFENSIVE_VGC_ABILITIES = [
@@ -51,19 +66,15 @@ export const DEFENSIVE_VGC_ABILITIES = [
   { apiName: 'dry-skin', name: 'Dry Skin (1.25x Fire, immune Water)' },
   { apiName: 'filter', name: 'Filter (0.75x super-effective)' },
   { apiName: 'solid-rock', name: 'Solid Rock (0.75x super-effective)' },
-  { apiName: 'prism-armor', name: 'Prism Armor (0.75x super-effective)' }
+  { apiName: 'prism-armor', name: 'Prism Armor (0.75x super-effective)' },
 ];
 
 // Narrow the curated ability lists to those the Pokémon can actually learn,
 // given its PokéAPI ability list ([{ apiName, name }, ...]).
 export function OFF_VGC_ABILITIES_HELPER(learnable) {
-  return OFFENSIVE_VGC_ABILITIES.filter(vgc =>
-    learnable.some(a => a.apiName === vgc.apiName)
-  );
+  return OFFENSIVE_VGC_ABILITIES.filter((vgc) => learnable.some((a) => a.apiName === vgc.apiName));
 }
 
 export function DEF_VGC_ABILITIES_HELPER(learnable) {
-  return DEFENSIVE_VGC_ABILITIES.filter(vgc =>
-    learnable.some(a => a.apiName === vgc.apiName)
-  );
+  return DEFENSIVE_VGC_ABILITIES.filter((vgc) => learnable.some((a) => a.apiName === vgc.apiName));
 }

@@ -2,7 +2,10 @@
 // Pure Client-Side JavaScript ES6+
 
 import { calculateDamageRolls } from './src/engine/damage.js';
-import { optimizeSurvivalEVsWithNatures, optimizeOffensiveEVsWithNatures } from './src/engine/optimize.js';
+import {
+  optimizeSurvivalEVsWithNatures,
+  optimizeOffensiveEVsWithNatures,
+} from './src/engine/optimize.js';
 import { OFF_VGC_ABILITIES_HELPER, DEF_VGC_ABILITIES_HELPER } from './src/data/constants.js';
 import { STATE, CACHE } from './src/state.js';
 import {
@@ -11,13 +14,23 @@ import {
   initChampionsRoster,
   initAllMovesList,
   fetchPokemonDetails,
-  fetchMoveDetails
+  fetchMoveDetails,
 } from './src/api/pokeapi.js';
 import { pruneOldCaches } from './src/api/cache.js';
 import { buildResultModel } from './src/ui/result-summary.js';
-import { initDexStore, openDexPage, jumpToDexPokemon, getPokemonDetails } from './src/ui-preact/dex-store.js';
+import {
+  initDexStore,
+  openDexPage,
+  jumpToDexPokemon,
+  getPokemonDetails,
+} from './src/ui-preact/dex-store.js';
 import { DexView } from './src/ui-preact/DexView.js';
-import { initAttackdexStore, openAttackdexPage, jumpToAttackdexMove, getMoveDetails } from './src/ui-preact/attackdex-store.js';
+import {
+  initAttackdexStore,
+  openAttackdexPage,
+  jumpToAttackdexMove,
+  getMoveDetails,
+} from './src/ui-preact/attackdex-store.js';
 import { AttackdexView } from './src/ui-preact/AttackdexView.js';
 import { registerPage, showPage } from './src/ui/page-nav.js';
 import { DetailModal } from './src/ui-preact/DetailModal.js';
@@ -30,7 +43,6 @@ import { ResultsHUD } from './src/ui-preact/ResultsHUD.js';
 import { Brand, HeaderControls } from './src/ui-preact/HeaderControls.js';
 import { ExportImportModal } from './src/ui-preact/ExportImportModal.js';
 import { setRecompute, notify, DERIVED } from './src/ui-preact/store.js';
-
 
 // ==========================================
 // 2. APPLICATION STATE & GLOBAL CACHE
@@ -54,16 +66,14 @@ function augmentedState() {
     ...STATE,
     modifiers: {
       ...STATE.modifiers,
-      burn: STATE.attacker.status === 'burned'
-    }
+      burn: STATE.attacker.status === 'burned',
+    },
   };
 }
-
 
 // ==========================================
 // 7. UI WORKFLOW & CONTROLLER BINDING
 // ==========================================
-
 
 function setAttackerDetails(details) {
   STATE.attacker.name = details.name;
@@ -80,16 +90,16 @@ function setAttackerDetails(details) {
   const learnableOffensive = OFF_VGC_ABILITIES_HELPER(details.abilities);
   const isMega = details.apiName.includes('-mega');
   if (isMega) {
-    STATE.attacker.item = "mega_stone";
-    STATE.attacker.ability = learnableOffensive.length > 0 ? learnableOffensive[0].apiName : "none";
+    STATE.attacker.item = 'mega_stone';
+    STATE.attacker.ability = learnableOffensive.length > 0 ? learnableOffensive[0].apiName : 'none';
   } else {
-    STATE.attacker.ability = "none";
+    STATE.attacker.ability = 'none';
   }
 
   // The move dropdown is rendered by the MovePanel island from STATE.attacker.moves;
   // here we only choose which move is active (STATE.move).
   const damagingMoves = details.moves
-    .filter(m => !CACHE.statusMoves[m.apiName])
+    .filter((m) => !CACHE.statusMoves[m.apiName])
     .sort((a, b) => a.name.localeCompare(b.name));
 
   // Auto Pre-Selection of the very first valid damaging move from the new learnset!
@@ -100,21 +110,23 @@ function setAttackerDetails(details) {
     STATE.move.apiName = firstMove.apiName;
     STATE.move.name = firstMove.name;
 
-    fetchMoveDetails(firstMove.apiName).then(move => {
-      STATE.move.power = move.power; // base power; MovePanel shows resolved BP
-      STATE.move.type = move.type;
-      STATE.move.category = move.category.toLowerCase();
-      updateLiveStats();
-    }).catch(err => {
-      console.error("Error auto pre-selecting first VGC move:", err);
-      STATE.move.apiName = "";
-      STATE.move.name = "Custom Move";
-      STATE.move.power = 80;
-      updateLiveStats();
-    });
+    fetchMoveDetails(firstMove.apiName)
+      .then((move) => {
+        STATE.move.power = move.power; // base power; MovePanel shows resolved BP
+        STATE.move.type = move.type;
+        STATE.move.category = move.category.toLowerCase();
+        updateLiveStats();
+      })
+      .catch((err) => {
+        console.error('Error auto pre-selecting first VGC move:', err);
+        STATE.move.apiName = '';
+        STATE.move.name = 'Custom Move';
+        STATE.move.power = 80;
+        updateLiveStats();
+      });
   } else if (!isApplyingMatchup) {
-    STATE.move.apiName = "";
-    STATE.move.name = "Custom Move";
+    STATE.move.apiName = '';
+    STATE.move.name = 'Custom Move';
     STATE.move.power = 80;
     updateLiveStats();
   }
@@ -136,15 +148,14 @@ function setDefenderDetails(details) {
   const learnableDefensive = DEF_VGC_ABILITIES_HELPER(details.abilities);
   const isMega = details.apiName.includes('-mega');
   if (isMega) {
-    STATE.defender.item = "mega_stone";
-    STATE.defender.ability = learnableDefensive.length > 0 ? learnableDefensive[0].apiName : "none";
+    STATE.defender.item = 'mega_stone';
+    STATE.defender.ability = learnableDefensive.length > 0 ? learnableDefensive[0].apiName : 'none';
   } else {
-    STATE.defender.ability = "none";
+    STATE.defender.ability = 'none';
   }
 
   updateLiveStats();
 }
-
 
 // The recompute pipeline. Every island edit flows through here (via the store's
 // update()/requestRecompute), as does the format selector. The islands own all
@@ -164,7 +175,6 @@ function updateLiveStats() {
   notify();
 }
 
-
 // Compute the damage rolls + optimizer suggestion cards into the DERIVED stash.
 // The OptimizerPanel + ResultsHUD islands render from DERIVED; this no longer
 // touches the DOM. Card shape is documented on DERIVED in store.js.
@@ -178,7 +188,14 @@ function runOptimizations() {
   const rolls = calculateDamageRolls(STATE.attacker, STATE.defender, STATE.move, STATE.modifiers);
   DERIVED.rolls = rolls;
 
-  const key = JSON.stringify([STATE.mode, STATE.targetKO, STATE.attacker, STATE.defender, STATE.move, STATE.modifiers]);
+  const key = JSON.stringify([
+    STATE.mode,
+    STATE.targetKO,
+    STATE.attacker,
+    STATE.defender,
+    STATE.move,
+    STATE.modifiers,
+  ]);
   if (key !== _optCacheKey) {
     _optCacheKey = key;
     _optCacheVal = computeOptimizer();
@@ -194,44 +211,128 @@ function computeOptimizer() {
   let notPossible = false;
 
   if (STATE.mode === 'survival') {
-    const cheapest = optimizeSurvivalEVsWithNatures(STATE.attacker, STATE.defender, STATE.move, STATE.modifiers, null);
-    const speedy = optimizeSurvivalEVsWithNatures(STATE.attacker, STATE.defender, STATE.move, STATE.modifiers, ['+spe']);
-    const current = optimizeSurvivalEVsWithNatures(STATE.attacker, STATE.defender, STATE.move, STATE.modifiers, [STATE.defender.nature]);
+    const cheapest = optimizeSurvivalEVsWithNatures(
+      STATE.attacker,
+      STATE.defender,
+      STATE.move,
+      STATE.modifiers,
+      null
+    );
+    const speedy = optimizeSurvivalEVsWithNatures(
+      STATE.attacker,
+      STATE.defender,
+      STATE.move,
+      STATE.modifiers,
+      ['+spe']
+    );
+    const current = optimizeSurvivalEVsWithNatures(
+      STATE.attacker,
+      STATE.defender,
+      STATE.move,
+      STATE.modifiers,
+      [STATE.defender.nature]
+    );
     const statName = STATE.move.category.toLowerCase() === 'physical' ? 'Def' : 'SpD';
     const stat = statName.toLowerCase();
-    const opt = (title, r) => ({ type: 'survival', theme: 'blue', title, nature: r.nature, hp: r.hp, def: r.def, statName, stat, total: r.total });
+    const opt = (title, r) => ({
+      type: 'survival',
+      theme: 'blue',
+      title,
+      nature: r.nature,
+      hp: r.hp,
+      def: r.def,
+      statName,
+      stat,
+      total: r.total,
+    });
 
     if (cheapest) {
       cards.push(opt('Option 1: Most Efficient', cheapest));
-      cards.push(speedy ? opt('Option 2: Speed Positive (+Spe)', speedy)
-        : { impossible: true, theme: 'blue', title: 'Option 2: Speed Positive (+Spe)', nature: '+spe' });
+      cards.push(
+        speedy
+          ? opt('Option 2: Speed Positive (+Spe)', speedy)
+          : {
+              impossible: true,
+              theme: 'blue',
+              title: 'Option 2: Speed Positive (+Spe)',
+              nature: '+spe',
+            }
+      );
       if (current) {
         if (current.nature !== cheapest.nature && !(speedy && current.nature === speedy.nature)) {
           cards.push(opt('Option 3: Keep Current Nature', current));
         }
       } else {
-        cards.push({ impossible: true, theme: 'blue', title: 'Option 3: Keep Current Nature', nature: STATE.defender.nature });
+        cards.push({
+          impossible: true,
+          theme: 'blue',
+          title: 'Option 3: Keep Current Nature',
+          nature: STATE.defender.nature,
+        });
       }
     } else {
       notPossible = true;
     }
   } else {
-    const cheapest = optimizeOffensiveEVsWithNatures(STATE.attacker, STATE.defender, STATE.move, STATE.modifiers, STATE.targetKO, null);
-    const speedy = optimizeOffensiveEVsWithNatures(STATE.attacker, STATE.defender, STATE.move, STATE.modifiers, STATE.targetKO, ['+spe']);
-    const current = optimizeOffensiveEVsWithNatures(STATE.attacker, STATE.defender, STATE.move, STATE.modifiers, STATE.targetKO, [STATE.attacker.nature]);
+    const cheapest = optimizeOffensiveEVsWithNatures(
+      STATE.attacker,
+      STATE.defender,
+      STATE.move,
+      STATE.modifiers,
+      STATE.targetKO,
+      null
+    );
+    const speedy = optimizeOffensiveEVsWithNatures(
+      STATE.attacker,
+      STATE.defender,
+      STATE.move,
+      STATE.modifiers,
+      STATE.targetKO,
+      ['+spe']
+    );
+    const current = optimizeOffensiveEVsWithNatures(
+      STATE.attacker,
+      STATE.defender,
+      STATE.move,
+      STATE.modifiers,
+      STATE.targetKO,
+      [STATE.attacker.nature]
+    );
     const stat = STATE.move.category.toLowerCase() === 'physical' ? 'atk' : 'spa';
-    const opt = (title, r) => ({ type: 'offensive', theme: 'amber', title, nature: r.nature, sp: r.sp, statName: stat, stat, total: r.sp });
+    const opt = (title, r) => ({
+      type: 'offensive',
+      theme: 'amber',
+      title,
+      nature: r.nature,
+      sp: r.sp,
+      statName: stat,
+      stat,
+      total: r.sp,
+    });
 
     if (cheapest) {
       cards.push(opt('Option 1: Most Efficient', cheapest));
-      cards.push(speedy ? opt('Option 2: Speed Positive (+Spe)', speedy)
-        : { impossible: true, theme: 'amber', title: 'Option 2: Speed Positive (+Spe)', nature: '+spe' });
+      cards.push(
+        speedy
+          ? opt('Option 2: Speed Positive (+Spe)', speedy)
+          : {
+              impossible: true,
+              theme: 'amber',
+              title: 'Option 2: Speed Positive (+Spe)',
+              nature: '+spe',
+            }
+      );
       if (current) {
         if (current.nature !== cheapest.nature && !(speedy && current.nature === speedy.nature)) {
           cards.push(opt('Option 3: Keep Current Nature', current));
         }
       } else {
-        cards.push({ impossible: true, theme: 'amber', title: 'Option 3: Keep Current Nature', nature: STATE.attacker.nature });
+        cards.push({
+          impossible: true,
+          theme: 'amber',
+          title: 'Option 3: Keep Current Nature',
+          nature: STATE.attacker.nature,
+        });
       }
     } else {
       notPossible = true;
@@ -247,29 +348,31 @@ async function loadSampleVGCScenario() {
   try {
     const [atk, def] = await Promise.all([
       fetchPokemonDetails('talonflame'),
-      fetchPokemonDetails('whimsicott')
+      fetchPokemonDetails('whimsicott'),
     ]);
     attackerDetails = atk;
     defenderDetails = def;
   } catch (err) {
-    console.error("Error fetching details in sample loader", err);
+    console.error('Error fetching details in sample loader', err);
     // Fallbacks
     attackerDetails = {
-      name: "Talonflame",
-      apiName: "talonflame",
-      sprite: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/663.png",
-      types: ["Fire", "Flying"],
+      name: 'Talonflame',
+      apiName: 'talonflame',
+      sprite:
+        'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/663.png',
+      types: ['Fire', 'Flying'],
       baseStats: { hp: 78, atk: 81, def: 71, spa: 74, spd: 69, spe: 126 },
-      moves: [{ name: "Acrobatics", apiName: "acrobatics" }],
-      abilities: [{ name: "Gale Wings", apiName: "gale-wings" }]
+      moves: [{ name: 'Acrobatics', apiName: 'acrobatics' }],
+      abilities: [{ name: 'Gale Wings', apiName: 'gale-wings' }],
     };
     defenderDetails = {
-      name: "Whimsicott",
-      apiName: "whimsicott",
-      sprite: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/547.png",
-      types: ["Grass", "Fairy"],
+      name: 'Whimsicott',
+      apiName: 'whimsicott',
+      sprite:
+        'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/547.png',
+      types: ['Grass', 'Fairy'],
       baseStats: { hp: 60, atk: 67, def: 85, spa: 77, spd: 75, spe: 116 },
-      abilities: [{ name: "Prankster", apiName: "prankster" }]
+      abilities: [{ name: 'Prankster', apiName: 'prankster' }],
     };
   }
 
@@ -279,16 +382,16 @@ async function loadSampleVGCScenario() {
 
   // Override specific sample scenario parameters! Both mons' fields live on STATE
   // (search inputs live in the islands and reset themselves on the next render).
-  STATE.attacker.nature = "+atk";
-  STATE.attacker.item = "none"; // no held item -> Acrobatics doubles
+  STATE.attacker.nature = '+atk';
+  STATE.attacker.item = 'none'; // no held item -> Acrobatics doubles
   STATE.attacker.sps.atk = 32;
   STATE.attacker.sps.spa = 0;
   STATE.attacker.sps.spe = 32;
-  STATE.attacker.ability = "none";
+  STATE.attacker.ability = 'none';
 
   // Max physical bulk Whimsicott
-  STATE.defender.nature = "+def";
-  STATE.defender.item = "none";
+  STATE.defender.nature = '+def';
+  STATE.defender.item = 'none';
   STATE.defender.sps.hp = 32;
   STATE.defender.sps.def = 32;
   STATE.defender.sps.spd = 0;
@@ -296,14 +399,14 @@ async function loadSampleVGCScenario() {
 
   // Pre-select Flying-type Acrobatics move (move fields live on STATE.move).
   try {
-    const move = await fetchMoveDetails("acrobatics");
+    const move = await fetchMoveDetails('acrobatics');
     STATE.move.apiName = move.apiName;
-    STATE.move.name = "Acrobatics";
+    STATE.move.name = 'Acrobatics';
     STATE.move.power = move.power;
     STATE.move.type = move.type;
     STATE.move.category = move.category.toLowerCase();
   } catch (err) {
-    console.error("Failed to load preloaded Acrobatics move info", err);
+    console.error('Failed to load preloaded Acrobatics move info', err);
   }
 
   // Modifiers live on STATE.modifiers (burn on attacker.status).
@@ -327,7 +430,7 @@ async function applyMatchup(parsed) {
   try {
     const [aDetails, dDetails] = await Promise.all([
       fetchPokemonDetails(parsed.attacker.apiName),
-      fetchPokemonDetails(parsed.defender.apiName)
+      fetchPokemonDetails(parsed.defender.apiName),
     ]);
 
     setAttackerDetails(aDetails);
@@ -381,13 +484,13 @@ async function applyMatchup(parsed) {
         STATE.move.type = mv.type;
         STATE.move.category = mv.category.toLowerCase();
       } catch (err) {
-        console.error("Imported move not found, falling back to custom:", err);
-        STATE.move.apiName = "";
-        STATE.move.name = "Custom Move";
+        console.error('Imported move not found, falling back to custom:', err);
+        STATE.move.apiName = '';
+        STATE.move.name = 'Custom Move';
       }
     } else {
-      STATE.move.apiName = "";
-      STATE.move.name = "Custom Move";
+      STATE.move.apiName = '';
+      STATE.move.name = 'Custom Move';
       STATE.move.type = parsed.move.type;
       STATE.move.category = parsed.move.category;
       STATE.move.power = parsed.move.power;
@@ -401,7 +504,7 @@ async function applyMatchup(parsed) {
     updateLiveStats();
     return true;
   } catch (err) {
-    console.error("Failed to apply imported matchup:", err);
+    console.error('Failed to apply imported matchup:', err);
     isApplyingMatchup = false;
     return false;
   }
@@ -420,9 +523,12 @@ function initMobileTabbing() {
 
   function switchTab(activeTab) {
     // Reset tab button styles
-    mobTabAttacker.className = "flex-1 text-center py-2.5 text-xs font-extrabold rounded-xl transition flex items-center justify-center gap-1 text-slate-400 hover:text-white";
-    mobTabResults.className = "flex-1 text-center py-2.5 text-xs font-extrabold rounded-xl transition flex items-center justify-center gap-1 text-slate-400 hover:text-white";
-    mobTabDefender.className = "flex-1 text-center py-2.5 text-xs font-extrabold rounded-xl transition flex items-center justify-center gap-1 text-slate-400 hover:text-white";
+    mobTabAttacker.className =
+      'flex-1 text-center py-2.5 text-xs font-extrabold rounded-xl transition flex items-center justify-center gap-1 text-slate-400 hover:text-white';
+    mobTabResults.className =
+      'flex-1 text-center py-2.5 text-xs font-extrabold rounded-xl transition flex items-center justify-center gap-1 text-slate-400 hover:text-white';
+    mobTabDefender.className =
+      'flex-1 text-center py-2.5 text-xs font-extrabold rounded-xl transition flex items-center justify-center gap-1 text-slate-400 hover:text-white';
 
     // Hide all panels under mobile and strip flex behaviors
     panelAttacker.classList.add('hidden');
@@ -433,15 +539,18 @@ function initMobileTabbing() {
     panelDefender.classList.remove('flex', 'flex-col');
 
     if (activeTab === 'attacker') {
-      mobTabAttacker.className = "flex-1 text-center py-2.5 text-xs font-extrabold rounded-xl transition flex items-center justify-center gap-1 bg-red-950/30 text-red-400 border border-red-900/30 shadow";
+      mobTabAttacker.className =
+        'flex-1 text-center py-2.5 text-xs font-extrabold rounded-xl transition flex items-center justify-center gap-1 bg-red-950/30 text-red-400 border border-red-900/30 shadow';
       panelAttacker.classList.remove('hidden');
       panelAttacker.classList.add('flex', 'flex-col');
     } else if (activeTab === 'results') {
-      mobTabResults.className = "flex-1 text-center py-2.5 text-xs font-extrabold rounded-xl transition flex items-center justify-center gap-1 bg-amber-950/30 text-amber-400 border border-amber-900/30 shadow";
+      mobTabResults.className =
+        'flex-1 text-center py-2.5 text-xs font-extrabold rounded-xl transition flex items-center justify-center gap-1 bg-amber-950/30 text-amber-400 border border-amber-900/30 shadow';
       panelCenter.classList.remove('hidden');
       panelCenter.classList.add('flex', 'flex-col');
     } else if (activeTab === 'defender') {
-      mobTabDefender.className = "flex-1 text-center py-2.5 text-xs font-extrabold rounded-xl transition flex items-center justify-center gap-1 bg-blue-950/30 text-blue-400 border border-blue-900/30 shadow";
+      mobTabDefender.className =
+        'flex-1 text-center py-2.5 text-xs font-extrabold rounded-xl transition flex items-center justify-center gap-1 bg-blue-950/30 text-blue-400 border border-blue-900/30 shadow';
       panelDefender.classList.remove('hidden');
       panelDefender.classList.add('flex', 'flex-col');
     }
@@ -466,50 +575,76 @@ async function init() {
   // Register the shared recompute pipeline so the Preact islands' update() calls
   // run the same updateLiveStats the vanilla inputs use, then mount the island.
   setRecompute(updateLiveStats);
-  mountIsland(AttackerCard, { onChoose: setAttackerDetails }, document.getElementById('panel-attacker'));
-  mountIsland(DefenderCard, { onChoose: setDefenderDetails }, document.getElementById('panel-defender'));
+  mountIsland(
+    AttackerCard,
+    { onChoose: setAttackerDetails },
+    document.getElementById('panel-attacker')
+  );
+  mountIsland(
+    DefenderCard,
+    { onChoose: setDefenderDetails },
+    document.getElementById('panel-defender')
+  );
   mountIsland(CenterPanel, {}, document.getElementById('panel-center'));
   mountIsland(ResultsHUD, { variant: 'desktop' }, document.getElementById('results-hud'));
-  mountIsland(ResultsHUD, { variant: 'mobile' }, document.getElementById('mobile-floating-overlay'));
+  mountIsland(
+    ResultsHUD,
+    { variant: 'mobile' },
+    document.getElementById('mobile-floating-overlay')
+  );
   // Header chrome islands: brand Rotom (glow tints to the format), the format
   // pill + selector + Load Sample + Export/Import controls, and the Export/Import
   // modal. The format selector reads its options from the regulation registry, so
   // adding a regulation is purely a data change in regulations.js. The theme tint
   // is reactive (no applyFormTheme): the islands re-render from STATE.format.
   mountIsland(Brand, {}, document.getElementById('brand-rotom-root'));
-  mountIsland(HeaderControls, { onLoadSample: loadSampleVGCScenario }, document.getElementById('header-controls-root'));
-  mountIsland(ExportImportModal, { augmentedState, applyMatchup }, document.getElementById('ei-modal-root'));
+  mountIsland(
+    HeaderControls,
+    { onLoadSample: loadSampleVGCScenario },
+    document.getElementById('header-controls-root')
+  );
+  mountIsland(
+    ExportImportModal,
+    { augmentedState, applyMatchup },
+    document.getElementById('ei-modal-root')
+  );
   initMobileTabbing();
   // Register the calculator as the home view in the shared nav, then let the
   // dex pages register themselves. The calculator has no onShow side effect.
   registerPage('calculator', {
     navBtn: document.getElementById('nav-calculator'),
-    pageEl: document.getElementById('page-calculator')
+    pageEl: document.getElementById('page-calculator'),
   });
   mountIsland(DetailModal, {}, document.getElementById('detail-modal-root'));
   // Pokédex is a Preact island: wire its store callbacks, mount the view into the
   // persistent #page-pokedex container, and register its onShow (build + load).
   initDexStore({
-    onMoveClick: (apiName) => { jumpToAttackdexMove(apiName); showPage('attackdex'); },
-    getMoveDetails
+    onMoveClick: (apiName) => {
+      jumpToAttackdexMove(apiName);
+      showPage('attackdex');
+    },
+    getMoveDetails,
   });
   mountIsland(DexView, {}, document.getElementById('page-pokedex'));
   registerPage('pokedex', {
     navBtn: document.getElementById('nav-pokedex'),
     pageEl: document.getElementById('page-pokedex'),
-    onShow: openDexPage
+    onShow: openDexPage,
   });
   // Attackdex is a Preact island too: wire its store callbacks, mount the view
   // into the persistent #page-attackdex container, and register its onShow.
   initAttackdexStore({
-    onPokemonClick: (apiName) => { jumpToDexPokemon(apiName); showPage('pokedex'); },
-    getPokemonDetails
+    onPokemonClick: (apiName) => {
+      jumpToDexPokemon(apiName);
+      showPage('pokedex');
+    },
+    getPokemonDetails,
   });
   mountIsland(AttackdexView, {}, document.getElementById('page-attackdex'));
   registerPage('attackdex', {
     navBtn: document.getElementById('nav-attackdex'),
     pageEl: document.getElementById('page-attackdex'),
-    onShow: openAttackdexPage
+    onShow: openAttackdexPage,
   });
 
   // Both search/autocomplete flows live inside their Preact islands.
@@ -527,7 +662,7 @@ async function init() {
   try {
     await loadSampleVGCScenario();
   } catch (err) {
-    console.error("Preloader error:", err);
+    console.error('Preloader error:', err);
   }
   notify();
 

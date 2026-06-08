@@ -34,8 +34,15 @@ const check = (name, pass, detail = '') => {
 };
 
 // --- start a static server for the repo root ---
-const server = spawn('python3', ['-m', 'http.server', PORT], { cwd: new URL('..', import.meta.url).pathname, stdio: 'ignore' });
-const teardown = () => { try { server.kill(); } catch {} };
+const server = spawn('python3', ['-m', 'http.server', PORT], {
+  cwd: new URL('..', import.meta.url).pathname,
+  stdio: 'ignore',
+});
+const teardown = () => {
+  try {
+    server.kill();
+  } catch {}
+};
 process.on('exit', teardown);
 
 await new Promise((r) => setTimeout(r, 1500));
@@ -43,69 +50,130 @@ await new Promise((r) => setTimeout(r, 1500));
 const browser = await chromium.launch({ headless: true });
 const page = await browser.newPage();
 const errors = [];
-page.on('console', (m) => { if (m.type() === 'error' && !KNOWN_NOISE.test(m.text())) errors.push(m.text()); });
+page.on('console', (m) => {
+  if (m.type() === 'error' && !KNOWN_NOISE.test(m.text())) errors.push(m.text());
+});
 page.on('pageerror', (e) => errors.push('PAGEERROR: ' + e.message));
 
 try {
   await page.goto(BASE, { waitUntil: 'load' });
   // The sample matchup loads async (CDN + PokeAPI), then the attacker card's
   // title fills in. Wait on that rather than a global, which isn't exposed.
-  await page.waitForFunction(() => {
-    const h = document.querySelector('#panel-attacker h3');
-    return h && h.textContent.trim() && !/select a pokemon/i.test(h.textContent);
-  }, { timeout: 20000 });
+  await page.waitForFunction(
+    () => {
+      const h = document.querySelector('#panel-attacker h3');
+      return h && h.textContent.trim() && !/select a pokemon/i.test(h.textContent);
+    },
+    { timeout: 20000 }
+  );
 
   // 1) Calculator booted + sample matchup populated both cards.
-  const atkName = (await page.locator('#panel-attacker h3').first().textContent().catch(() => '')) || '';
-  const defName = (await page.locator('#panel-defender h3').first().textContent().catch(() => '')) || '';
-  check('calc: attacker card populated', atkName && !/select a pokemon/i.test(atkName), `"${atkName}"`);
-  check('calc: defender card populated', defName && !/select a pokemon/i.test(defName), `"${defName}"`);
+  const atkName =
+    (await page
+      .locator('#panel-attacker h3')
+      .first()
+      .textContent()
+      .catch(() => '')) || '';
+  const defName =
+    (await page
+      .locator('#panel-defender h3')
+      .first()
+      .textContent()
+      .catch(() => '')) || '';
+  check(
+    'calc: attacker card populated',
+    atkName && !/select a pokemon/i.test(atkName),
+    `"${atkName}"`
+  );
+  check(
+    'calc: defender card populated',
+    defName && !/select a pokemon/i.test(defName),
+    `"${defName}"`
+  );
 
   // 2) Tailwind doubles the displayed attacker Speed.
-  const readSpeed = () => page.evaluate(() => {
-    const spans = [...document.querySelectorAll('#panel-attacker span')];
-    const lbl = spans.find((s) => s.textContent.trim() === 'Speed');
-    if (!lbl) return null;
-    const num = lbl.parentElement.querySelector('span.font-black, span.text-xs');
-    return num ? Number(num.textContent.trim()) : null;
-  });
-  const setTailwind = (on) => page.evaluate((want) => {
-    const inp = [...document.querySelectorAll('#panel-center input[type=checkbox]')]
-      .find((i) => /atk tailwind/i.test(i.closest('label')?.textContent || i.parentElement?.textContent || ''));
-    if (!inp) return false;
-    if (inp.checked !== want) inp.click();
-    return true;
-  }, on);
+  const readSpeed = () =>
+    page.evaluate(() => {
+      const spans = [...document.querySelectorAll('#panel-attacker span')];
+      const lbl = spans.find((s) => s.textContent.trim() === 'Speed');
+      if (!lbl) return null;
+      const num = lbl.parentElement.querySelector('span.font-black, span.text-xs');
+      return num ? Number(num.textContent.trim()) : null;
+    });
+  const setTailwind = (on) =>
+    page.evaluate((want) => {
+      const inp = [...document.querySelectorAll('#panel-center input[type=checkbox]')].find((i) =>
+        /atk tailwind/i.test(i.closest('label')?.textContent || i.parentElement?.textContent || '')
+      );
+      if (!inp) return false;
+      if (inp.checked !== want) inp.click();
+      return true;
+    }, on);
   const speed0 = await readSpeed();
   const tw = await setTailwind(true);
   await page.waitForTimeout(300);
   const speed1 = await readSpeed();
-  check('fix: Tailwind doubles displayed Speed', tw && speed0 && speed1 === speed0 * 2, `${speed0} -> ${speed1}`);
+  check(
+    'fix: Tailwind doubles displayed Speed',
+    tw && speed0 && speed1 === speed0 * 2,
+    `${speed0} -> ${speed1}`
+  );
   await setTailwind(false); // restore
   await page.waitForTimeout(150);
 
   // 3) Optimizer re-renders on a mode change (memo not stale).
-  const centerText = () => page.evaluate(() => (document.querySelector('#panel-center')?.textContent || '').replace(/\s+/g, ' ').trim());
-  const clickMode = (re) => page.evaluate((src) => {
-    const b = [...document.querySelectorAll('#panel-center button')].find((x) => new RegExp(src, 'i').test(x.textContent));
-    if (b) { b.click(); return true; } return false;
-  }, re);
+  const centerText = () =>
+    page.evaluate(() =>
+      (document.querySelector('#panel-center')?.textContent || '').replace(/\s+/g, ' ').trim()
+    );
+  const clickMode = (re) =>
+    page.evaluate((src) => {
+      const b = [...document.querySelectorAll('#panel-center button')].find((x) =>
+        new RegExp(src, 'i').test(x.textContent)
+      );
+      if (b) {
+        b.click();
+        return true;
+      }
+      return false;
+    }, re);
   const c0 = await centerText();
-  await clickMode('survival'); await page.waitForTimeout(400);
+  await clickMode('survival');
+  await page.waitForTimeout(400);
   const c1 = await centerText();
-  await clickMode('attacking'); await page.waitForTimeout(400);
+  await clickMode('attacking');
+  await page.waitForTimeout(400);
   const c2 = await centerText();
-  check('fix: optimizer cards change on mode switch', c0 !== c1 && c1 !== c2, `changed both ways: ${c0 !== c1 && c1 !== c2}`);
+  check(
+    'fix: optimizer cards change on mode switch',
+    c0 !== c1 && c1 !== c2,
+    `changed both ways: ${c0 !== c1 && c1 !== c2}`
+  );
 
   // 4) National Dex lazy-loads monotonically on scroll.
-  await page.evaluate(() => { const s = document.querySelectorAll('select')[0]; if (s) { s.value = 'all'; s.dispatchEvent(new Event('change', { bubbles: true })); } });
-  await page.evaluate(() => { const b = [...document.querySelectorAll('button,a')].find((x) => /pok[eé]dex/i.test(x.textContent)); if (b) b.click(); });
-  await page.waitForTimeout(1500);
-  const dexLoaded = () => page.evaluate(() => {
-    const rows = [...document.querySelectorAll('#page-pokedex [data-api]')];
-    let loaded = 0; rows.forEach((r) => { if (!/loading|…/.test(r.textContent)) loaded++; });
-    return { total: rows.length, loaded };
+  await page.evaluate(() => {
+    const s = document.querySelectorAll('select')[0];
+    if (s) {
+      s.value = 'all';
+      s.dispatchEvent(new Event('change', { bubbles: true }));
+    }
   });
+  await page.evaluate(() => {
+    const b = [...document.querySelectorAll('button,a')].find((x) =>
+      /pok[eé]dex/i.test(x.textContent)
+    );
+    if (b) b.click();
+  });
+  await page.waitForTimeout(1500);
+  const dexLoaded = () =>
+    page.evaluate(() => {
+      const rows = [...document.querySelectorAll('#page-pokedex [data-api]')];
+      let loaded = 0;
+      rows.forEach((r) => {
+        if (!/loading|…/.test(r.textContent)) loaded++;
+      });
+      return { total: rows.length, loaded };
+    });
   const traj = [(await dexLoaded()).loaded];
   for (let i = 1; i <= 6; i++) {
     await page.evaluate((f) => window.scrollTo(0, document.body.scrollHeight * f), i / 6);
@@ -117,22 +185,42 @@ try {
   const dexEnd = await dexLoaded();
   const monotonic = traj.every((v, i) => i === 0 || v >= traj[i - 1]);
   check('fix: National Dex is the big roster', dexEnd.total > 600, `total=${dexEnd.total}`);
-  check('perf: lazy-load grows monotonically on scroll', traj[traj.length - 1] > traj[0] && monotonic, `traj=[${traj.join(',')}]`);
+  check(
+    'perf: lazy-load grows monotonically on scroll',
+    traj[traj.length - 1] > traj[0] && monotonic,
+    `traj=[${traj.join(',')}]`
+  );
 
   // 5) Stat-sort force-loads the full roster (converges, no partial stall).
   await page.evaluate(() => {
-    const h = [...document.querySelectorAll('#page-pokedex button, #page-pokedex [class*=sort]')].find((b) => /spe|hp|atk|def/i.test(b.textContent));
+    const h = [
+      ...document.querySelectorAll('#page-pokedex button, #page-pokedex [class*=sort]'),
+    ].find((b) => /spe|hp|atk|def/i.test(b.textContent));
     if (h) h.click();
   });
   let last = 0;
-  for (let i = 0; i < 12; i++) { await page.waitForTimeout(1500); last = (await dexLoaded()).loaded; if (last >= dexEnd.total) break; }
+  for (let i = 0; i < 12; i++) {
+    await page.waitForTimeout(1500);
+    last = (await dexLoaded()).loaded;
+    if (last >= dexEnd.total) break;
+  }
   const sorted = await dexLoaded();
-  check('fix: stat-sort force-loads full roster', sorted.total > 0 && sorted.loaded >= sorted.total * 0.95, `loaded ${sorted.loaded}/${sorted.total}`);
+  check(
+    'fix: stat-sort force-loads full roster',
+    sorted.total > 0 && sorted.loaded >= sorted.total * 0.95,
+    `loaded ${sorted.loaded}/${sorted.total}`
+  );
 
   // 6) Detail modal opens on the Pokédex.
-  await page.evaluate(() => { const r = document.querySelector('#page-pokedex [data-api]'); if (r) r.click(); });
+  await page.evaluate(() => {
+    const r = document.querySelector('#page-pokedex [data-api]');
+    if (r) r.click();
+  });
   await page.waitForTimeout(800);
-  const dexModal = await page.evaluate(() => { const m = document.querySelector('#detail-modal-root'); return !!m && m.textContent.trim().length > 0; });
+  const dexModal = await page.evaluate(() => {
+    const m = document.querySelector('#detail-modal-root');
+    return !!m && m.textContent.trim().length > 0;
+  });
   check('modal: Pokédex detail modal opens', dexModal);
   // The modal now leads with a type-matchup summary (at least one of the
   // resist/weak/immune sections shows unless the species is neutral to all 18).
@@ -144,13 +232,26 @@ try {
   await page.keyboard.press('Escape').catch(() => {});
 
   // 7) Attackdex renders, lazy-loads, and its modal opens.
-  await page.evaluate(() => { const b = [...document.querySelectorAll('button,a')].find((x) => /attackdex/i.test(x.textContent)); if (b) b.click(); });
+  await page.evaluate(() => {
+    const b = [...document.querySelectorAll('button,a')].find((x) =>
+      /attackdex/i.test(x.textContent)
+    );
+    if (b) b.click();
+  });
   await page.waitForTimeout(800);
-  const adxRows = await page.evaluate(() => document.querySelectorAll('#page-attackdex [data-api]').length);
+  const adxRows = await page.evaluate(
+    () => document.querySelectorAll('#page-attackdex [data-api]').length
+  );
   check('attackdex: rows render', adxRows > 0, `rows=${adxRows}`);
-  await page.evaluate(() => { const r = document.querySelector('#page-attackdex [data-api]'); if (r) r.click(); });
+  await page.evaluate(() => {
+    const r = document.querySelector('#page-attackdex [data-api]');
+    if (r) r.click();
+  });
   await page.waitForTimeout(900);
-  const adxModal = await page.evaluate(() => { const m = document.querySelector('#detail-modal-root'); return !!m && /learns|Pok/i.test(m.textContent); });
+  const adxModal = await page.evaluate(() => {
+    const m = document.querySelector('#detail-modal-root');
+    return !!m && /learns|Pok/i.test(m.textContent);
+  });
   check('modal: Attackdex "who learns" modal opens', adxModal);
 
   // 8) No unexpected console errors.

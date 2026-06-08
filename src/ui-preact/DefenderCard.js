@@ -30,8 +30,12 @@ const PRESETS = {
 
 function StatBars({ base, show }) {
   const rows = [
-    ['HP', 'hp', 'bg-blue-500'], ['Atk', 'atk', 'bg-red-500'], ['Def', 'def', 'bg-indigo-500'],
-    ['SpA', 'spa', 'bg-purple-500'], ['SpD', 'spd', 'bg-teal-500'], ['Spe', 'spe', 'bg-amber-500'],
+    ['HP', 'hp', 'bg-blue-500'],
+    ['Atk', 'atk', 'bg-red-500'],
+    ['Def', 'def', 'bg-indigo-500'],
+    ['SpA', 'spa', 'bg-purple-500'],
+    ['SpD', 'spd', 'bg-teal-500'],
+    ['Spe', 'spe', 'bg-amber-500'],
   ];
   return html`
     <div class=${`${show ? 'flex' : 'hidden'} flex-col gap-1 text-[9px] mt-2`}>
@@ -59,7 +63,10 @@ function BoostCol({ label, value, statKey, show }) {
       <div class="flex justify-between items-center mt-1.5 text-[9px] text-slate-400">
         <span>Boost</span>
         <select value=${String(STATE.defender.boosts[statKey])}
-          onChange=${(e) => update((s) => { s.defender.boosts[statKey] = parseInt(e.target.value) || 0; })}
+          onChange=${(e) =>
+            update((s) => {
+              s.defender.boosts[statKey] = parseInt(e.target.value) || 0;
+            })}
           class="bg-slate-800 border border-slate-700 rounded py-0.5 px-1 text-[9px] font-mono text-slate-300 cursor-pointer focus:outline-none focus:border-blue-500">
           ${BOOST_STAGES.map((n) => html`<option value=${String(n)}>${n >= 0 ? `+${n}` : n}</option>`)}
         </select>
@@ -81,9 +88,18 @@ export function DefenderCard({ onChoose }) {
   const tag = regulationTag(d.apiName);
 
   const finalHp = calculateStat('hp', d.baseStats.hp, d.sps.hp, d.nature, true);
-  const finalDef = calculateStatBoost(calculateStat('def', d.baseStats.def, d.sps.def, d.nature, false), d.boosts.def);
-  const finalSpd = calculateStatBoost(calculateStat('spd', d.baseStats.spd, d.sps.spd, d.nature, false), d.boosts.spd);
-  let finalSpe = calculateStatBoost(calculateStat('spe', d.baseStats.spe || 100, d.sps.spe, d.nature, false), d.boosts.spe);
+  const finalDef = calculateStatBoost(
+    calculateStat('def', d.baseStats.def, d.sps.def, d.nature, false),
+    d.boosts.def
+  );
+  const finalSpd = calculateStatBoost(
+    calculateStat('spd', d.baseStats.spd, d.sps.spd, d.nature, false),
+    d.boosts.spd
+  );
+  let finalSpe = calculateStatBoost(
+    calculateStat('spe', d.baseStats.spe || 100, d.sps.spe, d.nature, false),
+    d.boosts.spe
+  );
   if (d.item === 'choice_scarf') finalSpe = Math.floor(finalSpe * 1.5);
   if (STATE.modifiers.tailDef) finalSpe *= 2;
 
@@ -93,10 +109,16 @@ export function DefenderCard({ onChoose }) {
   function runSearch(q) {
     setQuery(q);
     const term = q.trim().toLowerCase();
-    if (!term) { setResults([]); return; }
-    let m = CACHE.pokemonList.filter((p) => p.name.toLowerCase().includes(term) && !isHiddenForm(p.apiName));
+    if (!term) {
+      setResults([]);
+      return;
+    }
+    let m = CACHE.pokemonList.filter(
+      (p) => p.name.toLowerCase().includes(term) && !isHiddenForm(p.apiName)
+    );
     const legal = legalSetForFormat(STATE.format);
-    if (legal) m = m.filter((p) => isFormatLegal(p.apiName, legal, nonLegalFormsForFormat(STATE.format)));
+    if (legal)
+      m = m.filter((p) => isFormatLegal(p.apiName, legal, nonLegalFormsForFormat(STATE.format)));
     m.sort((x, y) => {
       const xs = x.name.toLowerCase().startsWith(term);
       const ys = y.name.toLowerCase().startsWith(term);
@@ -117,7 +139,12 @@ export function DefenderCard({ onChoose }) {
       setOpen(false);
     } catch (err) {
       console.error('Error loading selected Pokemon details', err);
-      window.dispatchEvent(new ErrorEvent('error', { error: err, message: 'Autocomplete Selection Error: ' + err.message }));
+      window.dispatchEvent(
+        new ErrorEvent('error', {
+          error: err,
+          message: 'Autocomplete Selection Error: ' + err.message,
+        })
+      );
     } finally {
       setSpinner(false);
     }
@@ -129,8 +156,10 @@ export function DefenderCard({ onChoose }) {
     ? 'bg-emerald-950/50 text-emerald-400 border border-emerald-900/30'
     : 'bg-slate-800/60 text-slate-400 border border-slate-700/30';
 
-  const lockedSel = 'w-full bg-slate-800/50 border border-slate-700 rounded-xl py-2 px-3 text-slate-400 cursor-not-allowed';
-  const liveSel = 'w-full bg-slate-900 border border-slate-700 rounded-xl py-2 px-3 focus:outline-none focus:border-blue-500 text-slate-100 cursor-pointer';
+  const lockedSel =
+    'w-full bg-slate-800/50 border border-slate-700 rounded-xl py-2 px-3 text-slate-400 cursor-not-allowed';
+  const liveSel =
+    'w-full bg-slate-900 border border-slate-700 rounded-xl py-2 px-3 focus:outline-none focus:border-blue-500 text-slate-100 cursor-pointer';
 
   return html`
     <!-- Card 1: Defender Profile & Selection -->
@@ -146,7 +175,9 @@ export function DefenderCard({ onChoose }) {
         </button>
       </div>
 
-      ${open && html`
+      ${
+        open &&
+        html`
       <div class="relative">
         <div class="relative">
           <input type="text" placeholder="Search (e.g. Amoonguss, Garchomp...)" autofocus
@@ -155,20 +186,30 @@ export function DefenderCard({ onChoose }) {
           <i class="fa-solid fa-magnifying-glass absolute left-3 top-3 text-slate-500 text-[10px]"></i>
           ${spinner && html`<div class="absolute right-3 top-2"><img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/479.png" alt="Loading" class="w-6 h-6 animate-spin" style="image-rendering: pixelated;" /></div>`}
         </div>
-        ${results.length > 0 && html`
+        ${
+          results.length > 0 &&
+          html`
         <div class="absolute z-50 left-0 right-0 mt-1 bg-slate-800 border border-slate-700 rounded-xl shadow-2xl max-h-60 overflow-y-auto">
-          ${results.map((p) => html`
+          ${results.map(
+            (p) => html`
             <button onClick=${() => pick(p)}
               class="w-full text-left hover:bg-slate-700/50 px-4 py-2.5 text-xs font-bold border-b border-slate-750 flex justify-between items-center transition">
               <span>${p.name}</span>
               <span class=${`text-[9px] px-1.5 py-0.5 rounded uppercase font-mono font-extrabold border ${badgeColor}`}>${badgeText}</span>
-            </button>`)}
-        </div>`}
-        ${query.trim() && results.length === 0 && html`
+            </button>`
+          )}
+        </div>`
+        }
+        ${
+          query.trim() &&
+          results.length === 0 &&
+          html`
         <div class="absolute z-50 left-0 right-0 mt-1 bg-slate-800 border border-slate-700 rounded-xl shadow-2xl">
           <div class="p-3 text-slate-500 text-xs">No legal Pokémon found in current format</div>
-        </div>`}
-      </div>`}
+        </div>`
+        }
+      </div>`
+      }
 
       <!-- Profile + stats bars -->
       <div class="bg-slate-900/40 border border-slate-700 rounded-xl p-3 flex flex-col gap-3">
@@ -179,9 +220,11 @@ export function DefenderCard({ onChoose }) {
             <div>${tag && html`<span class=${`text-[8px] font-black px-1.5 py-0.5 rounded uppercase shrink-0 ${tag.cls}`}>${tag.text}</span>`}</div>
             <h3 class="font-black text-base truncate text-slate-100 w-full">${d.name || 'Select a Pokemon'}</h3>
             <div class="flex gap-1.5 justify-center w-full">
-              ${(d.types && d.types.length ? d.types : ['???']).map((t) => t === '???'
-                ? html`<span class="text-[9px] px-1.5 py-0.5 font-bold uppercase rounded bg-slate-700 text-slate-300">???</span>`
-                : html`<span class=${`text-[10px] px-2 py-0.5 font-extrabold uppercase rounded ${getTypeBgClass(t)} text-white`}>${t}</span>`)}
+              ${(d.types && d.types.length ? d.types : ['???']).map((t) =>
+                t === '???'
+                  ? html`<span class="text-[9px] px-1.5 py-0.5 font-bold uppercase rounded bg-slate-700 text-slate-300">???</span>`
+                  : html`<span class=${`text-[10px] px-2 py-0.5 font-extrabold uppercase rounded ${getTypeBgClass(t)} text-white`}>${t}</span>`
+              )}
             </div>
           </div>
         </div>
@@ -203,7 +246,10 @@ export function DefenderCard({ onChoose }) {
         </div>
         <div>
           <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1 text-left">Nature</label>
-          <select value=${d.nature} onChange=${(e) => update((s) => { s.defender.nature = e.target.value; })} class=${liveSel}>
+          <select value=${d.nature} onChange=${(e) =>
+            update((s) => {
+              s.defender.nature = e.target.value;
+            })} class=${liveSel}>
             ${NATURES.map((n) => html`<option value=${n.id}>${n.name}</option>`)}
           </select>
         </div>
@@ -213,7 +259,10 @@ export function DefenderCard({ onChoose }) {
       <div class="grid grid-cols-2 gap-3 text-xs">
         <div>
           <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1 text-left">Held Item</label>
-          <select value=${d.item} disabled=${isMega} onChange=${(e) => update((s) => { s.defender.item = e.target.value; })}
+          <select value=${d.item} disabled=${isMega} onChange=${(e) =>
+            update((s) => {
+              s.defender.item = e.target.value;
+            })}
             class=${isMega ? `${lockedSel} text-xs` : liveSel}>
             <option value="none">No defensive item</option>
             <option value="assault_vest">Assault Vest (1.5x SpD)</option>
@@ -225,7 +274,10 @@ export function DefenderCard({ onChoose }) {
         </div>
         <div>
           <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1 text-left">Defensive Ability</label>
-          <select value=${d.ability} disabled=${isMega} onChange=${(e) => update((s) => { s.defender.ability = e.target.value; })} class=${isMega ? lockedSel : liveSel}>
+          <select value=${d.ability} disabled=${isMega} onChange=${(e) =>
+            update((s) => {
+              s.defender.ability = e.target.value;
+            })} class=${isMega ? lockedSel : liveSel}>
             <option value="none">No defensive ability</option>
             ${learnable.map((ab) => html`<option value=${ab.apiName}>${ab.name}</option>`)}
           </select>
@@ -255,7 +307,17 @@ export function DefenderCard({ onChoose }) {
           <i class="fa-solid fa-sliders text-xs"></i> SP Allocations
         </h2>
         <select value=${preset}
-          onChange=${(e) => { const v = e.target.value; if (!v) return; const p = PRESETS[v]; update((s) => { s.defender.sps.hp = p.hp; s.defender.sps.def = p.def; s.defender.sps.spd = p.spd; s.defender.sps.spe = p.spe; }); }}
+          onChange=${(e) => {
+            const v = e.target.value;
+            if (!v) return;
+            const p = PRESETS[v];
+            update((s) => {
+              s.defender.sps.hp = p.hp;
+              s.defender.sps.def = p.def;
+              s.defender.sps.spd = p.spd;
+              s.defender.sps.spe = p.spe;
+            });
+          }}
           class="bg-slate-900 border border-slate-700 rounded px-1.5 py-0.5 text-[10px] font-bold text-slate-300 cursor-pointer focus:outline-none focus:border-red-500">
           <option value="">-- Presets --</option>
           <option value="max_phys_bulk">Max Physical Bulk</option>
@@ -269,18 +331,25 @@ export function DefenderCard({ onChoose }) {
         <span class=${spSum > 66 ? 'font-bold text-red-400' : 'font-bold'}>Used: ${spSum}/66 SP</span>
       </div>
       <div class="flex flex-col gap-3.5 text-xs">
-        ${[['hp', 'HP SP:', 'text-blue-400', 'accent-blue-500'],
-           ['def', 'Defense SP:', 'text-indigo-400', 'accent-indigo-500'],
-           ['spd', 'Sp. Def SP:', 'text-teal-400', 'accent-teal-500'],
-           ['spe', 'Speed SP:', 'text-amber-400', 'accent-amber-500']].map(([key, label, textColor, accent]) => html`
+        ${[
+          ['hp', 'HP SP:', 'text-blue-400', 'accent-blue-500'],
+          ['def', 'Defense SP:', 'text-indigo-400', 'accent-indigo-500'],
+          ['spd', 'Sp. Def SP:', 'text-teal-400', 'accent-teal-500'],
+          ['spe', 'Speed SP:', 'text-amber-400', 'accent-amber-500'],
+        ].map(
+          ([key, label, textColor, accent]) => html`
           <div>
             <div class="flex justify-between font-mono mb-1">
               <span>${label}</span><span class=${`font-bold ${textColor}`}>${d.sps[key]}</span>
             </div>
             <input type="range" min="0" max="32" step="1" value=${String(d.sps[key])}
-              onInput=${(e) => update((s) => { s.defender.sps[key] = parseInt(e.target.value) || 0; })}
+              onInput=${(e) =>
+                update((s) => {
+                  s.defender.sps[key] = parseInt(e.target.value) || 0;
+                })}
               class=${`w-full ${accent} bg-slate-700 rounded-lg appearance-none cursor-pointer`} />
-          </div>`)}
+          </div>`
+        )}
       </div>
     </div>`;
 }

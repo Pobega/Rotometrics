@@ -16,19 +16,27 @@
 
 export const REGULATIONS = {
   regulation_ma: {
-    label: 'Regulation M-A',  // full badge / tag text
-    short: 'M-A',             // compact selector + pill text
+    label: 'Regulation M-A', // full badge / tag text
+    short: 'M-A', // compact selector + pill text
     // Rotom-form accent for the brand glow and format pill (Heat Rotom amber).
-    theme: { glow: 'rgba(251,191,36,0.65)', pillBorder: 'border-amber-500/40', pillText: 'text-amber-300' },
-    include: [],                        // legal beyond the Champions roster
-    exclude: [],                        // roster species not legal this regulation
-    legalForms: ['-mega', '-eternal'],  // form suffixes re-allowed despite NON_LEGAL_FORMS
+    theme: {
+      glow: 'rgba(251,191,36,0.65)',
+      pillBorder: 'border-amber-500/40',
+      pillText: 'text-amber-300',
+    },
+    include: [], // legal beyond the Champions roster
+    exclude: [], // roster species not legal this regulation
+    legalForms: ['-mega', '-eternal'], // form suffixes re-allowed despite NON_LEGAL_FORMS
   },
 };
 
 // Accent for the unrestricted "National Dex" view (STATE.format === 'all'), which
 // is not a regulation. Wash Rotom's cool sky, mirroring the old FORM_THEMES.all.
-export const NATIONAL_THEME = { glow: 'rgba(56,189,248,0.65)', pillBorder: 'border-sky-500/40', pillText: 'text-sky-300' };
+export const NATIONAL_THEME = {
+  glow: 'rgba(56,189,248,0.65)',
+  pillBorder: 'border-sky-500/40',
+  pillText: 'text-sky-300',
+};
 
 // Resolve a regulation's legal base-species Set from the roster names + its delta:
 // start from the roster, drop excludes, add includes.
@@ -52,9 +60,22 @@ export function resolveLegalSet(rosterNames, reg) {
 // stay listed so that a regulation re-allowing only '-mega' still bans Z-A megas — the
 // retained, more specific '-mega-z' entry continues to match e.g. 'garchomp-mega-z'.
 export const NON_LEGAL_FORMS = [
-  '-totem', '-cap', '-battle-bond', '-gmax', '-eternamax', '-starter',
-  '-cosplay', '-rock-star', '-belle', '-pop-star', '-phd', '-libre',
-  '-mega', '-eternal', '-mega-z', 'greninja-ash'
+  '-totem',
+  '-cap',
+  '-battle-bond',
+  '-gmax',
+  '-eternamax',
+  '-starter',
+  '-cosplay',
+  '-rock-star',
+  '-belle',
+  '-pop-star',
+  '-phd',
+  '-libre',
+  '-mega',
+  '-eternal',
+  '-mega-z',
+  'greninja-ash',
 ];
 
 // Resolve the banned form-suffix list for a regulation: the global NON_LEGAL_FORMS
@@ -62,5 +83,5 @@ export const NON_LEGAL_FORMS = [
 // each regulation opt specific forms back in without touching the global list.
 export function resolveNonLegalForms(reg) {
   const allow = new Set(reg.legalForms || []);
-  return NON_LEGAL_FORMS.filter(f => !allow.has(f));
+  return NON_LEGAL_FORMS.filter((f) => !allow.has(f));
 }

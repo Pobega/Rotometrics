@@ -14,8 +14,11 @@ const BADGE_TONES = {
   slate: 'bg-slate-800 text-slate-400 border-slate-700',
 };
 const TEXT_TONES = {
-  emerald: 'text-emerald-400', amber: 'text-amber-400', sky: 'text-sky-400',
-  red: 'text-red-400', slate: 'text-slate-400',
+  emerald: 'text-emerald-400',
+  amber: 'text-amber-400',
+  sky: 'text-sky-400',
+  red: 'text-red-400',
+  slate: 'text-slate-400',
 };
 
 function VerdictBadge({ verdict }) {
@@ -51,13 +54,17 @@ export function ResultsHUD({ variant }) {
   const badgeBase = mobile
     ? 'h-8 px-3 rounded-lg flex items-center justify-center text-[10px] font-black uppercase select-none tracking-wider border'
     : 'h-10 px-4 rounded-lg flex items-center justify-center text-sm font-black uppercase select-none tracking-wider border';
-  const matchupCls = mobile ? 'text-sm font-medium text-slate-100 truncate leading-tight'
+  const matchupCls = mobile
+    ? 'text-sm font-medium text-slate-100 truncate leading-tight'
     : 'text-2xl xl:text-3xl font-medium text-slate-100 truncate leading-none';
-  const moveCls = mobile ? `text-[10px] font-bold truncate leading-none mt-1.5 ${TEXT_TONES[model.moveTone]}`
+  const moveCls = mobile
+    ? `text-[10px] font-bold truncate leading-none mt-1.5 ${TEXT_TONES[model.moveTone]}`
     : `text-[11px] font-bold truncate leading-none mt-2 ${TEXT_TONES[model.moveTone]}`;
-  const pctCls = mobile ? 'text-sm font-medium text-slate-100 leading-tight tabular-nums'
+  const pctCls = mobile
+    ? 'text-sm font-medium text-slate-100 leading-tight tabular-nums'
     : 'text-2xl xl:text-3xl font-medium text-slate-100 leading-none tabular-nums';
-  const speedCls = mobile ? `text-[10px] font-extrabold tracking-wide leading-none ${TEXT_TONES[model.speed.tone]}`
+  const speedCls = mobile
+    ? `text-[10px] font-extrabold tracking-wide leading-none ${TEXT_TONES[model.speed.tone]}`
     : `text-[11px] font-extrabold tracking-wide leading-none ${TEXT_TONES[model.speed.tone]}`;
 
   const icon = html`

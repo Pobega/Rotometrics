@@ -9,21 +9,33 @@ import { bst, sortDex, filterDex } from '../data/dex.js';
 import { REGULATIONS } from '../data/regulations.js';
 import { getTypeBgClass, TYPE_SHORT } from '../ui/render.js';
 import {
-  DexStore, subscribeDex, dexStatusText,
-  setDexSort, setDexDraft, commitDexFilter, removeDexFilter, clearDexFilters,
-  toggleDexPin, handleDexRowClick, loadDexDetails,
+  DexStore,
+  subscribeDex,
+  dexStatusText,
+  setDexSort,
+  setDexDraft,
+  commitDexFilter,
+  removeDexFilter,
+  clearDexFilters,
+  toggleDexPin,
+  handleDexRowClick,
+  loadDexDetails,
 } from './dex-store.js';
 
 // Column track shared by the header + every row: name, type, abilities, 6 stats,
 // BST, and a trailing pin button.
-const GRID_COLS = 'grid-cols-[minmax(150px,1.6fr)_110px_minmax(140px,1.4fr)_repeat(6,46px)_58px_34px]';
+const GRID_COLS =
+  'grid-cols-[minmax(150px,1.6fr)_110px_minmax(140px,1.4fr)_repeat(6,46px)_58px_34px]';
 const ROW_GRID = `grid ${GRID_COLS} items-center gap-2 px-3 py-1.5 border-b border-slate-800/70 text-xs`;
 
 function PinButton({ row, pinned }) {
   // stopPropagation so pinning doesn't also open the row's detail modal.
   return html`
     <button
-      onClick=${(e) => { e.stopPropagation(); toggleDexPin(row.apiName); }}
+      onClick=${(e) => {
+        e.stopPropagation();
+        toggleDexPin(row.apiName);
+      }}
       class=${`justify-self-center transition leading-none ${pinned ? 'text-amber-400 hover:text-amber-300' : 'text-slate-600 hover:text-slate-300'}`}
       title=${pinned ? 'Unpin' : 'Pin to top'} aria-label=${pinned ? `Unpin ${row.name}` : `Pin ${row.name}`} aria-pressed=${pinned ? 'true' : 'false'}>
       <i class="fa-solid fa-thumbtack text-[11px]"></i>
@@ -113,8 +125,16 @@ export function DexView() {
   const pinnedSet = new Set(DexStore.pinned);
   const isPinned = (row) => pinnedSet.has(row.apiName);
   const pinnedRows = sortDex(DexStore.roster.filter(isPinned), DexStore.sortKey, DexStore.sortDir);
-  const rest = sortDex(filterDex(DexStore.roster.filter((r) => !isPinned(r)), terms), DexStore.sortKey, DexStore.sortDir);
-  const statusText = DexStore.loading && DexStore.roster.length === 0 ? 'loading roster…' : dexStatusText();
+  const rest = sortDex(
+    filterDex(
+      DexStore.roster.filter((r) => !isPinned(r)),
+      terms
+    ),
+    DexStore.sortKey,
+    DexStore.sortDir
+  );
+  const statusText =
+    DexStore.loading && DexStore.roster.length === 0 ? 'loading roster…' : dexStatusText();
 
   // Lazy National-Dex loading: fetch placeholder rows as they scroll into view.
   // (Regulation rosters eager-load, so allLoaded short-circuits the observer.)
@@ -136,31 +156,47 @@ export function DexView() {
             <input type="text" placeholder="Search name, type, ability, move… (Enter to add)"
               value=${DexStore.draft}
               onInput=${(e) => setDexDraft(e.target.value)}
-              onKeyDown=${(e) => { if (e.key === 'Enter') { e.preventDefault(); commitDexFilter(); } }}
+              onKeyDown=${(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  commitDexFilter();
+                }
+              }}
               class="w-full bg-slate-900 border border-slate-700 rounded-xl py-2 pl-9 pr-8 text-xs text-slate-100 focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition" />
             <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-[10px]"></i>
-            ${DexStore.draft && html`
+            ${
+              DexStore.draft &&
+              html`
               <button onClick=${() => setDexDraft('')}
                 class="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white transition leading-none" aria-label="Clear input">
                 <i class="fa-solid fa-xmark text-sm"></i>
-              </button>`}
+              </button>`
+            }
           </div>
-          ${DexStore.filters.length > 0 && html`
+          ${
+            DexStore.filters.length > 0 &&
+            html`
             <div class="flex flex-wrap items-center gap-1.5">
-              ${DexStore.filters.map((term, i) => html`
+              ${DexStore.filters.map(
+                (term, i) => html`
                 <span key=${term} class="flex items-center gap-1 text-[10px] font-bold text-amber-300 bg-amber-950/40 border border-amber-900/50 rounded-lg pl-2 pr-1 py-0.5">
                   ${term}
                   <button onClick=${() => removeDexFilter(i)}
                     class="text-amber-500/70 hover:text-white transition leading-none px-0.5" aria-label=${`Remove ${term}`}>
                     <i class="fa-solid fa-xmark text-[11px]"></i>
                   </button>
-                </span>`)}
-              ${DexStore.filters.length > 1 && html`
+                </span>`
+              )}
+              ${
+                DexStore.filters.length > 1 &&
+                html`
                 <button onClick=${clearDexFilters}
                   class="text-[9px] font-extrabold uppercase tracking-wider text-slate-500 hover:text-white transition px-1">
                   Clear all
-                </button>`}
-            </div>`}
+                </button>`
+              }
+            </div>`
+          }
         </div>
       </div>
 
@@ -180,8 +216,12 @@ export function DexView() {
             ${pinnedRows.map((row) => html`<${DexRow} key=${`pin-${row.apiName}`} row=${row} pinned=${true} />`)}
             ${pinnedRows.length > 0 && rest.length > 0 && html`<div class="border-b-2 border-amber-900/30"></div>`}
             ${rest.map((row) => html`<${DexRow} key=${row.apiName} row=${row} pinned=${false} />`)}
-            ${pinnedRows.length === 0 && rest.length === 0 && html`
-              <div class="px-3 py-8 text-center text-xs text-slate-500">No Pokémon match ${terms.map((t, i) => html`${i > 0 ? ' + ' : ''}“${t}”`)}.</div>`}
+            ${
+              pinnedRows.length === 0 &&
+              rest.length === 0 &&
+              html`
+              <div class="px-3 py-8 text-center text-xs text-slate-500">No Pokémon match ${terms.map((t, i) => html`${i > 0 ? ' + ' : ''}“${t}”`)}.</div>`
+            }
           </div>
         </div>
       </div>

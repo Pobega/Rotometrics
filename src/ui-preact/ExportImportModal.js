@@ -9,8 +9,14 @@ import { exportMatchup, importMatchup } from '../data/matchup-text.js';
 // Tiny open-state store so the header button can trigger the modal from afar.
 const ei = { open: false };
 const { subscribe, notify } = createEmitter();
-export function openExportImport() { ei.open = true; notify(); }
-function close() { ei.open = false; notify(); }
+export function openExportImport() {
+  ei.open = true;
+  notify();
+}
+function close() {
+  ei.open = false;
+  notify();
+}
 
 export function ExportImportModal({ augmentedState, applyMatchup }) {
   useSubscription(subscribe);
@@ -37,7 +43,7 @@ export function ExportImportModal({ augmentedState, applyMatchup }) {
     try {
       await navigator.clipboard.writeText(taRef.current.value);
       setStatus('Copied to clipboard!');
-    } catch (err) {
+    } catch {
       // Clipboard API may be blocked; fall back to selecting the text.
       taRef.current.select();
       setStatus('Press Ctrl/Cmd+C to copy.');
@@ -47,7 +53,7 @@ export function ExportImportModal({ augmentedState, applyMatchup }) {
   const onImport = async () => {
     const parsed = importMatchup(taRef.current.value);
     if (!parsed) {
-      setStatus("Couldn't read that — expected an \"Attacker:\" / \"Defender:\" block.");
+      setStatus('Couldn\'t read that — expected an "Attacker:" / "Defender:" block.');
       return;
     }
     setStatus('Loading…');
@@ -60,7 +66,9 @@ export function ExportImportModal({ augmentedState, applyMatchup }) {
 
   return html`
     <div class="fixed inset-0 z-[300] flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4"
-      onClick=${(e) => { if (e.target === e.currentTarget) close(); }}>
+      onClick=${(e) => {
+        if (e.target === e.currentTarget) close();
+      }}>
       <div class="bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl w-full max-w-lg flex flex-col gap-3 p-5">
         <div class="flex items-center justify-between">
           <h3 class="text-sm font-extrabold text-cyan-400 flex items-center gap-2">

@@ -7,7 +7,15 @@
 import { STATE, CACHE } from '../state.js';
 import { isHiddenForm, isFormatLegal } from '../data/dex.js';
 import { REGULATIONS } from '../data/regulations.js';
-import { fetchPokemonDetails, fetchMoveDetails, formatDisplayName, initPokemonList, initChampionsRoster, legalSetForFormat, nonLegalFormsForFormat } from '../api/pokeapi.js';
+import {
+  fetchPokemonDetails,
+  fetchMoveDetails,
+  formatDisplayName,
+  initPokemonList,
+  initChampionsRoster,
+  legalSetForFormat,
+  nonLegalFormsForFormat,
+} from '../api/pokeapi.js';
 import { getTypeBgClass, getCategoryBadge, TYPE_SHORT } from '../ui/render.js';
 import { getTypeEffectiveness } from '../engine/stats.js';
 import { openDetailModal, closeDetailModal, refreshDetailModalBody } from './DetailModal.js';
@@ -19,15 +27,15 @@ import { runPool } from './load-pool.js';
 // Shared, reactive Pokédex state. DexView reads these fields directly and
 // re-renders on notifyDex(). Same shape/semantics as the old vanilla DexPage.
 export const DexStore = {
-  roster: [],          // [{ apiName, name, details|null }]
-  byName: {},          // apiName -> row (same object refs as roster)
+  roster: [], // [{ apiName, name, details|null }]
+  byName: {}, // apiName -> row (same object refs as roster)
   sortKey: 'bst',
   sortDir: 'desc',
-  filters: [],         // committed search terms (the chips); ANDed together
-  draft: '',           // uncommitted input text (live-previewed before Enter)
-  pinned: [],          // apiNames pinned to the top, in pin order; shown regardless of filter
+  filters: [], // committed search terms (the chips); ANDed together
+  draft: '', // uncommitted input text (live-previewed before Enter)
+  pinned: [], // apiNames pinned to the top, in pin order; shown regardless of filter
   builtForFormat: null,
-  allLoaded: false,    // every roster row has details loaded
+  allLoaded: false, // every roster row has details loaded
   loading: false,
 };
 
@@ -52,51 +60,59 @@ function buildDexRoster() {
   // Drop non-battle / cosmetic forms from every view (ride modes, Gmax/Totem,
   // cosplay Pikachu, cosmetic duplicates, redundant Minior colors).
   let entries = (CACHE.pokemonList || [])
-    .filter(p => !isHiddenForm(p.apiName))
-    .map(p => ({ apiName: p.apiName, name: p.name }));
+    .filter((p) => !isHiddenForm(p.apiName))
+    .map((p) => ({ apiName: p.apiName, name: p.name }));
   // Under a regulation, keep only legal varieties — using the same predicate and
   // legal set the calculator's search uses so the two views stay in sync.
   const legal = legalSetForFormat(STATE.format);
   if (legal) {
-    entries = entries.filter(p => isFormatLegal(p.apiName, legal, nonLegalFormsForFormat(STATE.format)));
+    entries = entries.filter((p) =>
+      isFormatLegal(p.apiName, legal, nonLegalFormsForFormat(STATE.format))
+    );
   }
   entries.sort((a, b) => a.name.localeCompare(b.name));
 
-  DexStore.roster = entries.map(e => ({ apiName: e.apiName, name: e.name, details: null }));
+  DexStore.roster = entries.map((e) => ({ apiName: e.apiName, name: e.name, details: null }));
   DexStore.byName = {};
-  DexStore.roster.forEach(r => { DexStore.byName[r.apiName] = r; });
+  DexStore.roster.forEach((r) => {
+    DexStore.byName[r.apiName] = r;
+  });
   // Pins are per-roster: a pinned species may not be legal in the new format, so
   // drop any pin that isn't in the freshly built roster.
-  DexStore.pinned = DexStore.pinned.filter(n => DexStore.byName[n]);
+  DexStore.pinned = DexStore.pinned.filter((n) => DexStore.byName[n]);
   DexStore.builtForFormat = STATE.format;
   DexStore.allLoaded = false;
 }
 
 export function dexStatusText() {
   const total = DexStore.roster.length;
-  const loaded = DexStore.roster.filter(r => r.details).length;
+  const loaded = DexStore.roster.filter((r) => r.details).length;
   if (loaded < total) return `${total} species · loaded ${loaded}/${total}…`;
   return `${total} species`;
 }
 
 // Concurrency-limited loader. Resolves once every requested name is fetched.
 export async function loadDexDetails(apiNames, { rerenderEachBatch = true } = {}) {
-  const queue = apiNames.filter(n => DexStore.byName[n] && !DexStore.byName[n].details);
+  const queue = apiNames.filter((n) => DexStore.byName[n] && !DexStore.byName[n].details);
   if (queue.length === 0) return;
   DexStore.loading = true;
 
-  await runPool(queue, async (apiName) => {
-    try {
-      const details = await fetchPokemonDetails(apiName);
-      const row = DexStore.byName[apiName];
-      if (row) row.details = details;
-    } catch (err) {
-      console.error(`Pokédex: failed to load ${apiName}`, err);
-    }
-  }, { batchEvery: rerenderEachBatch ? 24 : 0, onProgress: notifyDex });
+  await runPool(
+    queue,
+    async (apiName) => {
+      try {
+        const details = await fetchPokemonDetails(apiName);
+        const row = DexStore.byName[apiName];
+        if (row) row.details = details;
+      } catch (err) {
+        console.error(`Pokédex: failed to load ${apiName}`, err);
+      }
+    },
+    { batchEvery: rerenderEachBatch ? 24 : 0, onProgress: notifyDex }
+  );
 
   DexStore.loading = false;
-  DexStore.allLoaded = DexStore.roster.every(r => r.details);
+  DexStore.allLoaded = DexStore.roster.every((r) => r.details);
   notifyDex();
 }
 
@@ -108,10 +124,10 @@ export async function ensureDexFullyLoaded() {
   // out rather than bailing, or a sort/search fired mid-load would silently run
   // over a partially-loaded roster. (Mirrors attackdex-store's ensureAllLoaded.)
   while (DexStore.loading) {
-    await new Promise(resolve => setTimeout(resolve, 50));
+    await new Promise((resolve) => setTimeout(resolve, 50));
     if (DexStore.allLoaded) return;
   }
-  await loadDexDetails(DexStore.roster.map(r => r.apiName));
+  await loadDexDetails(DexStore.roster.map((r) => r.apiName));
 }
 
 // Toggle/select the sort column. Stat sorts need every row loaded; kick off a
@@ -177,7 +193,7 @@ export function clearDexFilters() {
 // so the pinned row shows real stats instead of a placeholder.
 export function toggleDexPin(apiName) {
   if (DexStore.pinned.includes(apiName)) {
-    DexStore.pinned = DexStore.pinned.filter(n => n !== apiName);
+    DexStore.pinned = DexStore.pinned.filter((n) => n !== apiName);
   } else {
     DexStore.pinned = [...DexStore.pinned, apiName];
     const row = DexStore.byName[apiName];
@@ -226,7 +242,7 @@ export async function openDexPage() {
   // fetches placeholder rows as they scroll into view (ensureDexFullyLoaded
   // still force-loads all when a stat-sort or ability-search needs it).
   if (REGULATIONS[STATE.format]) {
-    loadDexDetails(DexStore.roster.map(r => r.apiName));
+    loadDexDetails(DexStore.roster.map((r) => r.apiName));
   }
 }
 
@@ -260,18 +276,34 @@ export function onDexFormatChange() {
 // --- Type matchup summary (header of the row-click modal) ---
 
 const ALL_TYPES = [
-  'Normal', 'Fire', 'Water', 'Grass', 'Electric', 'Ice', 'Fighting', 'Poison',
-  'Ground', 'Flying', 'Psychic', 'Bug', 'Rock', 'Ghost', 'Dragon', 'Dark', 'Steel', 'Fairy',
+  'Normal',
+  'Fire',
+  'Water',
+  'Grass',
+  'Electric',
+  'Ice',
+  'Fighting',
+  'Poison',
+  'Ground',
+  'Flying',
+  'Psychic',
+  'Bug',
+  'Rock',
+  'Ghost',
+  'Dragon',
+  'Dark',
+  'Steel',
+  'Fairy',
 ];
 
 // Sections in display order (most resistant → most weak). Neutral (1×) is omitted
 // per the design; immunities get their own section above the 4× resist tier.
 const MATCHUP_SECTIONS = [
-  { mult: 0,    label: 'Immune',    tone: 'text-sky-400' },
+  { mult: 0, label: 'Immune', tone: 'text-sky-400' },
   { mult: 0.25, label: '4× Resist', tone: 'text-emerald-400' },
-  { mult: 0.5,  label: '2× Resist', tone: 'text-emerald-400' },
-  { mult: 2,    label: '2× Weak',   tone: 'text-red-400' },
-  { mult: 4,    label: '4× Weak',   tone: 'text-red-400' },
+  { mult: 0.5, label: '2× Resist', tone: 'text-emerald-400' },
+  { mult: 2, label: '2× Weak', tone: 'text-red-400' },
+  { mult: 4, label: '4× Weak', tone: 'text-red-400' },
 ];
 
 // Build the matchup header: for each attacking type, how the Pokémon takes it.
@@ -284,9 +316,9 @@ function buildTypeMatchup(types) {
     if (!byMult.has(mult)) byMult.set(mult, []);
     byMult.get(mult).push(t);
   }
-  const sections = MATCHUP_SECTIONS
-    .map(s => ({ ...s, types: byMult.get(s.mult) || [] }))
-    .filter(s => s.types.length);
+  const sections = MATCHUP_SECTIONS.map((s) => ({ ...s, types: byMult.get(s.mult) || [] })).filter(
+    (s) => s.types.length
+  );
   if (sections.length === 0) return null;
 
   // One column per tier, laid out as a single non-wrapping row separated by
@@ -295,13 +327,15 @@ function buildTypeMatchup(types) {
   // second row — min-w-0 lets a crowded tier wrap its own badges instead.
   return html`
     <div class="flex gap-2 pb-3 border-b border-slate-700">
-      ${sections.map((s, i) => html`
+      ${sections.map(
+        (s, i) => html`
         <div class=${`flex flex-col gap-1 flex-1 min-w-0 ${i > 0 ? 'pl-2 border-l border-slate-800/70' : ''}`}>
           <span class=${`text-[9px] font-black uppercase tracking-wider ${s.tone}`}>${s.label}</span>
           <div class="flex flex-wrap gap-1">
-            ${s.types.map(t => html`<span class=${`text-[8px] px-1 py-0.5 font-extrabold uppercase rounded ${getTypeBgClass(t)} text-white`} title=${t}>${TYPE_SHORT[t] || t}</span>`)}
+            ${s.types.map((t) => html`<span class=${`text-[8px] px-1 py-0.5 font-extrabold uppercase rounded ${getTypeBgClass(t)} text-white`} title=${t}>${TYPE_SHORT[t] || t}</span>`)}
           </div>
-        </div>`)}
+        </div>`
+      )}
     </div>`;
 }
 
@@ -309,25 +343,31 @@ function buildTypeMatchup(types) {
 
 function buildMoveItem(move, md, onClick) {
   if (!md) {
-    return { node: html`<span class="font-bold text-slate-500 flex-1 truncate animate-pulse">${move.name}</span>`, onClick };
+    return {
+      node: html`<span class="font-bold text-slate-500 flex-1 truncate animate-pulse">${move.name}</span>`,
+      onClick,
+    };
   }
   const cat = getCategoryBadge(md.category);
   const catCls = cat.cls;
   const catLabel = cat.label;
   const kind = spreadKind(md);
-  const spreadBadge = kind === 'ally'
-    ? html`<span class="text-[7px] px-1 py-0.5 font-black uppercase rounded bg-rose-950/50 text-rose-400 border border-rose-900/40" title="Also hits your ally">Spread+Ally</span>`
-    : kind === 'opponents'
-      ? html`<span class="text-[7px] px-1 py-0.5 font-black uppercase rounded bg-amber-950/50 text-amber-400 border border-amber-900/40" title="Hits both opponents">Spread</span>`
-      : '';
+  const spreadBadge =
+    kind === 'ally'
+      ? html`<span class="text-[7px] px-1 py-0.5 font-black uppercase rounded bg-rose-950/50 text-rose-400 border border-rose-900/40" title="Also hits your ally">Spread+Ally</span>`
+      : kind === 'opponents'
+        ? html`<span class="text-[7px] px-1 py-0.5 font-black uppercase rounded bg-amber-950/50 text-amber-400 border border-amber-900/40" title="Hits both opponents">Spread</span>`
+        : '';
   return {
     node: html`
       <span class="font-bold text-slate-100 flex-1 flex items-center gap-1.5 min-w-0"><span class="truncate">${move.name}</span>${spreadBadge}</span>
       <div class="w-14 shrink-0"><span class=${`text-[8px] px-1 py-0.5 font-extrabold uppercase rounded ${getTypeBgClass(md.type)} text-white`}>${md.type}</span></div>
       <div class="w-16 shrink-0"><span class=${`text-[8px] px-1 py-0.5 font-extrabold uppercase rounded ${catCls}`}>${catLabel}</span></div>
-      ${md.power
-        ? html`<span class="font-mono text-amber-400 w-7 text-right shrink-0 text-[11px]">${md.power}</span>`
-        : html`<span class="font-mono text-slate-600 w-7 text-right shrink-0 text-[11px]">—</span>`}`,
+      ${
+        md.power
+          ? html`<span class="font-mono text-amber-400 w-7 text-right shrink-0 text-[11px]">${md.power}</span>`
+          : html`<span class="font-mono text-slate-600 w-7 text-right shrink-0 text-[11px]">—</span>`
+      }`,
     onClick,
   };
 }
@@ -350,41 +390,51 @@ export async function handleDexRowClick(apiName) {
 
   const details = row.details;
   const seen = new Set();
-  const moves = details.moves.filter(m => {
-    if (seen.has(m.apiName)) return false;
-    seen.add(m.apiName);
-    return true;
-  }).sort((a, b) => a.name.localeCompare(b.name));
+  const moves = details.moves
+    .filter((m) => {
+      if (seen.has(m.apiName)) return false;
+      seen.add(m.apiName);
+      return true;
+    })
+    .sort((a, b) => a.name.localeCompare(b.name));
 
   // Local cache for details fetched during this modal session.
   const localCache = new Map();
-  const getDetails = (m) => localCache.get(m.apiName) || (_getMoveDetails && _getMoveDetails(m.apiName));
-  const makeOnClick = (m) => () => { closeDetailModal(); if (_onMoveClick) _onMoveClick(m.apiName); };
-  const buildItems = () => moves.map(m => buildMoveItem(m, getDetails(m), makeOnClick(m)));
+  const getDetails = (m) =>
+    localCache.get(m.apiName) || (_getMoveDetails && _getMoveDetails(m.apiName));
+  const makeOnClick = (m) => () => {
+    closeDetailModal();
+    if (_onMoveClick) _onMoveClick(m.apiName);
+  };
+  const buildItems = () => moves.map((m) => buildMoveItem(m, getDetails(m), makeOnClick(m)));
 
   const session = openDetailModal({
     title: details.name,
     subtitle: html`
       <span class="flex items-center flex-wrap gap-1.5">
-        ${details.types.map(t => html`<span class=${`text-[8px] px-1 py-0.5 font-extrabold uppercase rounded ${getTypeBgClass(t)} text-white`}>${t}</span>`)}
+        ${details.types.map((t) => html`<span class=${`text-[8px] px-1 py-0.5 font-extrabold uppercase rounded ${getTypeBgClass(t)} text-white`}>${t}</span>`)}
         <span class="text-slate-500">${moves.length} moves</span>
       </span>`,
     image: details.sprite || '',
     header: buildTypeMatchup(details.types),
-    items: buildItems()
+    items: buildItems(),
   });
 
   // Fetch details for moves not yet cached anywhere.
-  const toFetch = moves.filter(m => !getDetails(m));
+  const toFetch = moves.filter((m) => !getDetails(m));
   if (toFetch.length === 0) return;
 
-  await runPool(toFetch, async (move) => {
-    try {
-      const md = await fetchMoveDetails(move.apiName);
-      localCache.set(move.apiName, md);
-    } catch (err) {
-      console.error(`Failed to load move ${move.apiName}`, err);
-    }
-  }, { batchEvery: 8, onProgress: () => refreshDetailModalBody(buildItems(), session) });
+  await runPool(
+    toFetch,
+    async (move) => {
+      try {
+        const md = await fetchMoveDetails(move.apiName);
+        localCache.set(move.apiName, md);
+      } catch (err) {
+        console.error(`Failed to load move ${move.apiName}`, err);
+      }
+    },
+    { batchEvery: 8, onProgress: () => refreshDetailModalBody(buildItems(), session) }
+  );
   refreshDetailModalBody(buildItems(), session);
 }

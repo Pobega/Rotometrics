@@ -26,7 +26,7 @@ export const STATE = {
     // Render-only fields the Preact attacker island reads (the vanilla DOM used
     // to hold these); kept on STATE so the island has a single source of truth.
     sprite: '',
-    abilities: []
+    abilities: [],
   },
 
   defender: {
@@ -43,14 +43,14 @@ export const STATE = {
     types: ['???'],
     // Render-only fields the Preact defender island reads.
     sprite: '',
-    abilities: []
+    abilities: [],
   },
 
   move: {
     name: 'Custom Move',
     type: 'Normal',
     power: 80,
-    category: 'physical'
+    category: 'physical',
   },
 
   modifiers: {
@@ -61,12 +61,12 @@ export const STATE = {
     friendGuard: false,
     screens: false,
     terrain: 'none', // 'none', 'electric', 'grassy', 'psychic', 'misty'
-    aura: 'none',    // 'none', 'fairy', 'dark'
-    tailAtk: false,  // attacker Tailwind (2x Speed) — was read off the DOM
-    tailDef: false   // defender Tailwind (2x Speed)
+    aura: 'none', // 'none', 'fairy', 'dark'
+    tailAtk: false, // attacker Tailwind (2x Speed) — was read off the DOM
+    tailDef: false, // defender Tailwind (2x Speed)
     // movesFirst (Bolt Beak / Fishious Rend) is left unset so the engine
     // infers turn order from effective Speed; set it to override that.
-  }
+  },
 };
 
 export const CACHE = {
@@ -75,5 +75,5 @@ export const CACHE = {
   movesDetails: {},
   statusMoves: {},
   championsRoster: null,
-  allMoves: []
+  allMoves: [],
 };

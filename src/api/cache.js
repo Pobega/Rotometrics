@@ -21,15 +21,15 @@ export const Storage = {
   get: (key) => {
     try {
       return JSON.parse(localStorage.getItem(key));
-    } catch (e) {
+    } catch {
       return null;
     }
   },
   set: (key, val) => {
     try {
       localStorage.setItem(key, JSON.stringify(val));
-    } catch (e) {}
-  }
+    } catch {}
+  },
 };
 
 // Drop cache entries from older schema versions so they don't linger forever.
@@ -40,17 +40,20 @@ export function pruneOldCaches() {
   let keys;
   try {
     keys = Object.keys(localStorage);
-  } catch (e) {
+  } catch {
     return; // localStorage unavailable (private mode, disabled) — nothing to do
   }
 
   for (const key of keys) {
-    const ours = key.startsWith('vgc_v') || key.startsWith('vgc_opt_')
-      || key.startsWith('poke_details_') || key.startsWith('move_details_');
+    const ours =
+      key.startsWith('vgc_v') ||
+      key.startsWith('vgc_opt_') ||
+      key.startsWith('poke_details_') ||
+      key.startsWith('move_details_');
     if (ours && !key.startsWith(PREFIX)) {
       try {
         localStorage.removeItem(key);
-      } catch (e) {}
+      } catch {}
     }
   }
 }

@@ -14,7 +14,15 @@ import { createEmitter, useSubscription } from './reactive.js';
 // Reactive modal state with its own emitter. `session` bumps on every open/close
 // so an async worker streaming rows into a modal it opened can tell when it's
 // been superseded (the user closed it or opened a different one).
-const modal = { open: false, title: '', subtitle: '', image: '', header: null, items: [], session: 0 };
+const modal = {
+  open: false,
+  title: '',
+  subtitle: '',
+  image: '',
+  header: null,
+  items: [],
+  session: 0,
+};
 const { subscribe, notify } = createEmitter();
 
 // items: [{
@@ -73,7 +81,9 @@ export function DetailModal() {
 
   return html`
     <div class="fixed inset-0 z-[300] flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4"
-      onClick=${(e) => { if (e.target === e.currentTarget) closeDetailModal(); }}>
+      onClick=${(e) => {
+        if (e.target === e.currentTarget) closeDetailModal();
+      }}>
       <div class="bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl w-full max-w-md flex flex-col gap-3 p-5 max-h-[80vh]">
         <div class="flex items-center justify-between gap-3 border-b border-slate-700 pb-3">
           <div class="flex items-center gap-3 min-w-0">
@@ -89,9 +99,11 @@ export function DetailModal() {
         </div>
         ${modal.header}
         <div class="overflow-y-auto flex flex-col min-h-0 flex-1">
-          ${modal.items.length
-            ? modal.items.map((item, i) => html`<${Item} key=${i} item=${item} />`)
-            : html`<p class="text-xs text-slate-500 italic p-3 text-center">No entries found.</p>`}
+          ${
+            modal.items.length
+              ? modal.items.map((item, i) => html`<${Item} key=${i} item=${item} />`)
+              : html`<p class="text-xs text-slate-500 italic p-3 text-center">No entries found.</p>`
+          }
         </div>
       </div>
     </div>`;

@@ -33,8 +33,12 @@ export { subscribe, notify };
 // The shared recompute pipeline. app.js registers updateLiveStats here so islands
 // don't need to import app.js (which would create a cycle).
 let _recompute = () => {};
-export function setRecompute(fn) { _recompute = fn; }
-export function requestRecompute() { _recompute(); }
+export function setRecompute(fn) {
+  _recompute = fn;
+}
+export function requestRecompute() {
+  _recompute();
+}
 
 // Mutate STATE then run the full recompute pipeline. recompute() ends by calling
 // notify(), so callers don't need to notify themselves.

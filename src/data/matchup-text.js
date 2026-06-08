@@ -28,13 +28,23 @@ const ITEM_LABELS = {
 const ITEM_KEYS = invert(ITEM_LABELS);
 
 const NATURE_LABELS = {
-  neutral: 'Neutral', '+atk': '+Atk', '+spa': '+SpA', '+def': '+Def', '+spd': '+SpD', '+spe': '+Spe',
+  neutral: 'Neutral',
+  '+atk': '+Atk',
+  '+spa': '+SpA',
+  '+def': '+Def',
+  '+spd': '+SpD',
+  '+spe': '+Spe',
 };
 const NATURE_KEYS = invert(NATURE_LABELS);
 
 const WEATHER_LABELS = { sun: 'Sun', rain: 'Rain', sandstorm: 'Sand', snow: 'Snow' };
 const WEATHER_KEYS = invert(WEATHER_LABELS);
-const TERRAIN_LABELS = { electric: 'Electric Terrain', grassy: 'Grassy Terrain', psychic: 'Psychic Terrain', misty: 'Misty Terrain' };
+const TERRAIN_LABELS = {
+  electric: 'Electric Terrain',
+  grassy: 'Grassy Terrain',
+  psychic: 'Psychic Terrain',
+  misty: 'Misty Terrain',
+};
 const TERRAIN_KEYS = invert(TERRAIN_LABELS);
 const AURA_LABELS = { fairy: 'Fairy Aura', dark: 'Dark Aura' };
 const AURA_KEYS = invert(AURA_LABELS);
@@ -47,12 +57,19 @@ function invert(map) {
 
 // "Fake Out" -> "fake-out", "Flutter Mane" -> "flutter-mane", "Ho-Oh" -> "ho-oh".
 function toApiName(display) {
-  return String(display || '').trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+  return String(display || '')
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
 }
 
 // "huge-power" -> "Huge Power"
 function titleCase(apiName) {
-  return String(apiName || '').split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+  return String(apiName || '')
+    .split('-')
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(' ');
 }
 
 function evString(sps) {
@@ -81,19 +98,25 @@ export function exportMatchup(state) {
   const lines = [];
 
   lines.push(`Attacker: ${a.name || 'Unknown'} @ ${ITEM_LABELS[a.item] || 'None'}`);
-  lines.push(`Ability: ${a.ability && a.ability !== 'none' ? titleCase(a.ability) : 'None'} | Nature: ${NATURE_LABELS[a.nature] || 'Neutral'}`);
+  lines.push(
+    `Ability: ${a.ability && a.ability !== 'none' ? titleCase(a.ability) : 'None'} | Nature: ${NATURE_LABELS[a.nature] || 'Neutral'}`
+  );
   lines.push(`EVs: ${evString(a.sps)}`);
   const aBoosts = boostString(a.boosts, ['atk', 'spa', 'spe']);
   if (aBoosts) lines.push(`Boosts: ${aBoosts}`);
   if (m.apiName) {
     lines.push(`Move: ${m.name || titleCase(m.apiName)}`);
   } else {
-    lines.push(`Move: Custom (${m.type || 'Normal'} / ${m.power || 0} BP / ${capitalize(m.category) || 'Physical'})`);
+    lines.push(
+      `Move: Custom (${m.type || 'Normal'} / ${m.power || 0} BP / ${capitalize(m.category) || 'Physical'})`
+    );
   }
   lines.push('');
 
   lines.push(`Defender: ${d.name || 'Unknown'} @ ${ITEM_LABELS[d.item] || 'None'}`);
-  lines.push(`Ability: ${d.ability && d.ability !== 'none' ? titleCase(d.ability) : 'None'} | Nature: ${NATURE_LABELS[d.nature] || 'Neutral'}`);
+  lines.push(
+    `Ability: ${d.ability && d.ability !== 'none' ? titleCase(d.ability) : 'None'} | Nature: ${NATURE_LABELS[d.nature] || 'Neutral'}`
+  );
   lines.push(`EVs: ${evString(d.sps)}`);
   const dBoosts = boostString(d.boosts, ['def', 'spd', 'spe']);
   if (dBoosts) lines.push(`Boosts: ${dBoosts}`);
@@ -154,8 +177,11 @@ export function importMatchup(text) {
   const raw = String(text || '');
   const lines = raw.split(/\r?\n/);
 
-  const mon = side => ({
-    apiName: '', nature: 'neutral', item: 'none', ability: 'none',
+  const mon = (side) => ({
+    apiName: '',
+    nature: 'neutral',
+    item: 'none',
+    ability: 'none',
     sps: { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 },
     boosts: side === 'attacker' ? { atk: 0, spa: 0, spe: 0 } : { def: 0, spd: 0, spe: 0 },
   });
@@ -163,8 +189,17 @@ export function importMatchup(text) {
   const defender = mon('defender');
   let move = { apiName: null, type: 'Normal', power: 80, category: 'physical' };
   const modifiers = {
-    spread: false, crit: false, screens: false, friendGuard: false, helpingHand: false,
-    burn: false, tailAtk: false, tailDef: false, weather: 'none', terrain: 'none', aura: 'none',
+    spread: false,
+    crit: false,
+    screens: false,
+    friendGuard: false,
+    helpingHand: false,
+    burn: false,
+    tailAtk: false,
+    tailDef: false,
+    weather: 'none',
+    terrain: 'none',
+    aura: 'none',
   };
   let mode = 'offensive';
   let ko = 'ohko';
@@ -202,7 +237,12 @@ export function importMatchup(text) {
       const body = mt[1].trim();
       const custom = /^Custom\s*\(\s*([^/]+?)\s*\/\s*(\d+)\s*BP?\s*\/\s*(\w+)\s*\)/i.exec(body);
       if (custom) {
-        move = { apiName: null, type: capitalize(custom[1].trim()), power: parseInt(custom[2], 10) || 0, category: custom[3].toLowerCase() };
+        move = {
+          apiName: null,
+          type: capitalize(custom[1].trim()),
+          power: parseInt(custom[2], 10) || 0,
+          category: custom[3].toLowerCase(),
+        };
       } else {
         move = { apiName: toApiName(body), type: null, power: null, category: null };
       }

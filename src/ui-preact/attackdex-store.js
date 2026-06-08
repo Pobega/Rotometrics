@@ -4,8 +4,13 @@
 // the move-specific filter controls (type / category / spread). Row click opens
 // the shared vanilla detail modal (converted to Preact in 3b).
 import { STATE, CACHE } from '../state.js';
-import { sortMoves, filterMoves, spreadKind } from '../data/moves.js';
-import { fetchMoveDetails, fetchPokemonDetails, initAllMovesList, formatDisplayName, legalSetForFormat } from '../api/pokeapi.js';
+import {
+  fetchMoveDetails,
+  fetchPokemonDetails,
+  initAllMovesList,
+  formatDisplayName,
+  legalSetForFormat,
+} from '../api/pokeapi.js';
 import { isHiddenForm, isFormatLegal } from '../data/dex.js';
 import { REGULATIONS } from '../data/regulations.js';
 import { getTypeBgClass } from '../ui/render.js';
@@ -17,16 +22,16 @@ import { runPool } from './load-pool.js';
 // Shared, reactive Attackdex state. AttackdexView reads these directly and
 // re-renders on notifyAdx(). Same shape/semantics as the old vanilla AttackdexPage.
 export const AdxStore = {
-  roster: [],          // [{ apiName, name, details|null }]
-  byName: {},          // apiName -> row (same object refs as roster)
-  sortKey: 'name',     // 'name' | 'power' | 'pp'
+  roster: [], // [{ apiName, name, details|null }]
+  byName: {}, // apiName -> row (same object refs as roster)
+  sortKey: 'name', // 'name' | 'power' | 'pp'
   sortDir: 'asc',
   query: '',
-  filterType: '',      // '' = all, else a type display name (e.g. 'Fire')
-  filterCategory: '',  // '' = all, else 'physical' | 'special' | 'status'
+  filterType: '', // '' = all, else a type display name (e.g. 'Fire')
+  filterCategory: '', // '' = all, else 'physical' | 'special' | 'status'
   filterSpread: false, // true = only multi-target (spread) moves
   built: false,
-  allLoaded: false,    // every roster row has details loaded
+  allLoaded: false, // every roster row has details loaded
   loading: false,
 };
 
@@ -49,38 +54,44 @@ export function initAttackdexStore({ onPokemonClick = null, getPokemonDetails = 
 // Build the roster once from the loaded move-name cache.
 function buildMovesRoster() {
   const entries = (CACHE.allMoves || []).slice().sort((a, b) => a.name.localeCompare(b.name));
-  AdxStore.roster = entries.map(e => ({ apiName: e.apiName, name: e.name, details: null }));
+  AdxStore.roster = entries.map((e) => ({ apiName: e.apiName, name: e.name, details: null }));
   AdxStore.byName = {};
-  AdxStore.roster.forEach(r => { AdxStore.byName[r.apiName] = r; });
+  AdxStore.roster.forEach((r) => {
+    AdxStore.byName[r.apiName] = r;
+  });
   AdxStore.built = true;
   AdxStore.allLoaded = false;
 }
 
 export function attackdexStatusText() {
   const total = AdxStore.roster.length;
-  const loaded = AdxStore.roster.filter(r => r.details).length;
+  const loaded = AdxStore.roster.filter((r) => r.details).length;
   if (loaded < total) return `${total} moves · loaded ${loaded}/${total}…`;
   return `${total} moves`;
 }
 
 // Concurrency-limited loader. Resolves once every requested name is fetched.
 export async function loadMoveDetails(apiNames, { rerenderEachBatch = true } = {}) {
-  const queue = apiNames.filter(n => AdxStore.byName[n] && !AdxStore.byName[n].details);
+  const queue = apiNames.filter((n) => AdxStore.byName[n] && !AdxStore.byName[n].details);
   if (queue.length === 0) return;
   AdxStore.loading = true;
 
-  await runPool(queue, async (apiName) => {
-    try {
-      const details = await fetchMoveDetails(apiName);
-      const row = AdxStore.byName[apiName];
-      if (row) row.details = details;
-    } catch (err) {
-      console.error(`Attackdex: failed to load ${apiName}`, err);
-    }
-  }, { batchEvery: rerenderEachBatch ? 24 : 0, onProgress: notifyAdx });
+  await runPool(
+    queue,
+    async (apiName) => {
+      try {
+        const details = await fetchMoveDetails(apiName);
+        const row = AdxStore.byName[apiName];
+        if (row) row.details = details;
+      } catch (err) {
+        console.error(`Attackdex: failed to load ${apiName}`, err);
+      }
+    },
+    { batchEvery: rerenderEachBatch ? 24 : 0, onProgress: notifyAdx }
+  );
 
   AdxStore.loading = false;
-  AdxStore.allLoaded = AdxStore.roster.every(r => r.details);
+  AdxStore.allLoaded = AdxStore.roster.every((r) => r.details);
   notifyAdx();
 }
 
@@ -93,20 +104,22 @@ export async function loadMoveDetails(apiNames, { rerenderEachBatch = true } = {
 async function ensureAllLoaded() {
   if (AdxStore.allLoaded) return;
   while (AdxStore.loading) {
-    await new Promise(resolve => setTimeout(resolve, 50));
+    await new Promise((resolve) => setTimeout(resolve, 50));
     if (AdxStore.allLoaded) return;
   }
-  await loadMoveDetails(AdxStore.roster.map(r => r.apiName));
+  await loadMoveDetails(AdxStore.roster.map((r) => r.apiName));
 }
 
 // True when the current view depends on loaded move details (anything other than
 // the default name-only browse).
 function needsFullLoad() {
-  return !!(AdxStore.query.trim()
-    || AdxStore.filterType
-    || AdxStore.filterCategory
-    || AdxStore.filterSpread
-    || AdxStore.sortKey !== 'name');
+  return !!(
+    AdxStore.query.trim() ||
+    AdxStore.filterType ||
+    AdxStore.filterCategory ||
+    AdxStore.filterSpread ||
+    AdxStore.sortKey !== 'name'
+  );
 }
 
 // --- Mutators (notify, and force-load details when the new view needs them) ---
@@ -147,9 +160,18 @@ async function applyFilterChange() {
   notifyAdx();
 }
 
-export function setAdxType(type) { AdxStore.filterType = type; return applyFilterChange(); }
-export function setAdxCategory(cat) { AdxStore.filterCategory = cat; return applyFilterChange(); }
-export function toggleAdxSpread() { AdxStore.filterSpread = !AdxStore.filterSpread; return applyFilterChange(); }
+export function setAdxType(type) {
+  AdxStore.filterType = type;
+  return applyFilterChange();
+}
+export function setAdxCategory(cat) {
+  AdxStore.filterCategory = cat;
+  return applyFilterChange();
+}
+export function toggleAdxSpread() {
+  AdxStore.filterSpread = !AdxStore.filterSpread;
+  return applyFilterChange();
+}
 
 // Build + render the Attackdex the first time it's shown.
 export async function openAttackdexPage() {
@@ -206,7 +228,7 @@ function buildPokemonItem(n, pd, onClick) {
   if (!pd) {
     return {
       node: html`<div class="w-8 h-8 bg-slate-800 rounded shrink-0 animate-pulse"></div><span class="font-bold text-slate-500 flex-1 truncate">${name}</span>`,
-      onClick
+      onClick,
     };
   }
   return {
@@ -216,7 +238,7 @@ function buildPokemonItem(n, pd, onClick) {
       <div class="flex gap-1 shrink-0">
         ${pd.types.map((t) => html`<span class=${`text-[8px] px-1 py-0.5 font-extrabold uppercase rounded ${getTypeBgClass(t)} text-white`}>${t}</span>`)}
       </div>`,
-    onClick
+    onClick,
   };
 }
 
@@ -237,10 +259,10 @@ export async function handleAttackdexRowClick(apiName) {
   }
 
   const details = row.details;
-  let learners = (details.learnedBy || []).filter(n => !isHiddenForm(n));
+  let learners = (details.learnedBy || []).filter((n) => !isHiddenForm(n));
   const legal = legalSetForFormat(STATE.format);
   if (legal) {
-    learners = learners.filter(n => isFormatLegal(n, legal));
+    learners = learners.filter((n) => isFormatLegal(n, legal));
   }
   learners.sort((a, b) => a.localeCompare(b));
 
@@ -250,12 +272,18 @@ export async function handleAttackdexRowClick(apiName) {
 
   const localCache = new Map();
   const getDetails = (n) => localCache.get(n) || (_getPokemonDetails && _getPokemonDetails(n));
-  const makeOnClick = (n) => () => { closeDetailModal(); if (_onPokemonClick) _onPokemonClick(n); };
+  const makeOnClick = (n) => () => {
+    closeDetailModal();
+    if (_onPokemonClick) _onPokemonClick(n);
+  };
 
   const buildItems = () => {
-    const items = visible.map(n => buildPokemonItem(n, getDetails(n), makeOnClick(n)));
+    const items = visible.map((n) => buildPokemonItem(n, getDetails(n), makeOnClick(n)));
     if (capped) {
-      items.push({ label: `…and ${learners.length - LEARNER_CAP} more — switch to Regulation M-A to narrow the list`, onClick: null });
+      items.push({
+        label: `…and ${learners.length - LEARNER_CAP} more — switch to Regulation M-A to narrow the list`,
+        onClick: null,
+      });
     }
     return items;
   };
@@ -263,20 +291,24 @@ export async function handleAttackdexRowClick(apiName) {
   const session = openDetailModal({
     title: `Who learns ${details.name}`,
     subtitle: `${learners.length} Pokémon · ${formatLabel}`,
-    items: buildItems()
+    items: buildItems(),
   });
 
   // Fetch details for Pokémon not yet in any cache.
-  const toFetch = visible.filter(n => !getDetails(n));
+  const toFetch = visible.filter((n) => !getDetails(n));
   if (toFetch.length === 0) return;
 
-  await runPool(toFetch, async (n) => {
-    try {
-      const pd = await fetchPokemonDetails(n);
-      localCache.set(n, pd);
-    } catch (err) {
-      console.error(`Failed to load Pokémon ${n}`, err);
-    }
-  }, { batchEvery: 8, onProgress: () => refreshDetailModalBody(buildItems(), session) });
+  await runPool(
+    toFetch,
+    async (n) => {
+      try {
+        const pd = await fetchPokemonDetails(n);
+        localCache.set(n, pd);
+      } catch (err) {
+        console.error(`Failed to load Pokémon ${n}`, err);
+      }
+    },
+    { batchEvery: 8, onProgress: () => refreshDetailModalBody(buildItems(), session) }
+  );
   refreshDetailModalBody(buildItems(), session);
 }

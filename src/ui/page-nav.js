@@ -7,8 +7,10 @@
 import { STATE } from '../state.js';
 import { notify } from '../ui-preact/store.js';
 
-const ACTIVE_CLS = "text-[9px] sm:text-[10px] font-extrabold uppercase tracking-wider py-1.5 px-2.5 rounded-md transition bg-amber-950/40 text-amber-400 shadow";
-const IDLE_CLS = "text-[9px] sm:text-[10px] font-extrabold uppercase tracking-wider py-1.5 px-2.5 rounded-md transition text-slate-400 hover:text-white";
+const ACTIVE_CLS =
+  'text-[9px] sm:text-[10px] font-extrabold uppercase tracking-wider py-1.5 px-2.5 rounded-md transition bg-amber-950/40 text-amber-400 shadow';
+const IDLE_CLS =
+  'text-[9px] sm:text-[10px] font-extrabold uppercase tracking-wider py-1.5 px-2.5 rounded-md transition text-slate-400 hover:text-white';
 
 // Per-view header tagline. The matching Rotom form swap lives on the Brand island
 // (src/ui-preact/HeaderControls.js), keyed off STATE.page; showPage sets that and
@@ -48,7 +50,8 @@ export function showPage(id) {
   // subtitle is a plain <p> the island doesn't own, so set it directly.
   STATE.page = id;
   notify();
-  if (dom.brandSubtitle) dom.brandSubtitle.textContent = SUBTITLE_BY_PAGE[id] || SUBTITLE_BY_PAGE.calculator;
+  if (dom.brandSubtitle)
+    dom.brandSubtitle.textContent = SUBTITLE_BY_PAGE[id] || SUBTITLE_BY_PAGE.calculator;
 
   for (const [pid, cfg] of pages) {
     const active = pid === id;

@@ -14,8 +14,13 @@ import { useState, useEffect, useLayoutEffect, useRef } from 'preact/hooks';
 export function createEmitter() {
   const listeners = new Set();
   return {
-    subscribe(fn) { listeners.add(fn); return () => listeners.delete(fn); },
-    notify() { listeners.forEach((l) => l()); },
+    subscribe(fn) {
+      listeners.add(fn);
+      return () => listeners.delete(fn);
+    },
+    notify() {
+      listeners.forEach((l) => l());
+    },
   };
 }
 
@@ -39,20 +44,26 @@ export function useLazyRowLoader(rowsRef, store, load) {
   const observedRef = useRef(null);
 
   useEffect(() => {
-    const observer = new IntersectionObserver((entries) => {
-      const toLoad = [];
-      entries.forEach((entry) => {
-        if (!entry.isIntersecting) return;
-        const apiName = entry.target.getAttribute('data-api');
-        const row = store.byName[apiName];
-        if (row && !row.details) toLoad.push(apiName);
-        observer.unobserve(entry.target);
-      });
-      if (toLoad.length) load(toLoad);
-    }, { rootMargin: '200px' });
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const toLoad = [];
+        entries.forEach((entry) => {
+          if (!entry.isIntersecting) return;
+          const apiName = entry.target.getAttribute('data-api');
+          const row = store.byName[apiName];
+          if (row && !row.details) toLoad.push(apiName);
+          observer.unobserve(entry.target);
+        });
+        if (toLoad.length) load(toLoad);
+      },
+      { rootMargin: '200px' }
+    );
     observerRef.current = observer;
     observedRef.current = new WeakSet();
-    return () => { observer.disconnect(); observerRef.current = null; };
+    return () => {
+      observer.disconnect();
+      observerRef.current = null;
+    };
   }, []);
 
   useEffect(() => {
@@ -63,7 +74,10 @@ export function useLazyRowLoader(rowsRef, store, load) {
     container.querySelectorAll('[data-api]').forEach((el) => {
       if (observed.has(el)) return;
       const row = store.byName[el.getAttribute('data-api')];
-      if (row && !row.details) { observer.observe(el); observed.add(el); }
+      if (row && !row.details) {
+        observer.observe(el);
+        observed.add(el);
+      }
     });
   });
 }

@@ -83,12 +83,14 @@ export function filterDex(rows, terms) {
 // Cosmetic forms that are identical (stats + type + ability) to a kept sibling,
 // so they're pure duplicates we don't want cluttering either view.
 const COSMETIC_DUP_FORMS = new Set([
-  'cramorant-gulping', 'cramorant-gorging',
+  'cramorant-gulping',
+  'cramorant-gorging',
   'dudunsparce-three-segment',
   'maushold-family-of-three',
   'mimikyu-busted',
   'morpeko-hangry',
-  'tatsugiri-droopy', 'tatsugiri-stretchy',
+  'tatsugiri-droopy',
+  'tatsugiri-stretchy',
 ]);
 
 // True for non-battle / cosmetic forms that should never appear in any view
@@ -103,17 +105,18 @@ export function isHiddenForm(apiName) {
   if (!apiName) return false;
   const name = apiName.toLowerCase();
 
-  if (/^(koraidon|miraidon)-/.test(name)) return true;        // ride / build modes
-  if (/-gmax$/.test(name)) return true;                        // Gigantamax
-  if (/-eternamax$/.test(name)) return true;                   // Eternamax
-  if (name.includes('-totem')) return true;                    // Totem
+  if (/^(koraidon|miraidon)-/.test(name)) return true; // ride / build modes
+  if (/-gmax$/.test(name)) return true; // Gigantamax
+  if (/-eternamax$/.test(name)) return true; // Eternamax
+  if (name.includes('-totem')) return true; // Totem
   if (name.startsWith('pikachu-') || name === 'eevee-starter') return true; // cosplay/cap/starter
   if (COSMETIC_DUP_FORMS.has(name)) return true;
 
   // Minior: the seven color variants are identical to each other, but the Meteor
   // (Shields Up, defensive) and Core (offensive, Spe 120) forms differ in stats.
   // Keep one of each profile and drop the redundant colors.
-  if (name.startsWith('minior-') && name !== 'minior-red-meteor' && name !== 'minior-red') return true;
+  if (name.startsWith('minior-') && name !== 'minior-red-meteor' && name !== 'minior-red')
+    return true;
 
   return false;
 }
@@ -128,7 +131,7 @@ export function isFormatLegal(apiName, legalList, nonLegalForms = NON_LEGAL_FORM
   if (!apiName) return false;
   const name = apiName.toLowerCase();
 
-  if (nonLegalForms.some(f => name.includes(f))) return false;
+  if (nonLegalForms.some((f) => name.includes(f))) return false;
   if (!legalList) return false;
 
   // A Pokémon is legal when it IS, or is a form of, a legal base species. PokéAPI
