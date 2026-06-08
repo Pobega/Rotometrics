@@ -11,17 +11,31 @@ import { getTypeBgClass, TYPE_SHORT } from '../ui/render.js';
 import {
   DexStore, subscribeDex, dexStatusText,
   setDexSort, setDexDraft, commitDexFilter, removeDexFilter, clearDexFilters,
-  handleDexRowClick, loadDexDetails,
+  toggleDexPin, handleDexRowClick, loadDexDetails,
 } from './dex-store.js';
 
-const ROW_GRID = 'grid grid-cols-[minmax(150px,1.6fr)_110px_minmax(140px,1.4fr)_repeat(6,46px)_58px] items-center gap-2 px-3 py-1.5 border-b border-slate-800/70 text-xs';
+// Column track shared by the header + every row: name, type, abilities, 6 stats,
+// BST, and a trailing pin button.
+const GRID_COLS = 'grid-cols-[minmax(150px,1.6fr)_110px_minmax(140px,1.4fr)_repeat(6,46px)_58px_34px]';
+const ROW_GRID = `grid ${GRID_COLS} items-center gap-2 px-3 py-1.5 border-b border-slate-800/70 text-xs`;
 
-function PlaceholderRow({ row }) {
+function PinButton({ row, pinned }) {
+  // stopPropagation so pinning doesn't also open the row's detail modal.
+  return html`
+    <button
+      onClick=${(e) => { e.stopPropagation(); toggleDexPin(row.apiName); }}
+      class=${`justify-self-center transition leading-none ${pinned ? 'text-amber-400 hover:text-amber-300' : 'text-slate-600 hover:text-slate-300'}`}
+      title=${pinned ? 'Unpin' : 'Pin to top'} aria-label=${pinned ? `Unpin ${row.name}` : `Pin ${row.name}`} aria-pressed=${pinned ? 'true' : 'false'}>
+      <i class="fa-solid fa-thumbtack text-[11px]"></i>
+    </button>`;
+}
+
+function PlaceholderRow({ row, pinned }) {
   // Lazy placeholder; data-api lets 2b's observer know what to fetch. Clicking a
   // not-yet-loaded row still opens the modal (it fetches on demand), matching the
   // old delegated-click behavior.
   return html`
-    <div class=${`${ROW_GRID} cursor-pointer`} data-api=${row.apiName}
+    <div class=${`${ROW_GRID} cursor-pointer ${pinned ? 'bg-amber-950/10' : ''}`} data-api=${row.apiName}
       onClick=${() => handleDexRowClick(row.apiName)}>
       <div class="flex items-center gap-2 min-w-0">
         <div class="w-8 h-8 bg-slate-800 rounded shrink-0 animate-pulse"></div>
@@ -30,17 +44,18 @@ function PlaceholderRow({ row }) {
       <span class="text-slate-600 text-[10px]">…</span>
       <span class="text-slate-600 text-[10px]">loading…</span>
       ${['–', '–', '–', '–', '–', '–', '–'].map((d) => html`<span class="text-right font-mono text-slate-600">${d}</span>`)}
+      <${PinButton} row=${row} pinned=${pinned} />
     </div>`;
 }
 
-function DexRow({ row }) {
+function DexRow({ row, pinned }) {
   const d = row.details;
-  if (!d) return html`<${PlaceholderRow} row=${row} />`;
+  if (!d) return html`<${PlaceholderRow} row=${row} pinned=${pinned} />`;
 
   const s = d.baseStats;
   const cell = (v) => html`<span class="text-right font-mono text-slate-300">${v}</span>`;
   return html`
-    <div class=${`${ROW_GRID} hover:bg-slate-800/40 transition cursor-pointer`} data-api=${row.apiName}
+    <div class=${`${ROW_GRID} hover:bg-slate-800/40 transition cursor-pointer ${pinned ? 'bg-amber-950/10' : ''}`} data-api=${row.apiName}
       onClick=${() => handleDexRowClick(row.apiName)}>
       <div class="flex items-center gap-2 min-w-0">
         <img src=${d.sprite || ''} alt="" loading="lazy" class="w-8 h-8 object-contain shrink-0" />
@@ -52,6 +67,7 @@ function DexRow({ row }) {
       <span class="text-slate-400 text-[10px] leading-tight">${d.abilities.map((a) => a.name).join(', ')}</span>
       ${cell(s.hp)}${cell(s.atk)}${cell(s.def)}${cell(s.spa)}${cell(s.spd)}${cell(s.spe)}
       <span class="text-right font-mono font-bold text-amber-400">${bst(s)}</span>
+      <${PinButton} row=${row} pinned=${pinned} />
     </div>`;
 }
 
@@ -90,8 +106,14 @@ export function DexView() {
   // Committed chips plus the live draft (so typing previews before Enter).
   const draft = DexStore.draft.trim();
   const terms = draft ? [...DexStore.filters, draft] : DexStore.filters;
-  const filtered = filterDex(DexStore.roster, terms);
-  const sorted = sortDex(filtered, DexStore.sortKey, DexStore.sortDir);
+
+  // Pinned species are hoisted above the (filtered) rest and shown regardless of
+  // the search; the rest excludes them so they never appear twice. Each group is
+  // sorted independently by the active column.
+  const pinnedSet = new Set(DexStore.pinned);
+  const isPinned = (row) => pinnedSet.has(row.apiName);
+  const pinnedRows = sortDex(DexStore.roster.filter(isPinned), DexStore.sortKey, DexStore.sortDir);
+  const rest = sortDex(filterDex(DexStore.roster.filter((r) => !isPinned(r)), terms), DexStore.sortKey, DexStore.sortDir);
   const statusText = DexStore.loading && DexStore.roster.length === 0 ? 'loading roster…' : dexStatusText();
 
   // Lazy National-Dex loading: fetch placeholder rows as they scroll into view.
@@ -144,19 +166,22 @@ export function DexView() {
 
       <!-- Scrollable table -->
       <div class="overflow-x-auto">
-        <div class="min-w-[860px]">
+        <div class="min-w-[894px]">
           <!-- Header row -->
-          <div class="grid grid-cols-[minmax(150px,1.6fr)_110px_minmax(140px,1.4fr)_repeat(6,46px)_58px] items-center gap-2 px-3 py-2 text-[9px] font-extrabold uppercase tracking-wider text-slate-400 border-b border-slate-700">
+          <div class=${`grid ${GRID_COLS} items-center gap-2 px-3 py-2 text-[9px] font-extrabold uppercase tracking-wider text-slate-400 border-b border-slate-700`}>
             <${SortButton} col=${SORT_COLS[0]} />
             <span class="text-left">Type</span>
             <span class="text-left">Abilities</span>
             ${SORT_COLS.slice(1).map((col) => html`<${SortButton} col=${col} />`)}
+            <span class="justify-self-center"><i class="fa-solid fa-thumbtack text-[9px]"></i></span>
           </div>
-          <!-- Data rows -->
+          <!-- Data rows: pinned first, then the filtered rest -->
           <div class="flex flex-col" ref=${rowsRef}>
-            ${sorted.length
-              ? sorted.map((row) => html`<${DexRow} key=${row.apiName} row=${row} />`)
-              : html`<div class="px-3 py-8 text-center text-xs text-slate-500">No Pokémon match ${terms.map((t, i) => html`${i > 0 ? ' + ' : ''}“${t}”`)}.</div>`}
+            ${pinnedRows.map((row) => html`<${DexRow} key=${`pin-${row.apiName}`} row=${row} pinned=${true} />`)}
+            ${pinnedRows.length > 0 && rest.length > 0 && html`<div class="border-b-2 border-amber-900/30"></div>`}
+            ${rest.map((row) => html`<${DexRow} key=${row.apiName} row=${row} pinned=${false} />`)}
+            ${pinnedRows.length === 0 && rest.length === 0 && html`
+              <div class="px-3 py-8 text-center text-xs text-slate-500">No Pokémon match ${terms.map((t, i) => html`${i > 0 ? ' + ' : ''}“${t}”`)}.</div>`}
           </div>
         </div>
       </div>

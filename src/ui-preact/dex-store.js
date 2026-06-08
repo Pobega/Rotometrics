@@ -25,6 +25,7 @@ export const DexStore = {
   sortDir: 'desc',
   filters: [],         // committed search terms (the chips); ANDed together
   draft: '',           // uncommitted input text (live-previewed before Enter)
+  pinned: [],          // apiNames pinned to the top, in pin order; shown regardless of filter
   builtForFormat: null,
   allLoaded: false,    // every roster row has details loaded
   loading: false,
@@ -64,6 +65,9 @@ function buildDexRoster() {
   DexStore.roster = entries.map(e => ({ apiName: e.apiName, name: e.name, details: null }));
   DexStore.byName = {};
   DexStore.roster.forEach(r => { DexStore.byName[r.apiName] = r; });
+  // Pins are per-roster: a pinned species may not be legal in the new format, so
+  // drop any pin that isn't in the freshly built roster.
+  DexStore.pinned = DexStore.pinned.filter(n => DexStore.byName[n]);
   DexStore.builtForFormat = STATE.format;
   DexStore.allLoaded = false;
 }
@@ -163,6 +167,22 @@ export function removeDexFilter(index) {
 export function clearDexFilters() {
   DexStore.filters = [];
   DexStore.draft = '';
+  notifyDex();
+}
+
+// Pin / unpin a species. Pinned rows are hoisted to the top of the table and
+// stay visible regardless of the active search, so the user can stack up a few
+// Pokémon (search one, pin it, search the next) and compare their stats. In the
+// lazy National Dex a just-pinned row may not have its details yet — load them
+// so the pinned row shows real stats instead of a placeholder.
+export function toggleDexPin(apiName) {
+  if (DexStore.pinned.includes(apiName)) {
+    DexStore.pinned = DexStore.pinned.filter(n => n !== apiName);
+  } else {
+    DexStore.pinned = [...DexStore.pinned, apiName];
+    const row = DexStore.byName[apiName];
+    if (row && !row.details) loadDexDetails([apiName]);
+  }
   notifyDex();
 }
 
