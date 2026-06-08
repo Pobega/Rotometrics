@@ -2008,5 +2008,167 @@
 
     recordSuite('defaultspread', { pass: DS_CASES.length - dsFail, fail: dsFail });
   </script>
+
+  <!-- Expanded ability engine: type-changers, immunities, conditional boosts -->
+  <script type="module">
+    import { calculateDamageRolls, resolveEffectiveMove } from './src/engine/damage.js';
+
+    const results = document.getElementById('results');
+
+    const MON = (o = {}) => ({
+      baseStats: { hp: 100, atk: 100, def: 100, spa: 100, spd: 100, spe: 100 },
+      sps:       { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 },
+      ivs:       { hp: 31, atk: 31, def: 31, spa: 31, spd: 31, spe: 31 },
+      boosts:    { atk: 0, spa: 0, def: 0, spd: 0, spe: 0 },
+      nature: 'neutral', item: 'none', ability: 'none', types: ['Ghost'], status: null, ...o,
+    });
+    const NOMOD = { spread: false, weather: 'none', crit: false, terrain: 'none', aura: 'none', screens: false };
+    // Top (max) roll for a matchup; ability effects are deterministic per roll so
+    // the max is a faithful proxy for the multiplier.
+    const top = (atk, def, move, mod = {}) =>
+      calculateDamageRolls(atk, def, move, { ...NOMOD, ...mod }).slice(-1)[0];
+    // Ratio of (defender or attacker with ability) vs the same matchup with none.
+    const approx = (a, b, tol = 0.04) => Math.abs(a - b) <= tol;
+
+    // Ghost-typed attacker vs Normal/typed defenders avoids accidental STAB so the
+    // ability multiplier is isolated. Moves carry no STAB unless noted.
+    const PHYS = (type, power = 100) => ({ apiName: 'x-phys', name: 'x', type, power, category: 'physical' });
+    const SPEC = (type, power = 100) => ({ apiName: 'x-spec', name: 'x', type, power, category: 'special' });
+
+    const ABE_CASES = [
+      {
+        name: 'tinted-lens doubles not-very-effective damage',
+        run: () => {
+          const move = SPEC('Fire'); // Fire vs Water = 0.5x
+          const def = MON({ types: ['Water'] });
+          const r = top(MON({ ability: 'tinted-lens' }), def, move) / top(MON(), def, move);
+          return approx(r, 2);
+        },
+      },
+      {
+        name: 'neuroforce boosts super-effective damage 1.25x',
+        run: () => {
+          const move = SPEC('Fire'); // Fire vs Grass = 2x
+          const def = MON({ types: ['Grass'] });
+          return approx(top(MON({ ability: 'neuroforce' }), def, move) / top(MON(), def, move), 1.25);
+        },
+      },
+      {
+        name: 'levitate / flash-fire / water-absorb / sap-sipper grant immunity (0)',
+        run: () => {
+          const g = top(MON(), MON({ ability: 'levitate' }), PHYS('Ground'));
+          const f = top(MON(), MON({ ability: 'flash-fire' }), SPEC('Fire'));
+          const w = top(MON(), MON({ ability: 'water-absorb' }), SPEC('Water'));
+          const s = top(MON(), MON({ ability: 'sap-sipper' }), SPEC('Grass'));
+          return g === 0 && f === 0 && w === 0 && s === 0;
+        },
+      },
+      {
+        name: 'fur-coat halves physical, leaves special alone',
+        run: () => {
+          const def = MON({ ability: 'fur-coat' });
+          const phys = top(MON(), def, PHYS('Dark')) / top(MON(), MON(), PHYS('Dark'));
+          const spec = top(MON(), def, SPEC('Dark')) / top(MON(), MON(), SPEC('Dark'));
+          return approx(phys, 0.5) && approx(spec, 1);
+        },
+      },
+      {
+        name: "dragon's-maw / steely-spirit boost their type 1.5x",
+        run: () => {
+          const dm = top(MON({ ability: 'dragons-maw' }), MON(), SPEC('Dragon')) / top(MON(), MON(), SPEC('Dragon'));
+          const ss = top(MON({ ability: 'steely-spirit' }), MON(), PHYS('Steel')) / top(MON(), MON(), PHYS('Steel'));
+          return approx(dm, 1.5) && approx(ss, 1.5);
+        },
+      },
+      {
+        name: 'water-bubble: 2x Water dealt (attacker), 0.5x Fire taken (defender)',
+        run: () => {
+          const off = top(MON({ ability: 'water-bubble' }), MON(), SPEC('Water')) / top(MON(), MON(), SPEC('Water'));
+          const def = top(MON(), MON({ ability: 'water-bubble' }), SPEC('Fire')) / top(MON(), MON(), SPEC('Fire'));
+          return approx(off, 2) && approx(def, 0.5);
+        },
+      },
+      {
+        name: 'sand-force boosts Ground 1.3x only in a sandstorm',
+        run: () => {
+          const move = PHYS('Ground');
+          const inSand = top(MON({ ability: 'sand-force' }), MON(), move, { weather: 'sandstorm' })
+            / top(MON(), MON(), move, { weather: 'sandstorm' });
+          const noSand = top(MON({ ability: 'sand-force' }), MON(), move) / top(MON(), MON(), move);
+          return approx(inSand, 1.3) && approx(noSand, 1);
+        },
+      },
+      {
+        name: 'aerilate converts a Normal move to Flying + flags the 1.2x boost',
+        run: () => {
+          const eff = resolveEffectiveMove({ ability: 'aerilate' }, PHYS('Normal'), NOMOD);
+          return eff.type === 'Flying' && eff._ateBoosted === true;
+        },
+      },
+      {
+        name: 'pixilate boost is 1.2x (type isolated via neutral matchup)',
+        run: () => {
+          // Ghost attacker (no STAB), Steel defender: Normal=1x, Fairy=1x vs Steel,
+          // so only the 1.2x -ate boost differs.
+          const def = MON({ types: ['Steel'] });
+          return approx(top(MON({ ability: 'pixilate' }), def, PHYS('Normal')) / top(MON(), def, PHYS('Normal')), 1.2);
+        },
+      },
+      {
+        name: 'flare-boost: 1.5x special only while burned',
+        run: () => {
+          const burned = top(MON({ ability: 'flare-boost', status: 'burned' }), MON(), SPEC('Dark'))
+            / top(MON({ status: 'burned' }), MON(), SPEC('Dark'));
+          const healthy = top(MON({ ability: 'flare-boost' }), MON(), SPEC('Dark')) / top(MON(), MON(), SPEC('Dark'));
+          return approx(burned, 1.5) && approx(healthy, 1);
+        },
+      },
+      {
+        name: 'wonder-guard: neutral/NVE hits do 0, super-effective lands',
+        run: () => {
+          const def = MON({ ability: 'wonder-guard', types: ['Grass'] });
+          const neutral = top(MON(), def, SPEC('Water')); // Water vs Grass = 0.5x -> blocked
+          const superEff = top(MON(), def, SPEC('Fire'));  // Fire vs Grass = 2x -> lands
+          return neutral === 0 && superEff > 0;
+        },
+      },
+      {
+        name: 'gorilla-tactics / hustle ~1.5x Atk, pure-power 2x Atk (physical)',
+        run: () => {
+          const base = top(MON(), MON(), PHYS('Dark'));
+          const gt = top(MON({ ability: 'gorilla-tactics' }), MON(), PHYS('Dark')) / base;
+          const hu = top(MON({ ability: 'hustle' }), MON(), PHYS('Dark')) / base;
+          const pp = top(MON({ ability: 'pure-power' }), MON(), PHYS('Dark')) / base;
+          return approx(gt, 1.5, 0.05) && approx(hu, 1.5, 0.05) && approx(pp, 2, 0.05);
+        },
+      },
+      {
+        name: 'punk-rock boosts a sound move (Boomburst) 1.3x dealt',
+        run: () => {
+          const move = { apiName: 'boomburst', name: 'Boomburst', type: 'Normal', power: 140, category: 'special' };
+          // Ghost attacker, Steel defender keeps Normal at 1x with no STAB.
+          const def = MON({ types: ['Steel'] });
+          return approx(top(MON({ ability: 'punk-rock' }), def, move) / top(MON(), def, move), 1.3);
+        },
+      },
+    ];
+
+    let abeFail = 0;
+    for (const c of ABE_CASES) {
+      let ok = false;
+      let err = null;
+      try { ok = !!c.run(); } catch (e) { err = e; }
+      const div = document.createElement('div');
+      div.className = 'case ' + (ok ? 'pass' : 'fail');
+      div.innerHTML = ok
+        ? `<div class="name">✓ [abilityeng] ${c.name}</div>`
+        : `<div class="name">✗ [abilityeng] ${c.name}</div><div class="detail">${err ? err.message : 'assertion failed'}</div>`;
+      results.appendChild(div);
+      if (!ok) abeFail++;
+    }
+
+    // Keep the overall summary honest if an ability-engine test regressed.
+    recordSuite('abilityeng', { pass: ABE_CASES.length - abeFail, fail: abeFail });
+  </script>
 </body>
 </html>

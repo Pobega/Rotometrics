@@ -333,6 +333,34 @@ export const PULSE_MOVES = new Set([
   'water-pulse',
 ]);
 
+// Damaging sound-based moves, boosted 1.3x by Punk Rock (attacker) and halved by
+// Punk Rock / Soundproof on defense, per Bulbapedia
+// (https://bulbapedia.bulbagarden.net/wiki/Sound-based_move). Status sound moves
+// (Growl, Roar, Sing, Snarl is damaging…) are omitted — only damaging ones matter
+// to the damage calc.
+export const SOUND_MOVES = new Set([
+  'hyper-voice',
+  'boomburst',
+  'overdrive',
+  'bug-buzz',
+  'snarl',
+  'disarming-voice',
+  'echoed-voice',
+  'round',
+  'relic-song',
+  'sparkling-aria',
+  'clanging-scales',
+  'clangorous-soulblaze',
+  'clangorous-soul',
+  'uproar',
+  'chatter',
+  'snore',
+  'torch-song',
+  'alluring-voice',
+  'psychic-noise',
+  'eerie-spell',
+]);
+
 // Biting moves boosted by Strong Jaw, per Bulbapedia
 // (https://bulbapedia.bulbagarden.net/wiki/Strong_Jaw_(Ability)).
 export const BITING_MOVES = new Set([

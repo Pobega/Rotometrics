@@ -14,6 +14,17 @@ function effectiveSpeed(mon) {
 // (the Attack card's type badge + BP) can never drift. Currently only Weather
 // Ball is variable; add new such moves here.
 //
+// The -ate abilities convert the user's Normal-type moves to another type and
+// boost them 1.2x. resolveEffectiveMove handles the type change (so STAB + the
+// type chart follow automatically); the 1.2x rides on the ._ateBoosted flag,
+// applied in ATTACKER_DAMAGE_ABILITIES.
+const ATE_TYPES = {
+  aerilate: 'Flying',
+  pixilate: 'Fairy',
+  refrigerate: 'Ice',
+  galvanize: 'Electric',
+};
+
 // Weather Ball takes on the weather's type and doubles its power while any
 // weather is active. Mega Sol makes the user's moves behave as if in harsh
 // sunlight, so it turns Weather Ball into a boosted Fire move with no weather.
@@ -25,6 +36,10 @@ export function resolveEffectiveMove(attacker, move, modifiers) {
     if (resolvedType) {
       return { ...move, type: resolvedType, power: move.power * 2 };
     }
+  }
+  const ateType = ATE_TYPES[attacker.ability];
+  if (ateType && move.type === 'Normal') {
+    return { ...move, type: ateType, _ateBoosted: true };
   }
   return move;
 }
@@ -92,10 +107,18 @@ export function calculateDamageRolls(attacker, defender, move, modifiers) {
     effectiveAtk = Math.floor(effectiveAtk * 1.5);
   }
 
-  if (offMon === attacker && attacker.ability === 'huge-power' && isPhysical) {
-    effectiveAtk = Math.floor(effectiveAtk * 2.0);
-  } else if (offMon === attacker && attacker.ability === 'guts' && isPhysical) {
-    effectiveAtk = Math.floor(effectiveAtk * 1.5);
+  // Abilities that scale the user's (physical) Attack stat. Treated as already
+  // "activated" — Guts/Quark etc. don't gate on the triggering condition here,
+  // matching the list labels (e.g. "Guts Activated").
+  const ATK_STAT_ABILITY = {
+    'huge-power': 2.0,
+    'pure-power': 2.0,
+    guts: 1.5,
+    'gorilla-tactics': 1.5,
+    hustle: 1.5,
+  };
+  if (offMon === attacker && isPhysical && ATK_STAT_ABILITY[attacker.ability]) {
+    effectiveAtk = Math.floor(effectiveAtk * ATK_STAT_ABILITY[attacker.ability]);
   }
 
   if (defender.item === 'assault_vest' && defStatName === 'spd') {
@@ -226,7 +249,7 @@ export function calculateDamageRolls(attacker, defender, move, modifiers) {
     mod *= 5461 / 4096;
   }
 
-  const abilityCtx = { move, isPhysical, attacker, defender, typeMult };
+  const abilityCtx = { move, isPhysical, attacker, defender, typeMult, modifiers };
   mod *= attackerAbilityMultiplier(attacker.ability, abilityCtx);
 
   let screenMod = modifiers.screens ? 0.66 : 1.0;
