@@ -48,6 +48,7 @@ export const OFFENSIVE_VGC_ABILITIES = [
   { apiName: 'rocky-payload', name: 'Rocky Payload (1.5x Rock moves)' },
   { apiName: 'supreme-overlord', name: 'Supreme Overlord (1.5x damage)' },
   { apiName: 'iron-fist', name: 'Iron Fist (1.2x Punching moves)' },
+  { apiName: 'mega-launcher', name: 'Mega Launcher (1.5x Pulse/Aura moves)' },
   { apiName: 'mega-sol', name: 'Mega Sol (Always Sunny)' },
   { apiName: 'fairy-aura', name: 'Fairy Aura (1.33x Fairy moves)' },
   { apiName: 'scrappy', name: 'Scrappy (Hit Ghosts w/ Normal/Fighting)' },

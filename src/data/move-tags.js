@@ -321,6 +321,18 @@ export const CONTACT_MOVES = new Set([
   'zippy-zap',
 ]);
 
+// Pulse/aura moves boosted by Mega Launcher, per Bulbapedia
+// (https://bulbapedia.bulbagarden.net/wiki/Mega_Launcher_(Ability)).
+// Heal Pulse is omitted as it deals no damage.
+export const PULSE_MOVES = new Set([
+  'aura-sphere',
+  'dark-pulse',
+  'dragon-pulse',
+  'origin-pulse',
+  'terrain-pulse',
+  'water-pulse',
+]);
+
 // Biting moves boosted by Strong Jaw, per Bulbapedia
 // (https://bulbapedia.bulbagarden.net/wiki/Strong_Jaw_(Ability)).
 export const BITING_MOVES = new Set([

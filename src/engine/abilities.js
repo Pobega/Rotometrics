@@ -4,7 +4,13 @@
 //   2. Add the apiName to OFFENSIVE_VGC_ABILITIES or DEFENSIVE_VGC_ABILITIES
 //      in app.js so it appears in the dropdown.
 
-import { SLICING_MOVES, CONTACT_MOVES, BITING_MOVES, PUNCHING_MOVES } from '../data/move-tags.js';
+import {
+  SLICING_MOVES,
+  CONTACT_MOVES,
+  BITING_MOVES,
+  PUNCHING_MOVES,
+  PULSE_MOVES,
+} from '../data/move-tags.js';
 
 // Context shape passed to every entry:
 //   { move, isPhysical, attacker, defender }
@@ -15,6 +21,7 @@ export const ATTACKER_DAMAGE_ABILITIES = {
   'tough-claws': ({ move }) => (CONTACT_MOVES.has(move.apiName) ? 1.3 : 1),
   'strong-jaw': ({ move }) => (BITING_MOVES.has(move.apiName) ? 1.5 : 1),
   'iron-fist': ({ move }) => (PUNCHING_MOVES.has(move.apiName) ? 1.2 : 1),
+  'mega-launcher': ({ move }) => (PULSE_MOVES.has(move.apiName) ? 1.5 : 1),
   transistor: ({ move }) => (move.type === 'Electric' ? 1.3 : 1),
   steelworker: ({ move }) => (move.type === 'Steel' ? 1.5 : 1),
   'rocky-payload': ({ move }) => (move.type === 'Rock' ? 1.5 : 1),

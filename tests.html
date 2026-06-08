@@ -125,6 +125,7 @@
     const ERUPTION = { apiName: 'eruption', type: 'Fire', power: 150, category: 'special' };
     const GYRO_BALL = { apiName: 'gyro-ball', type: 'Steel', power: 1, category: 'physical' };
     const ELECTRO_BALL = { apiName: 'electro-ball', type: 'Electric', power: 0, category: 'special' };
+    const DARK_PULSE = { apiName: 'dark-pulse', type: 'Dark', power: 80, category: 'special' };
 
     // Attacker preset: +atk nature, 32 SP into atk, everything else 0.
     const ATTACKER = (overrides = {}) => NORMAL_MON({
@@ -247,6 +248,22 @@
         move: CRUNCH,
         modifiers: {},
         expected: { min: 63, max: 75 },
+      },
+      {
+        name: 'Mega Launcher + pulse move (1.5x)',
+        attacker: ATTACKER({ ability: 'mega-launcher' }),
+        defender: DEFENDER(),
+        move: DARK_PULSE,
+        modifiers: {},
+        expected: { min: 42, max: 49 },
+      },
+      {
+        name: 'Mega Launcher does not boost non-pulse move',
+        attacker: ATTACKER({ ability: 'mega-launcher' }),
+        defender: DEFENDER(),
+        move: CRUNCH,
+        modifiers: {},
+        expected: { min: 42, max: 50 },
       },
       {
         name: 'Supreme Overlord 1.5x (regression)',
