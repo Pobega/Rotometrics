@@ -315,6 +315,9 @@ export async function fetchMoveDetails(moveApiName) {
     power: data.power || 0,
     type: formatDisplayName(data.type.name),
     category: data.damage_class.name,
+    // null in PokeAPI means the move never misses (e.g. Swift, Aura Sphere); the
+    // smart default-move pick treats null as 100%.
+    accuracy: data.accuracy ?? null,
     // Attackdex fields. `pp` and `target` drive the PP sort and the Spread
     // filter; `desc` backs the description column + free-text search.
     pp: data.pp ?? null,
@@ -325,6 +328,27 @@ export async function fetchMoveDetails(moveApiName) {
 
   Storage.set(key, details);
   return details;
+}
+
+// Resolve details for many moves at once, capping in-flight requests so picking
+// a Pokémon with a large learnset doesn't fire a hundred parallel PokeAPI calls
+// on a cold cache (warm-cache lookups resolve instantly via Storage). Failed
+// lookups are dropped; result order is not significant to callers.
+export async function fetchMoveDetailsMany(apiNames, concurrency = 8) {
+  const out = [];
+  let next = 0;
+  async function worker() {
+    while (next < apiNames.length) {
+      const name = apiNames[next++];
+      try {
+        out.push(await fetchMoveDetails(name));
+      } catch (err) {
+        console.error(`Failed to fetch move details for ${name}`, err);
+      }
+    }
+  }
+  await Promise.all(Array.from({ length: Math.min(concurrency, apiNames.length) }, worker));
+  return out;
 }
 
 // Loads the full move name list (PokéAPI's /move index, ~900 entries) into

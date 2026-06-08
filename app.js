@@ -15,7 +15,9 @@ import {
   initAllMovesList,
   fetchPokemonDetails,
   fetchMoveDetails,
+  fetchMoveDetailsMany,
 } from './src/api/pokeapi.js';
+import { pickDefaultMove } from './src/engine/default-move.js';
 import { pruneOldCaches } from './src/api/cache.js';
 import { buildResultModel } from './src/ui/result-summary.js';
 import {
@@ -54,6 +56,12 @@ import { setRecompute, notify, DERIVED } from './src/ui-preact/store.js';
 // own the move selection, so suppress setAttackerDetails' async move auto-pick
 // (its late updateLiveStats would otherwise clobber the imported move).
 let isApplyingMatchup = false;
+
+// Monotonic token guarding setAttackerDetails' async smart default-move pick:
+// selecting a new attacker bumps it, and a resolving learnset fetch only applies
+// its pick if it's still the latest (mirrors MovePanel's selectToken). Without
+// this, a slow learnset for an earlier pick could clobber a newer attacker's move.
+let attackerSelectToken = 0;
 
 // Tracks whether the field aura is currently force-locked to Fairy by the
 // attacker's Fairy Aura ability, so releasing the ability can revert it to none.
@@ -102,23 +110,45 @@ function setAttackerDetails(details) {
     .filter((m) => !CACHE.statusMoves[m.apiName])
     .sort((a, b) => a.name.localeCompare(b.name));
 
-  // Auto Pre-Selection of the very first valid damaging move from the new learnset!
-  // While importing a matchup, applyMatchup owns the move selection, so skip the
-  // async auto-pick here — its late updateLiveStats() would clobber the import.
+  // Smart default-move pick (issue #68): rather than the alphabetically-first
+  // damaging move (which gave Kingambit -> Aerial Ace), default to the attacker's
+  // best STAB attack. That needs every damaging move's stats, so show the first
+  // move immediately, resolve the whole learnset, then swap in the smart pick.
+  // While importing a matchup/sample, that caller owns the move selection, so
+  // skip the async pick — its late updateLiveStats() would clobber the import.
   if (damagingMoves.length > 0 && !isApplyingMatchup) {
+    const token = ++attackerSelectToken;
     const firstMove = damagingMoves[0];
     STATE.move.apiName = firstMove.apiName;
     STATE.move.name = firstMove.name;
 
-    fetchMoveDetails(firstMove.apiName)
-      .then((move) => {
-        STATE.move.power = move.power; // base power; MovePanel shows resolved BP
-        STATE.move.type = move.type;
-        STATE.move.category = move.category.toLowerCase();
+    fetchMoveDetailsMany(damagingMoves.map((m) => m.apiName))
+      .then((moveDetails) => {
+        if (token !== attackerSelectToken) return; // a newer attacker superseded this
+        const choice =
+          pickDefaultMove({
+            moves: moveDetails,
+            types: STATE.attacker.types,
+            baseStats: STATE.attacker.baseStats,
+          }) || moveDetails.find((m) => m.apiName === firstMove.apiName);
+
+        if (choice) {
+          const entry = damagingMoves.find((m) => m.apiName === choice.apiName);
+          STATE.move.apiName = choice.apiName;
+          STATE.move.name = entry ? entry.name : choice.name;
+          STATE.move.power = choice.power; // base power; MovePanel shows resolved BP
+          STATE.move.type = choice.type;
+          STATE.move.category = choice.category.toLowerCase();
+        } else {
+          STATE.move.apiName = '';
+          STATE.move.name = 'Custom Move';
+          STATE.move.power = 80;
+        }
         updateLiveStats();
       })
       .catch((err) => {
-        console.error('Error auto pre-selecting first VGC move:', err);
+        if (token !== attackerSelectToken) return;
+        console.error('Error picking smart default move:', err);
         STATE.move.apiName = '';
         STATE.move.name = 'Custom Move';
         STATE.move.power = 80;
@@ -377,8 +407,12 @@ async function loadSampleVGCScenario() {
   }
 
   // Run standard detail setters to load stats, profiles, and filter abilities!
+  // Like applyMatchup, the sample owns its move selection (Acrobatics below), so
+  // suppress setAttackerDetails' async smart-default pick for this load.
+  isApplyingMatchup = true;
   setAttackerDetails(attackerDetails);
   setDefenderDetails(defenderDetails);
+  isApplyingMatchup = false;
 
   // Override specific sample scenario parameters! Both mons' fields live on STATE
   // (search inputs live in the islands and reset themselves on the next render).

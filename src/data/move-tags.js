@@ -364,3 +364,123 @@ export const PUNCHING_MOVES = new Set([
   'thunder-punch',
   'wicked-blow',
 ]);
+
+// Moves with a turn-cost drawback that makes them a poor *default* pick even when
+// their raw base power is the highest in a learnset: recharge moves (skip the
+// next turn), two-turn charge moves (do nothing turn one), and once-per-stretch
+// moves. The smart default-move picker (engine/default-move.js) deprioritizes
+// these so e.g. a Pokémon doesn't default to Hyper Beam over a strong STAB move.
+// Add new moves as users hit them.
+export const DRAWBACK_MOVES = new Set([
+  // Recharge (must skip the turn after use)
+  'hyper-beam',
+  'giga-impact',
+  'hydro-cannon',
+  'blast-burn',
+  'frenzy-plant',
+  'rock-wrecker',
+  'roar-of-time',
+  'prismatic-laser',
+  'eternabeam',
+  'meteor-assault',
+  // Two-turn charge (no damage on turn one without a weather/item shortcut)
+  'solar-beam',
+  'solar-blade',
+  'sky-attack',
+  'skull-bash',
+  'razor-wind',
+  'freeze-shock',
+  'ice-burn',
+  'meteor-beam',
+  'electro-shot',
+  'geomancy',
+  // Two-turn semi-invulnerable (the user vanishes turn one, hits turn two)
+  'fly',
+  'dig',
+  'dive',
+  'bounce',
+  'phantom-force',
+  'shadow-force',
+  'sky-drop',
+  // Self-damage: Steel Beam costs the user half its max HP, Mind Blown / Chloroblast
+  // a chunk too — a poor lead even at high BP (but not a guaranteed faint like the
+  // SELF_KO_MOVES, so penalized rather than excluded).
+  'steel-beam',
+  'mind-blown',
+  'chloroblast',
+  // Conditional — frequently fails or does nothing on turn one:
+  'focus-punch', // fails if the user takes damage before attacking
+  'future-sight', // delayed: damage lands two turns later, not now
+  'doom-desire',
+  'dream-eater', // only works on a sleeping target
+  'steel-roller', // fails with no terrain active
+  // Don't scale off the user's own attacking stat, so a misleading default for a
+  // picker that ranks by Atk/SpA: Foul Play uses the *target's* Attack, Body Press
+  // the user's Defense. (Psyshock/Psystrike/Secret Sword still use the user's SpA,
+  // just hit physical Defense, so they're fine and not listed here.)
+  'foul-play',
+  'body-press',
+  // Lock-in: the user is forced to repeat the move for 2–3 turns, then is confused.
+  'outrage',
+  'thrash',
+  'petal-dance',
+  // HP-dependent power: only hit full BP at full HP, so a misleading default (these
+  // are also spread moves and excluded as such, but listed here to be explicit).
+  'water-spout',
+  'eruption',
+  'dragon-energy',
+  // Usage-locked (useless on turn one): Last Resort can't fire until every other
+  // move has been used; Belch needs a held Berry eaten first.
+  'last-resort',
+  'belch',
+]);
+
+// Signature attacking moves — strong, often unique to one Pokémon — that should
+// win the default pick over a marginally higher-BP generic move when the species
+// has one. The picker (engine/default-move.js) gives these a small score nudge.
+// Add new moves as users hit them.
+export const SIGNATURE_MOVES = new Set([
+  'behemoth-blade',
+  'behemoth-bash',
+  'fishious-rend',
+  'bolt-beak',
+  'glacial-lance',
+  'astral-barrage',
+  'collision-course',
+  'electro-drift',
+  'spacial-rend',
+  'roar-of-time',
+  'sandsear-storm',
+  'wildbolt-storm',
+  'bleakwind-storm',
+  'springtide-storm',
+  'fiery-wrath',
+  'thunderous-kick',
+  'surging-strikes',
+  'wicked-blow',
+  'mighty-cleave',
+  'population-bomb',
+  'ceaseless-edge',
+  'stone-axe',
+  'kowtow-cleave',
+  'flower-trick',
+  'torch-song',
+  'aqua-step',
+  'ivy-cudgel',
+  'matcha-gotcha',
+  'psyblade',
+  'tachyon-cutter',
+]);
+
+// Moves that faint the user as a cost — never a sensible default pick no matter
+// how high their base power. The smart default-move picker (engine/default-move.js)
+// excludes these from the candidate pool entirely (unlike DRAWBACK_MOVES, which
+// are only deprioritized). Final Gambit has null power so it's already filtered;
+// the self-KO blast moves are listed here because their raw BP is huge.
+// Add new moves as users hit them.
+export const SELF_KO_MOVES = new Set([
+  'self-destruct',
+  'explosion',
+  'misty-explosion',
+  'final-gambit',
+]);
