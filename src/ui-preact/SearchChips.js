@@ -21,9 +21,17 @@ export function SearchChips({
   onClear,
   suggest,
   onPick,
+  hideChips,
 }) {
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState(-1);
+
+  // Values that filter but aren't shown as chips — e.g. the Abilitydex Offensive/
+  // Defensive presets, already represented by their lit buttons. They still count
+  // as committed (excluded from suggestions) and keep their real index so removal
+  // stays correct; they're just skipped in the chip strip.
+  const hidden = new Set((hideChips || []).map((v) => v.toLowerCase()));
+  const visibleCount = filters.filter((f) => !hidden.has(f.toLowerCase())).length;
 
   const trimmed = draft.trim();
   const suggestions =
@@ -114,11 +122,13 @@ export function SearchChips({
         }
       </div>
       ${
-        filters.length > 0 &&
+        visibleCount > 0 &&
         html`
         <div class="flex flex-wrap items-center gap-1.5">
-          ${filters.map(
-            (term, i) => html`
+          ${filters.map((term, i) =>
+            hidden.has(term.toLowerCase())
+              ? null
+              : html`
             <span key=${term} class="flex items-center gap-1 text-[10px] font-bold text-amber-300 bg-amber-950/40 border border-amber-900/50 rounded-lg pl-2 pr-1 py-0.5">
               ${term}
               <button onClick=${() => onRemove(i)}
@@ -128,7 +138,7 @@ export function SearchChips({
             </span>`
           )}
           ${
-            filters.length > 1 &&
+            visibleCount > 1 &&
             html`
             <button onClick=${onClear}
               class="text-[9px] font-extrabold uppercase tracking-wider text-slate-500 hover:text-white transition px-1">

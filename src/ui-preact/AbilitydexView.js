@@ -115,7 +115,8 @@ export function AbilitydexView() {
             onRemove=${removeAbdFilter}
             onClear=${clearAbdFilters}
             suggest=${abdSuggest}
-            onPick=${commitAbdValue} />
+            onPick=${commitAbdValue}
+            hideChips=${['offensive', 'defensive']} />
         </div>
       </div>
 
