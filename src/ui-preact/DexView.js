@@ -4,6 +4,7 @@
 // shared vanilla detail modal. (Lazy National-Dex loading is restored in 2b.)
 import { html, useRef } from './preact.js';
 import { useSubscription, useLazyRowLoader } from './reactive.js';
+import { SearchChips } from './SearchChips.js';
 import { STATE } from '../state.js';
 import { bst, sortDex, filterDex } from '../data/dex.js';
 import { REGULATIONS } from '../data/regulations.js';
@@ -151,53 +152,14 @@ export function DexView() {
           <${RegulationBadge} />
           <span class="text-[10px] font-bold text-slate-500 normal-case tracking-normal">${statusText}</span>
         </h2>
-        <div class="flex flex-col items-stretch gap-2 w-full sm:w-72">
-          <div class="relative w-full">
-            <input type="text" placeholder="Search name, type, ability, move… (Enter to add)"
-              value=${DexStore.draft}
-              onInput=${(e) => setDexDraft(e.target.value)}
-              onKeyDown=${(e) => {
-                if (e.key === 'Enter') {
-                  e.preventDefault();
-                  commitDexFilter();
-                }
-              }}
-              class="w-full bg-slate-900 border border-slate-700 rounded-xl py-2 pl-9 pr-8 text-xs text-slate-100 focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition" />
-            <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-[10px]"></i>
-            ${
-              DexStore.draft &&
-              html`
-              <button onClick=${() => setDexDraft('')}
-                class="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white transition leading-none" aria-label="Clear input">
-                <i class="fa-solid fa-xmark text-sm"></i>
-              </button>`
-            }
-          </div>
-          ${
-            DexStore.filters.length > 0 &&
-            html`
-            <div class="flex flex-wrap items-center gap-1.5">
-              ${DexStore.filters.map(
-                (term, i) => html`
-                <span key=${term} class="flex items-center gap-1 text-[10px] font-bold text-amber-300 bg-amber-950/40 border border-amber-900/50 rounded-lg pl-2 pr-1 py-0.5">
-                  ${term}
-                  <button onClick=${() => removeDexFilter(i)}
-                    class="text-amber-500/70 hover:text-white transition leading-none px-0.5" aria-label=${`Remove ${term}`}>
-                    <i class="fa-solid fa-xmark text-[11px]"></i>
-                  </button>
-                </span>`
-              )}
-              ${
-                DexStore.filters.length > 1 &&
-                html`
-                <button onClick=${clearDexFilters}
-                  class="text-[9px] font-extrabold uppercase tracking-wider text-slate-500 hover:text-white transition px-1">
-                  Clear all
-                </button>`
-              }
-            </div>`
-          }
-        </div>
+        <${SearchChips}
+          draft=${DexStore.draft}
+          filters=${DexStore.filters}
+          placeholder="Search name, type, ability, move… (Enter to add)"
+          onDraft=${setDexDraft}
+          onCommit=${commitDexFilter}
+          onRemove=${removeDexFilter}
+          onClear=${clearDexFilters} />
       </div>
 
       <!-- Scrollable table -->

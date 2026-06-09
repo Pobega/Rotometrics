@@ -22,6 +22,7 @@ import { openDetailModal, closeDetailModal, refreshDetailModalBody } from './Det
 import { spreadKind } from '../data/moves.js';
 import { html } from './preact.js';
 import { createEmitter } from './reactive.js';
+import { makeChipFilter } from './chip-filter.js';
 import { runPool } from './load-pool.js';
 
 // Shared, reactive Pokédex state. DexView reads these fields directly and
@@ -145,46 +146,15 @@ export async function setDexSort(key) {
   }
 }
 
-// True when any search term is active (a committed chip or the live draft), so
-// the view depends on every row's loaded details (type/ability/move search).
-function hasActiveTerm() {
-  return DexStore.filters.length > 0 || DexStore.draft.trim() !== '';
-}
-
-// Update the live (uncommitted) draft text. Type/ability/move search needs every
-// row's details; in the lazy National Dex, load them all the first time a term
-// becomes active.
-export async function setDexDraft(text) {
-  DexStore.draft = text;
-  notifyDex();
-  if (hasActiveTerm() && !DexStore.allLoaded) {
-    await ensureDexFullyLoaded();
-  }
-}
-
-// Lock the current draft in as a chip (on Enter). Skips blanks and duplicates.
-export async function commitDexFilter() {
-  const term = DexStore.draft.trim();
-  DexStore.draft = '';
-  if (term && !DexStore.filters.some((f) => f.toLowerCase() === term.toLowerCase())) {
-    DexStore.filters = [...DexStore.filters, term];
-  }
-  notifyDex();
-  if (hasActiveTerm() && !DexStore.allLoaded) {
-    await ensureDexFullyLoaded();
-  }
-}
-
-export function removeDexFilter(index) {
-  DexStore.filters = DexStore.filters.filter((_, i) => i !== index);
-  notifyDex();
-}
-
-export function clearDexFilters() {
-  DexStore.filters = [];
-  DexStore.draft = '';
-  notifyDex();
-}
+// Chip-filter state (committed chips + live draft) uses the shared factory so the
+// Pokédex behaves identically to the other dex pages. The onActivate hook
+// force-loads the lazy National Dex the first time a term becomes active, since
+// type/ability/move search reads every row's details (it's a no-op once loaded).
+const dexChip = makeChipFilter(DexStore, notifyDex, { onActivate: ensureDexFullyLoaded });
+export const setDexDraft = dexChip.setDraft;
+export const commitDexFilter = dexChip.commit;
+export const removeDexFilter = dexChip.remove;
+export const clearDexFilters = dexChip.clear;
 
 // Pin / unpin a species. Pinned rows are hoisted to the top of the table and
 // stay visible regardless of the active search, so the user can stack up a few
