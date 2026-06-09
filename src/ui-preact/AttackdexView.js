@@ -5,19 +5,18 @@
 // an IntersectionObserver, mirroring DexView.
 import { html, useRef } from './preact.js';
 import { useSubscription, useLazyRowLoader } from './reactive.js';
+import { SearchChips } from './SearchChips.js';
 import { sortMoves, filterMoves, spreadKind } from '../data/moves.js';
 import { getTypeBgClass, getCategoryBadge } from '../ui/render.js';
-import { ALL_TYPES } from '../data/constants.js';
 import {
   AdxStore,
   subscribeAdx,
   attackdexStatusText,
   setAdxSort,
-  setAdxQuery,
-  clearAdxQuery,
-  setAdxType,
-  setAdxCategory,
-  toggleAdxSpread,
+  setAdxDraft,
+  commitAdxFilter,
+  removeAdxFilter,
+  clearAdxFilters,
   handleAttackdexRowClick,
   loadMoveDetails,
 } from './attackdex-store.js';
@@ -88,12 +87,10 @@ function SortButton({ col }) {
 export function AttackdexView() {
   useSubscription(subscribeAdx);
 
-  const filtered = filterMoves(AdxStore.roster, {
-    query: AdxStore.query,
-    type: AdxStore.filterType,
-    category: AdxStore.filterCategory,
-    spread: AdxStore.filterSpread,
-  });
+  // Committed chips plus the live draft (so typing previews before Enter).
+  const draft = AdxStore.draft.trim();
+  const terms = draft ? [...AdxStore.filters, draft] : AdxStore.filters;
+  const filtered = filterMoves(AdxStore.roster, terms);
   const sorted = sortMoves(filtered, AdxStore.sortKey, AdxStore.sortDir);
   const statusText =
     AdxStore.loading && AdxStore.roster.length === 0 ? 'loading moves…' : attackdexStatusText();
@@ -101,13 +98,6 @@ export function AttackdexView() {
   // Lazy loading: fetch placeholder rows as they scroll into view (mirrors DexView).
   const rowsRef = useRef(null);
   useLazyRowLoader(rowsRef, AdxStore, loadMoveDetails);
-
-  const spreadOn = AdxStore.filterSpread;
-  const spreadCls = spreadOn
-    ? 'shrink-0 text-[10px] font-extrabold uppercase tracking-wider py-2 px-3 rounded-xl transition bg-amber-950/40 text-amber-400 border border-amber-900/50'
-    : 'shrink-0 text-[10px] font-extrabold uppercase tracking-wider py-2 px-3 rounded-xl transition bg-slate-900 text-slate-400 border border-slate-700 hover:text-white';
-  const selCls =
-    'bg-transparent text-[11px] font-bold text-slate-200 focus:outline-none cursor-pointer';
 
   return html`
     <section class="bg-slate-950/20 border border-slate-800/80 rounded-3xl p-5 lg:p-5 flex flex-col gap-4">
@@ -118,45 +108,14 @@ export function AttackdexView() {
           <i class="fa-solid fa-burst text-xs"></i> Attackdex
           <span class="text-[10px] font-bold text-slate-500 normal-case tracking-normal">${statusText}</span>
         </h2>
-        <div class="relative w-full sm:w-72">
-          <input type="text" placeholder="Search name or effect (e.g. burn)…"
-            value=${AdxStore.query}
-            onInput=${(e) => setAdxQuery(e.target.value)}
-            class="w-full bg-slate-900 border border-slate-700 rounded-xl py-2 pl-9 pr-8 text-xs text-slate-100 focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition" />
-          <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-[10px]"></i>
-          ${
-            AdxStore.query &&
-            html`
-            <button onClick=${clearAdxQuery}
-              class="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white transition leading-none" aria-label="Clear search">
-              <i class="fa-solid fa-xmark text-sm"></i>
-            </button>`
-          }
-        </div>
-      </div>
-
-      <!-- Filters: Type, Category, Spread -->
-      <div class="flex flex-wrap items-center gap-2">
-        <div class="flex items-center gap-1.5 bg-slate-900 border border-slate-700 rounded-xl px-3 py-1.5">
-          <span class="text-[9px] font-extrabold text-slate-500 uppercase tracking-wider">Type</span>
-          <select class=${selCls} value=${AdxStore.filterType} onChange=${(e) => setAdxType(e.target.value)}>
-            <option value="" class="bg-slate-800">All</option>
-            ${ALL_TYPES.map((t) => html`<option value=${t} class="bg-slate-800">${t}</option>`)}
-          </select>
-        </div>
-        <div class="flex items-center gap-1.5 bg-slate-900 border border-slate-700 rounded-xl px-3 py-1.5">
-          <span class="text-[9px] font-extrabold text-slate-500 uppercase tracking-wider">Category</span>
-          <select class=${selCls} value=${AdxStore.filterCategory} onChange=${(e) => setAdxCategory(e.target.value)}>
-            <option value="" class="bg-slate-800">All</option>
-            <option value="physical" class="bg-slate-800">Physical</option>
-            <option value="special" class="bg-slate-800">Special</option>
-            <option value="status" class="bg-slate-800">Status</option>
-          </select>
-        </div>
-        <button type="button" aria-pressed=${spreadOn ? 'true' : 'false'} class=${spreadCls}
-          onClick=${toggleAdxSpread}>
-          Spread only
-        </button>
+        <${SearchChips}
+          draft=${AdxStore.draft}
+          filters=${AdxStore.filters}
+          placeholder="Search name, type, category, spread, learner… (Enter to add)"
+          onDraft=${setAdxDraft}
+          onCommit=${commitAdxFilter}
+          onRemove=${removeAdxFilter}
+          onClear=${clearAdxFilters} />
       </div>
 
       <!-- Scrollable table -->
@@ -176,7 +135,7 @@ export function AttackdexView() {
             ${
               sorted.length
                 ? sorted.map((row) => html`<${MoveRow} key=${row.apiName} row=${row} />`)
-                : html`<div class="px-3 py-8 text-center text-xs text-slate-500">No moves match your filters.</div>`
+                : html`<div class="px-3 py-8 text-center text-xs text-slate-500">No moves match ${terms.map((t, i) => html`${i > 0 ? ' + ' : ''}“${t}”`)}.</div>`
             }
           </div>
         </div>
