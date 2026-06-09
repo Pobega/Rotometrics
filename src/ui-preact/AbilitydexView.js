@@ -5,14 +5,19 @@
 // IntersectionObserver, mirroring AttackdexView.
 import { html, useRef } from './preact.js';
 import { useSubscription, useLazyRowLoader } from './reactive.js';
+import { SearchChips } from './SearchChips.js';
 import { sortAbilities, filterAbilities, vgcTag } from '../data/abilities.js';
 import {
   AbdStore,
   subscribeAbd,
   abilitydexStatusText,
-  setAbdQuery,
-  clearAbdQuery,
-  setAbdTag,
+  setAbdDraft,
+  commitAbdFilter,
+  commitAbdValue,
+  removeAbdFilter,
+  clearAbdFilters,
+  toggleAbdTag,
+  abdSuggest,
   handleAbilitydexRowClick,
   loadAbilityDetails,
 } from './abilitydex-store.js';
@@ -58,10 +63,10 @@ function AbilityRow({ row }) {
 export function AbilitydexView() {
   useSubscription(subscribeAbd);
 
-  const filtered = filterAbilities(AbdStore.roster, {
-    query: AbdStore.query,
-    tag: AbdStore.filterTag,
-  });
+  // Committed chips plus the live draft (so typing previews before Enter).
+  const draft = AbdStore.draft.trim();
+  const terms = draft ? [...AbdStore.filters, draft] : AbdStore.filters;
+  const filtered = filterAbilities(AbdStore.roster, terms);
   const sorted = sortAbilities(filtered, 'asc');
   const statusText =
     AbdStore.loading && AbdStore.roster.length === 0
@@ -72,11 +77,12 @@ export function AbilitydexView() {
   const rowsRef = useRef(null);
   useLazyRowLoader(rowsRef, AbdStore, loadAbilityDetails);
 
-  // Off/Def tag filter as a segmented control. Each button toggles its tag (a
-  // second click on the active one clears back to "all"). Off/Def keep their
-  // amber/sky accents when active so they echo the row Tag badges.
-  const tagBtnCls = (tag, accent) =>
-    AbdStore.filterTag === tag
+  // Offensive / Defensive presets: each toggles its keyword chip, and lights up
+  // (with the amber/sky accent echoing the row Tag badges) while that chip is on.
+  const offOn = AbdStore.filters.includes('offensive');
+  const defOn = AbdStore.filters.includes('defensive');
+  const tagBtnCls = (on, accent) =>
+    on
       ? `shrink-0 text-[10px] font-extrabold uppercase tracking-wider py-2 px-3 rounded-xl transition ${accent}`
       : 'shrink-0 text-[10px] font-extrabold uppercase tracking-wider py-2 px-3 rounded-xl transition bg-slate-900 text-slate-400 border border-slate-700 hover:text-white';
 
@@ -89,36 +95,28 @@ export function AbilitydexView() {
           <i class="fa-solid fa-atom text-xs"></i> Abilitydex
           <span class="text-[10px] font-bold text-slate-500 normal-case tracking-normal">${statusText}</span>
         </h2>
-        <div class="relative w-full sm:w-72">
-          <input type="text" placeholder="Search name or effect (e.g. intimidate)…"
-            value=${AbdStore.query}
-            onInput=${(e) => setAbdQuery(e.target.value)}
-            class="w-full bg-slate-900 border border-slate-700 rounded-xl py-2 pl-9 pr-8 text-xs text-slate-100 focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition" />
-          <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-[10px]"></i>
-          ${
-            AbdStore.query &&
-            html`
-            <button onClick=${clearAbdQuery}
-              class="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white transition leading-none" aria-label="Clear search">
-              <i class="fa-solid fa-xmark text-sm"></i>
-            </button>`
-          }
+        <div class="flex flex-wrap items-start gap-2 w-full sm:w-auto">
+          <button type="button" aria-pressed=${offOn ? 'true' : 'false'}
+            class=${tagBtnCls(offOn, 'bg-amber-950/40 text-amber-400 border border-amber-900/50')}
+            onClick=${() => toggleAbdTag('offensive')}>
+            Offensive
+          </button>
+          <button type="button" aria-pressed=${defOn ? 'true' : 'false'}
+            class=${tagBtnCls(defOn, 'bg-sky-950/40 text-sky-400 border border-sky-900/50')}
+            onClick=${() => toggleAbdTag('defensive')}>
+            Defensive
+          </button>
+          <${SearchChips}
+            draft=${AbdStore.draft}
+            filters=${AbdStore.filters}
+            placeholder="Search ability, effect, Pokémon… (Enter to add)"
+            onDraft=${setAbdDraft}
+            onCommit=${commitAbdFilter}
+            onRemove=${removeAbdFilter}
+            onClear=${clearAbdFilters}
+            suggest=${abdSuggest}
+            onPick=${commitAbdValue} />
         </div>
-      </div>
-
-      <!-- Filter: VGC damage-relevant abilities (Offensive / Defensive) -->
-      <div class="flex flex-wrap items-center gap-2">
-        <span class="text-[9px] font-extrabold text-slate-500 uppercase tracking-wider">VGC</span>
-        <button type="button" aria-pressed=${AbdStore.filterTag === 'off' ? 'true' : 'false'}
-          class=${tagBtnCls('off', 'bg-amber-950/40 text-amber-400 border border-amber-900/50')}
-          onClick=${() => setAbdTag('off')}>
-          Offensive
-        </button>
-        <button type="button" aria-pressed=${AbdStore.filterTag === 'def' ? 'true' : 'false'}
-          class=${tagBtnCls('def', 'bg-sky-950/40 text-sky-400 border border-sky-900/50')}
-          onClick=${() => setAbdTag('def')}>
-          Defensive
-        </button>
       </div>
 
       <!-- Scrollable table -->
@@ -135,7 +133,7 @@ export function AbilitydexView() {
             ${
               sorted.length
                 ? sorted.map((row) => html`<${AbilityRow} key=${row.apiName} row=${row} />`)
-                : html`<div class="px-3 py-8 text-center text-xs text-slate-500">No abilities match your filters.</div>`
+                : html`<div class="px-3 py-8 text-center text-xs text-slate-500">No abilities match ${terms.map((t, i) => html`${i > 0 ? ' + ' : ''}“${t}”`)}.</div>`
             }
           </div>
         </div>
