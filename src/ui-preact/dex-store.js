@@ -23,6 +23,7 @@ import { spreadKind } from '../data/moves.js';
 import { html } from './preact.js';
 import { createEmitter } from './reactive.js';
 import { makeChipFilter } from './chip-filter.js';
+import { makeSuggester } from './suggestions.js';
 import { runPool } from './load-pool.js';
 
 // Shared, reactive Pokédex state. DexView reads these fields directly and
@@ -153,8 +154,15 @@ export async function setDexSort(key) {
 const dexChip = makeChipFilter(DexStore, notifyDex, { onActivate: ensureDexFullyLoaded });
 export const setDexDraft = dexChip.setDraft;
 export const commitDexFilter = dexChip.commit;
+export const commitDexValue = dexChip.commitValue;
 export const removeDexFilter = dexChip.remove;
 export const clearDexFilters = dexChip.clear;
+
+// Autocomplete: the Pokédex filters on all four kinds (an exact type name, a
+// species name, an ability, or a move), so suggest from each.
+export const dexSuggest = makeSuggester(['type', 'pokemon', 'ability', 'move'], {
+  onReady: notifyDex,
+});
 
 // Pin / unpin a species. Pinned rows are hoisted to the top of the table and
 // stay visible regardless of the active search, so the user can stack up a few

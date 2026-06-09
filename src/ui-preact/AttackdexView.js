@@ -15,8 +15,10 @@ import {
   setAdxSort,
   setAdxDraft,
   commitAdxFilter,
+  commitAdxValue,
   removeAdxFilter,
   clearAdxFilters,
+  adxSuggest,
   handleAttackdexRowClick,
   loadMoveDetails,
 } from './attackdex-store.js';
@@ -115,7 +117,9 @@ export function AttackdexView() {
           onDraft=${setAdxDraft}
           onCommit=${commitAdxFilter}
           onRemove=${removeAdxFilter}
-          onClear=${clearAdxFilters} />
+          onClear=${clearAdxFilters}
+          suggest=${adxSuggest}
+          onPick=${commitAdxValue} />
       </div>
 
       <!-- Scrollable table -->

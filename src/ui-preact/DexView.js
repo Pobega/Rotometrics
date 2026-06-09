@@ -16,8 +16,10 @@ import {
   setDexSort,
   setDexDraft,
   commitDexFilter,
+  commitDexValue,
   removeDexFilter,
   clearDexFilters,
+  dexSuggest,
   toggleDexPin,
   handleDexRowClick,
   loadDexDetails,
@@ -159,7 +161,9 @@ export function DexView() {
           onDraft=${setDexDraft}
           onCommit=${commitDexFilter}
           onRemove=${removeDexFilter}
-          onClear=${clearDexFilters} />
+          onClear=${clearDexFilters}
+          suggest=${dexSuggest}
+          onPick=${commitDexValue} />
       </div>
 
       <!-- Scrollable table -->

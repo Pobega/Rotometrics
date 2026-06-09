@@ -18,6 +18,7 @@ import { openDetailModal, closeDetailModal, refreshDetailModalBody } from './Det
 import { html } from './preact.js';
 import { createEmitter } from './reactive.js';
 import { makeChipFilter } from './chip-filter.js';
+import { makeSuggester } from './suggestions.js';
 import { runPool } from './load-pool.js';
 
 // Shared, reactive Attackdex state. AttackdexView reads these directly and
@@ -131,8 +132,14 @@ export async function setAdxSort(key) {
 const adxChip = makeChipFilter(AdxStore, notifyAdx, { onActivate: ensureAllLoaded });
 export const setAdxDraft = adxChip.setDraft;
 export const commitAdxFilter = adxChip.commit;
+export const commitAdxValue = adxChip.commitValue;
 export const removeAdxFilter = adxChip.remove;
 export const clearAdxFilters = adxChip.clear;
+
+// Autocomplete: the Attackdex filters moves by an exact type name, a move name,
+// or a learner's name — but not by ability, so abilities aren't suggested here
+// (a committed ability chip would match nothing).
+export const adxSuggest = makeSuggester(['type', 'pokemon', 'move'], { onReady: notifyAdx });
 
 // Build + render the Attackdex the first time it's shown.
 export async function openAttackdexPage() {
