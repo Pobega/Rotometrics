@@ -6,6 +6,9 @@
 import { html, useRef } from './preact.js';
 import { useSubscription, useLazyRowLoader } from './reactive.js';
 import { SearchChips } from './SearchChips.js';
+import { STATE } from '../state.js';
+import { REGULATIONS } from '../data/regulations.js';
+import { legalNameFilterForFormat } from '../api/pokeapi.js';
 import { sortMoves, filterMoves, spreadKind } from '../data/moves.js';
 import { getTypeBgClass, getCategoryBadge } from '../ui/render.js';
 import {
@@ -76,6 +79,16 @@ const SORT_COLS = [
   { key: 'pp', label: 'PP' },
 ];
 
+// Mirrors the Pokédex badge: shows the active regulation (or National Dex) so it's
+// obvious the move list is filtered to that format's legal learners.
+function RegulationBadge() {
+  const reg = REGULATIONS[STATE.format];
+  if (reg) {
+    return html`<span class="text-[8px] font-black px-1.5 py-0.5 rounded uppercase shrink-0 bg-green-950 text-green-400 border border-green-900/50">${reg.label}</span>`;
+  }
+  return html`<span class="text-[8px] font-black px-1.5 py-0.5 rounded uppercase shrink-0 bg-slate-800/60 text-slate-400 border border-slate-700/30">National Dex</span>`;
+}
+
 function SortButton({ col }) {
   const active = AdxStore.sortKey === col.key;
   const arrow = active ? (AdxStore.sortDir === 'desc' ? '▼' : '▲') : '';
@@ -92,7 +105,11 @@ export function AttackdexView() {
   // Committed chips plus the live draft (so typing previews before Enter).
   const draft = AdxStore.draft.trim();
   const terms = draft ? [...AdxStore.filters, draft] : AdxStore.filters;
-  const filtered = filterMoves(AdxStore.roster, terms);
+  // Always-on regulation gate: under a regulation, keep only moves with a legal
+  // learner. Null in National Dex view (no gate). The store force-loads every row's
+  // details under a regulation so the gate sees complete learner lists.
+  const regGate = legalNameFilterForFormat(STATE.format);
+  const filtered = filterMoves(AdxStore.roster, terms, regGate);
   const sorted = sortMoves(filtered, AdxStore.sortKey, AdxStore.sortDir);
   const statusText =
     AdxStore.loading && AdxStore.roster.length === 0 ? 'loading moves…' : attackdexStatusText();
@@ -108,6 +125,7 @@ export function AttackdexView() {
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-700 pb-3">
         <h2 class="text-sm font-black text-amber-400 uppercase tracking-wider flex items-center gap-2">
           <i class="fa-solid fa-burst text-xs"></i> Attackdex
+          <${RegulationBadge} />
           <span class="text-[10px] font-bold text-slate-500 normal-case tracking-normal">${statusText}</span>
         </h2>
         <${SearchChips}

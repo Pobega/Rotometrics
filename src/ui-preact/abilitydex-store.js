@@ -106,6 +106,25 @@ async function ensureAllLoaded() {
   await loadAbilityDetails(AbdStore.roster.map((r) => r.apiName));
 }
 
+// Under a regulation the Abilitydex filters to abilities with a legal holder, which
+// needs every row's holder list — so force-load all details. No-op in the "National
+// Dex" view ('all') or once everything's loaded. Fire-and-forget: rows fill in and
+// the regulation gate widens as notifyAbd fires per load batch.
+function maybeLoadForFormat() {
+  if (REGULATIONS[STATE.format]) ensureAllLoaded();
+}
+
+// Called by the header format selector. Re-renders the page for the new legality
+// set and, when it's visible under a regulation, force-loads details so the gate
+// can be applied. When the page is hidden, openAbilitydexPage handles the load on
+// the next open instead.
+export function onAbilitydexFormatChange() {
+  if (!AbdStore.built) return;
+  notifyAbd();
+  const pageEl = document.getElementById('page-abilitydex');
+  if (pageEl && !pageEl.classList.contains('hidden')) maybeLoadForFormat();
+}
+
 // --- Mutators (chip-filter state via the shared factory) ---
 
 // Chip-filter state (committed chips + live draft) uses the shared factory so the
@@ -139,6 +158,7 @@ export async function openAbilitydexPage() {
 
   if (AbdStore.built && AbdStore.roster.length > 0) {
     notifyAbd();
+    maybeLoadForFormat();
     return;
   }
 
@@ -156,6 +176,7 @@ export async function openAbilitydexPage() {
     AbdStore.loading = false;
     notifyAbd();
   }
+  maybeLoadForFormat();
 }
 
 // Narrow the Abilitydex to a single ability by name (called when jumping from

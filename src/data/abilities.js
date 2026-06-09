@@ -62,10 +62,26 @@ function abilityTermMatches(row, term) {
 // (legacy single-search callers) or an array of strings (the stackable chip
 // search). Empty/whitespace terms are ignored; no terms returns every row.
 // Mirrors filterMoves / filterDex.
-export function filterAbilities(rows, terms) {
+//
+// `isLegalName` is an optional regulation gate (built from legalSetForFormat in the
+// view): when given, an ability is additionally kept only if at least one of its
+// holders is legal in the current regulation. A row whose details aren't loaded yet
+// has an unknown holder list, so it's dropped until the gate can be evaluated — the
+// always-on regulation filter relies on the store force-loading every row.
+export function filterAbilities(rows, terms, isLegalName = null) {
   const list = (Array.isArray(terms) ? terms : [terms])
     .map((t) => (t || '').trim().toLowerCase())
     .filter(Boolean);
-  if (list.length === 0) return rows;
-  return rows.filter((row) => list.every((term) => abilityTermMatches(row, term)));
+  if (list.length === 0 && !isLegalName) return rows;
+  return rows.filter((row) => {
+    if (isLegalName && !abilityHasLegalHolder(row, isLegalName)) return false;
+    return list.every((term) => abilityTermMatches(row, term));
+  });
+}
+
+// True when an ability has at least one holder legal under the regulation gate.
+// Rows without loaded details (pokemon list unknown) return false.
+function abilityHasLegalHolder(row, isLegalName) {
+  const holders = row.details && row.details.pokemon;
+  return !!(holders && holders.some(isLegalName));
 }

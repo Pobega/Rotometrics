@@ -12,6 +12,8 @@ import { STATE } from '../state.js';
 import { REGULATIONS, NATIONAL_THEME } from '../data/regulations.js';
 import { update } from './store.js';
 import { onDexFormatChange } from './dex-store.js';
+import { onAttackdexFormatChange } from './attackdex-store.js';
+import { onAbilitydexFormatChange } from './abilitydex-store.js';
 import { openExportImport } from './ExportImportModal.js';
 
 const themeFor = (format) => REGULATIONS[format]?.theme || NATIONAL_THEME;
@@ -58,6 +60,10 @@ function onFormatChange(value) {
     s.format = value;
   });
   onDexFormatChange();
+  // The Attackdex/Abilitydex apply an always-on regulation gate, so they too must
+  // re-filter (and force-load details under a regulation) on a format change.
+  onAttackdexFormatChange();
+  onAbilitydexFormatChange();
 }
 
 export function HeaderControls({ onLoadSample }) {

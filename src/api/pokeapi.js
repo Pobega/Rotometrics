@@ -7,6 +7,7 @@
 import { CACHE } from '../state.js';
 import { Storage, cacheKey } from './cache.js';
 import { REGULATIONS, resolveLegalSet, resolveNonLegalForms } from '../data/regulations.js';
+import { isFormatLegal } from '../data/dex.js';
 
 export const API_BASE = 'https://pokeapi.co/api/v2';
 
@@ -144,6 +145,18 @@ export function nonLegalFormsForFormat(format) {
     nonLegalFormsByFormat[format] = resolveNonLegalForms(reg);
   }
   return nonLegalFormsByFormat[format];
+}
+
+// Build the regulation gate predicate for a format: a function (apiName) => bool
+// that the Attackdex/Abilitydex filters use to keep only moves/abilities with a
+// learner/holder legal in the current regulation. Returns null for the unrestricted
+// "National Dex" view ('all'), where no gate applies. Resolves the legal set +
+// banned-form list once (both are memoized) and closes over them.
+export function legalNameFilterForFormat(format) {
+  const legal = legalSetForFormat(format);
+  if (!legal) return null;
+  const nonLegal = nonLegalFormsForFormat(format);
+  return (apiName) => isFormatLegal(apiName, legal, nonLegal);
 }
 
 // Friendlier labels for forms whose PokéAPI name reads awkwardly. The kept Minior

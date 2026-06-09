@@ -110,6 +110,25 @@ async function ensureAllLoaded() {
   await loadMoveDetails(AdxStore.roster.map((r) => r.apiName));
 }
 
+// Under a regulation the Attackdex filters to moves with a legal learner, which
+// needs every row's learner list — so force-load all details. No-op in the
+// "National Dex" view ('all') or once everything's loaded. Fire-and-forget: rows
+// fill in and the regulation gate widens as notifyAdx fires per load batch.
+function maybeLoadForFormat() {
+  if (REGULATIONS[STATE.format]) ensureAllLoaded();
+}
+
+// Called by the header format selector. Re-renders the page for the new legality
+// set and, when it's visible under a regulation, force-loads details so the gate
+// can be applied. When the page is hidden, openAttackdexPage handles the load on
+// the next open instead.
+export function onAttackdexFormatChange() {
+  if (!AdxStore.built) return;
+  notifyAdx();
+  const pageEl = document.getElementById('page-attackdex');
+  if (pageEl && !pageEl.classList.contains('hidden')) maybeLoadForFormat();
+}
+
 // --- Mutators (notify, and force-load details when the new view needs them) ---
 
 export async function setAdxSort(key) {
@@ -151,6 +170,7 @@ export async function openAttackdexPage() {
 
   if (AdxStore.built && AdxStore.roster.length > 0) {
     notifyAdx();
+    maybeLoadForFormat();
     return;
   }
 
@@ -170,6 +190,7 @@ export async function openAttackdexPage() {
     AdxStore.loading = false;
     notifyAdx();
   }
+  maybeLoadForFormat();
 }
 
 // Look up already-loaded move details by apiName (used by dex-store via app.js).

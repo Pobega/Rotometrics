@@ -1499,6 +1499,36 @@
         },
       },
       {
+        name: 'filterMoves regulation gate keeps only moves with a legal learner',
+        run: () => {
+          const rows = [
+            moveRow('Spikes', { type: 'Ground', learnedBy: ['garchomp', 'skarmory'] }),
+            moveRow('Roost', { type: 'Flying', learnedBy: ['skarmory'] }),
+          ];
+          // Gate: only garchomp is legal. Spikes (garchomp learns it) stays; Roost drops.
+          const gate = (n) => n === 'garchomp';
+          return eq(names(filterMoves(rows, [], gate)), ['Spikes']);
+        },
+      },
+      {
+        name: 'filterMoves regulation gate ANDs with search terms',
+        run: () => {
+          const rows = [
+            moveRow('Earthquake', { type: 'Ground', learnedBy: ['garchomp'] }),
+            moveRow('Roost', { type: 'Flying', learnedBy: ['garchomp'] }),
+          ];
+          const gate = (n) => n === 'garchomp';
+          return eq(names(filterMoves(rows, ['ground'], gate)), ['Earthquake']);
+        },
+      },
+      {
+        name: 'filterMoves regulation gate drops rows whose details (learners) are unloaded',
+        run: () => {
+          const rows = [moveRow('Pending Move', null)];
+          return filterMoves(rows, [], () => true).length === 0;
+        },
+      },
+      {
         name: 'spreadKind distinguishes opponents-only from ally-hitting, isSpreadMove agrees',
         run: () => {
           const opp = { target: 'all-opponents' };
@@ -1722,6 +1752,30 @@
           return filterAbilities(rows, '   ').length === 2
             && filterAbilities(rows, []).length === 2
             && filterAbilities(rows, ['  ', '']).length === 2;
+        },
+      },
+      {
+        name: 'filterAbilities: regulation gate keeps only abilities with a legal holder',
+        run: () => {
+          const rows = [
+            abRow('Sand Veil', 'sand-veil', 'Evasion up in sand.', ['garchomp', 'gliscor']),
+            abRow('Levitate', 'levitate', 'Ground immunity.', ['rotom']),
+          ];
+          const gate = (n) => n === 'garchomp';
+          return JSON.stringify(names(filterAbilities(rows, [], gate))) === JSON.stringify(['sand-veil']);
+        },
+      },
+      {
+        name: 'filterAbilities: regulation gate ANDs with search terms and drops unloaded rows',
+        run: () => {
+          const rows = [
+            abRow('Huge Power', 'huge-power', 'Doubles Attack.', ['azumarill']),
+            abRow('Run Away', 'run-away', 'Always flee.', ['azumarill']),
+            abRow('Levitate', 'levitate'), // details null — holder list unknown
+          ];
+          const gate = (n) => n === 'azumarill';
+          return JSON.stringify(names(filterAbilities(rows, ['offensive'], gate))) === JSON.stringify(['huge-power'])
+            && filterAbilities(rows, [], gate).length === 2; // levitate dropped (unloaded)
         },
       },
     ];

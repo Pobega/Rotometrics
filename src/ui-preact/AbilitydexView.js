@@ -6,6 +6,9 @@
 import { html, useRef } from './preact.js';
 import { useSubscription, useLazyRowLoader } from './reactive.js';
 import { SearchChips } from './SearchChips.js';
+import { STATE } from '../state.js';
+import { REGULATIONS } from '../data/regulations.js';
+import { legalNameFilterForFormat } from '../api/pokeapi.js';
 import { sortAbilities, filterAbilities, abilityTag } from '../data/abilities.js';
 import {
   AbdStore,
@@ -33,6 +36,16 @@ function TagBadge({ apiName }) {
   if (tag === 'def')
     return html`<span class="text-[7px] px-1 py-0.5 font-black uppercase rounded bg-sky-950/50 text-sky-400 border border-sky-900/40" title="VGC-relevant defensive ability">Def</span>`;
   return html`<span class="text-slate-600 text-[10px]">—</span>`;
+}
+
+// Mirrors the Pokédex badge: shows the active regulation (or National Dex) so it's
+// obvious the ability list is filtered to that format's legal holders.
+function RegulationBadge() {
+  const reg = REGULATIONS[STATE.format];
+  if (reg) {
+    return html`<span class="text-[8px] font-black px-1.5 py-0.5 rounded uppercase shrink-0 bg-green-950 text-green-400 border border-green-900/50">${reg.label}</span>`;
+  }
+  return html`<span class="text-[8px] font-black px-1.5 py-0.5 rounded uppercase shrink-0 bg-slate-800/60 text-slate-400 border border-slate-700/30">National Dex</span>`;
 }
 
 function PlaceholderRow({ row }) {
@@ -66,7 +79,11 @@ export function AbilitydexView() {
   // Committed chips plus the live draft (so typing previews before Enter).
   const draft = AbdStore.draft.trim();
   const terms = draft ? [...AbdStore.filters, draft] : AbdStore.filters;
-  const filtered = filterAbilities(AbdStore.roster, terms);
+  // Always-on regulation gate: under a regulation, keep only abilities with a legal
+  // holder. Null in National Dex view (no gate). The store force-loads every row's
+  // details under a regulation so the gate sees complete holder lists.
+  const regGate = legalNameFilterForFormat(STATE.format);
+  const filtered = filterAbilities(AbdStore.roster, terms, regGate);
   const sorted = sortAbilities(filtered, 'asc');
   const statusText =
     AbdStore.loading && AbdStore.roster.length === 0
@@ -93,6 +110,7 @@ export function AbilitydexView() {
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-700 pb-3">
         <h2 class="text-sm font-black text-amber-400 uppercase tracking-wider flex items-center gap-2">
           <i class="fa-solid fa-atom text-xs"></i> Abilitydex
+          <${RegulationBadge} />
           <span class="text-[10px] font-bold text-slate-500 normal-case tracking-normal">${statusText}</span>
         </h2>
         <div class="flex flex-wrap items-start gap-2 w-full sm:w-auto">

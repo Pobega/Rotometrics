@@ -107,10 +107,26 @@ function moveTermMatches(row, term) {
 // kept only when it satisfies every term. `terms` may be a single string (legacy
 // single-search callers) or an array of strings (the stackable chip search).
 // Empty/whitespace terms are ignored; no terms returns every row. Mirrors filterDex.
-export function filterMoves(rows, terms) {
+//
+// `isLegalName` is an optional regulation gate (built from legalSetForFormat in the
+// view): when given, a move is additionally kept only if at least one of its
+// learners is legal in the current regulation. A row whose details aren't loaded
+// yet has an unknown learner list, so it's dropped until the gate can be evaluated
+// — the always-on regulation filter relies on the store force-loading every row.
+export function filterMoves(rows, terms, isLegalName = null) {
   const list = (Array.isArray(terms) ? terms : [terms])
     .map((t) => (t || '').trim().toLowerCase())
     .filter(Boolean);
-  if (list.length === 0) return rows;
-  return rows.filter((row) => list.every((term) => moveTermMatches(row, term)));
+  if (list.length === 0 && !isLegalName) return rows;
+  return rows.filter((row) => {
+    if (isLegalName && !moveHasLegalLearner(row, isLegalName)) return false;
+    return list.every((term) => moveTermMatches(row, term));
+  });
+}
+
+// True when a move has at least one learner legal under the regulation gate. Rows
+// without loaded details (learnedBy unknown) return false.
+function moveHasLegalLearner(row, isLegalName) {
+  const learners = row.details && row.details.learnedBy;
+  return !!(learners && learners.some(isLegalName));
 }
