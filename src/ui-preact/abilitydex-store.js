@@ -17,6 +17,8 @@ import { getTypeBgClass } from '../ui/render.js';
 import { openDetailModal, closeDetailModal, refreshDetailModalBody } from './DetailModal.js';
 import { html } from './preact.js';
 import { createEmitter } from './reactive.js';
+import { makeChipFilter } from './chip-filter.js';
+import { makeSuggester } from './suggestions.js';
 import { runPool } from './load-pool.js';
 
 // Shared, reactive Abilitydex state. AbilitydexView reads these directly and
@@ -24,8 +26,8 @@ import { runPool } from './load-pool.js';
 export const AbdStore = {
   roster: [], // [{ apiName, name, details|null }]
   byName: {}, // apiName -> row (same object refs as roster)
-  query: '',
-  filterTag: '', // '' = all, 'off' = offensive VGC, 'def' = defensive VGC
+  filters: [], // committed search terms (the chips); ANDed together
+  draft: '', // uncommitted input text (live-previewed before Enter)
   built: false,
   allLoaded: false, // every roster row has details loaded
   loading: false,
@@ -104,45 +106,32 @@ async function ensureAllLoaded() {
   await loadAbilityDetails(AbdStore.roster.map((r) => r.apiName));
 }
 
-// True when the current view depends on loaded ability details. The effect-text
-// search needs them; the Off/Def tag filter keys off apiName (always known) so it
-// does not, but we still full-load on it so the desc column fills in for the
-// narrowed list.
-function needsFullLoad() {
-  return !!(AbdStore.query.trim() || AbdStore.filterTag);
-}
+// --- Mutators (chip-filter state via the shared factory) ---
 
-// --- Mutators (notify, and force-load details when the new view needs them) ---
+// Chip-filter state (committed chips + live draft) uses the shared factory so the
+// Abilitydex behaves identically to the Pokédex / Attackdex. The onActivate hook
+// force-loads every ability's details the first time a term becomes active, since
+// effect-text and holder search read them — and even a VGC-keyword chip benefits,
+// filling the desc column for the narrowed list (it's a no-op once loaded).
+const abdChip = makeChipFilter(AbdStore, notifyAbd, { onActivate: ensureAllLoaded });
+export const setAbdDraft = abdChip.setDraft;
+export const commitAbdFilter = abdChip.commit;
+export const commitAbdValue = abdChip.commitValue;
+export const removeAbdFilter = abdChip.remove;
+export const clearAbdFilters = abdChip.clear;
+// Backs the Offensive / Defensive preset buttons: each toggles its keyword chip.
+export const toggleAbdTag = abdChip.toggle;
 
-export async function setAbdQuery(query) {
-  AbdStore.query = query;
-  notifyAbd();
-  // Effect search needs every row's details; load them on first query.
-  if (query.trim() && !AbdStore.allLoaded) {
-    await ensureAllLoaded();
-  }
-}
-
-export function clearAbdQuery() {
-  AbdStore.query = '';
-  notifyAbd();
-}
-
-// Set the Off/Def tag filter ('' = all, 'off', 'def'). Clicking the active tag
-// again clears it back to "all".
-export async function setAbdTag(tag) {
-  AbdStore.filterTag = AbdStore.filterTag === tag ? '' : tag;
-  notifyAbd(); // reflect control state immediately
-  if (needsFullLoad() && !AbdStore.allLoaded) {
-    await ensureAllLoaded();
-  }
-  notifyAbd();
-}
+// Autocomplete: an ability is filtered by its own name or a holder Pokémon, so
+// suggest from those two kinds. No move kind (abilities can't be filtered by a
+// move) and no type kind (abilities are typeless).
+export const abdSuggest = makeSuggester(['ability', 'pokemon'], { onReady: notifyAbd });
 
 // Build + render the Abilitydex the first time it's shown.
 export async function openAbilitydexPage() {
   if (!_preserveQuery) {
-    AbdStore.query = '';
+    AbdStore.filters = [];
+    AbdStore.draft = '';
   }
   _preserveQuery = false;
 
@@ -168,11 +157,12 @@ export async function openAbilitydexPage() {
 }
 
 // Narrow the Abilitydex to a single ability by name (called when jumping from
-// elsewhere). Sets the query + re-renders.
+// elsewhere). Sets the filter chip + re-renders.
 export function jumpToAbilitydexAbility(apiName) {
   const displayName = AbdStore.byName[apiName]?.name || formatDisplayName(apiName);
   _preserveQuery = true;
-  AbdStore.query = displayName;
+  AbdStore.filters = [displayName];
+  AbdStore.draft = '';
   if (AbdStore.built) notifyAbd();
 }
 

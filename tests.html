@@ -1625,10 +1625,11 @@
     const results = document.getElementById('results');
 
     // Row factory: details null until "loaded" (mirrors the lazy-load shape).
-    const abRow = (name, apiName, desc = null) => ({
+    // Pass desc and/or holders to populate the loaded detail object.
+    const abRow = (name, apiName, desc = null, pokemon = []) => ({
       apiName,
       name,
-      details: desc === null ? null : { name, apiName, desc, pokemon: [] },
+      details: desc === null && pokemon.length === 0 ? null : { name, apiName, desc, pokemon },
     });
     const names = (rows) => rows.map((r) => r.apiName);
 
@@ -1653,37 +1654,74 @@
         },
       },
       {
-        name: 'filterAbilities: query matches the name',
+        name: 'filterAbilities: term matches the name',
         run: () => {
           const rows = [abRow('Intimidate', 'intimidate'), abRow('Levitate', 'levitate')];
-          return names(filterAbilities(rows, { query: 'intim' })).join() === 'intimidate';
+          return names(filterAbilities(rows, 'intim')).join() === 'intimidate';
         },
       },
       {
-        name: 'filterAbilities: query matches loaded effect text',
+        name: 'filterAbilities: term matches loaded effect text',
         run: () => {
           const rows = [
             abRow('Intimidate', 'intimidate', "Lowers the foe's Attack on entry."),
             abRow('Levitate', 'levitate', 'Immune to Ground-type moves.'),
           ];
-          return names(filterAbilities(rows, { query: 'ground' })).join() === 'levitate';
+          return names(filterAbilities(rows, ['ground'])).join() === 'levitate';
         },
       },
       {
-        name: 'filterAbilities: an unloaded row can only match by name',
+        name: 'filterAbilities: term matches a holder Pokémon (inverse of "Pokémon with")',
+        run: () => {
+          const rows = [
+            abRow('Sand Veil', 'sand-veil', 'Evasion up in sand.', ['garchomp', 'gliscor']),
+            abRow('Levitate', 'levitate', 'Ground immunity.', ['rotom']),
+          ];
+          return names(filterAbilities(rows, ['garchomp'])).join() === 'sand-veil';
+        },
+      },
+      {
+        name: 'filterAbilities: holder match normalizes hyphens to spaces',
+        run: () => {
+          const rows = [abRow('Quark Drive', 'quark-drive', 'Paradox boost.', ['iron-hands'])];
+          return names(filterAbilities(rows, ['iron hands'])).join() === 'quark-drive';
+        },
+      },
+      {
+        name: 'filterAbilities: an unloaded row matches by name or VGC keyword, not desc/holder',
         run: () => {
           const rows = [abRow('Levitate', 'levitate')]; // details null
-          return filterAbilities(rows, { query: 'ground' }).length === 0
-            && filterAbilities(rows, { query: 'levi' }).length === 1;
+          return filterAbilities(rows, ['ground']).length === 0
+            && filterAbilities(rows, ['garchomp']).length === 0
+            && filterAbilities(rows, 'levi').length === 1;
         },
       },
       {
-        name: 'filterAbilities: tag filter keeps only the matching VGC side',
+        name: 'filterAbilities: offensive / defensive keywords filter by curated tag',
         run: () => {
           const rows = [abRow('Huge Power', 'huge-power'), abRow('Multiscale', 'multiscale'), abRow('Run Away', 'run-away')];
-          return JSON.stringify(names(filterAbilities(rows, { tag: 'off' }))) === JSON.stringify(['huge-power'])
-            && JSON.stringify(names(filterAbilities(rows, { tag: 'def' }))) === JSON.stringify(['multiscale'])
-            && names(filterAbilities(rows, { tag: '' })).length === 3;
+          return JSON.stringify(names(filterAbilities(rows, ['offensive']))) === JSON.stringify(['huge-power'])
+            && JSON.stringify(names(filterAbilities(rows, ['defensive']))) === JSON.stringify(['multiscale']);
+        },
+      },
+      {
+        name: 'filterAbilities: ANDs multiple terms (offensive + holder)',
+        run: () => {
+          const rows = [
+            abRow('Huge Power', 'huge-power', 'Doubles Attack.', ['azumarill']),
+            abRow('Run Away', 'run-away', 'Always flee wild battles.', ['azumarill']),
+          ];
+          // run-away isn't offensive VGC, so only huge-power survives offensive + azumarill.
+          return JSON.stringify(names(filterAbilities(rows, ['offensive', 'azumarill']))) === JSON.stringify(['huge-power']);
+        },
+      },
+      {
+        name: 'filterAbilities: empty/blank terms return every row',
+        run: () => {
+          const rows = [abRow('Huge Power', 'huge-power'), abRow('Run Away', 'run-away')];
+          return filterAbilities(rows, '   ').length === 2
+            && filterAbilities(rows, []).length === 2
+            && filterAbilities(rows, ['  ', '']).length === 2;
         },
       },
     ];

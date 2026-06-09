@@ -34,23 +34,37 @@ export function sortAbilities(rows, dir = 'asc') {
     .map((e) => e.row);
 }
 
-// Filters the roster by a free-text query (matched against the ability name and
-// its effect description) and a VGC tag filter ('' = all, 'off', or 'def'). Rows
-// without loaded details can only match the name (their desc is unknown until
-// fetched), mirroring the lazy-load behaviour of filterMoves / filterDex.
-export function filterAbilities(rows, { query = '', tag = '' } = {}) {
-  const q = (query || '').trim().toLowerCase();
+// Does a single, already-lowercased term match an ability row? The 'offensive' /
+// 'defensive' keywords (committed by the preset buttons) filter by curated VGC
+// tag. Anything else is a substring match on the ability name, its effect text,
+// or a holder's name — so 'garchomp' surfaces the abilities it can have, the
+// inverse of the modal's "Pokémon with …". (There is no move search here: an
+// ability can't be filtered by a move, just as a move can't be filtered by an
+// ability in the Attackdex.) The keyword and name matches work on unloaded rows
+// (the tag is keyed by apiName, always known); desc and holder matches need
+// loaded details.
+function abilityTermMatches(row, term) {
+  if (term === 'offensive') return vgcTag(row.apiName) === 'off';
+  if (term === 'defensive') return vgcTag(row.apiName) === 'def';
+  if (row.name.toLowerCase().includes(term)) return true;
+  const d = row.details;
+  if (!d) return false;
+  if (d.desc && d.desc.toLowerCase().includes(term)) return true;
+  // pokemon holds raw PokéAPI apiNames (e.g. 'landorus-therian'); normalize the
+  // hyphens to spaces so a typed 'iron hands' matches 'iron-hands'.
+  if (d.pokemon && d.pokemon.some((n) => n.replace(/-/g, ' ').includes(term))) return true;
+  return false;
+}
 
-  return rows.filter((row) => {
-    if (tag && vgcTag(row.apiName) !== tag) return false;
-
-    if (q) {
-      const d = row.details;
-      const inName = row.name.toLowerCase().includes(q);
-      const inDesc = d && d.desc && d.desc.toLowerCase().includes(q);
-      if (!inName && !inDesc) return false;
-    }
-
-    return true;
-  });
+// Case-insensitive filter over a list of search terms which are ANDed: an ability
+// is kept only when it satisfies every term. `terms` may be a single string
+// (legacy single-search callers) or an array of strings (the stackable chip
+// search). Empty/whitespace terms are ignored; no terms returns every row.
+// Mirrors filterMoves / filterDex.
+export function filterAbilities(rows, terms) {
+  const list = (Array.isArray(terms) ? terms : [terms])
+    .map((t) => (t || '').trim().toLowerCase())
+    .filter(Boolean);
+  if (list.length === 0) return rows;
+  return rows.filter((row) => list.every((term) => abilityTermMatches(row, term)));
 }

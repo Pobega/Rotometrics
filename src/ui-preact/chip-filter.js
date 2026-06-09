@@ -45,6 +45,23 @@ export function makeChipFilter(store, notify, { onActivate } = {}) {
 
     commitValue,
 
+    // Add the term as a chip, or remove it if already present (case-insensitive).
+    // Backs preset filter buttons that map a label to a keyword chip (e.g. the
+    // Abilitydex Offensive / Defensive toggles).
+    async toggle(value) {
+      const term = (value || '').trim();
+      if (!term) return;
+      const idx = store.filters.findIndex((f) => f.toLowerCase() === term.toLowerCase());
+      if (idx >= 0) {
+        store.filters = store.filters.filter((_, i) => i !== idx);
+        notify();
+        return;
+      }
+      store.filters = [...store.filters, term];
+      notify();
+      await maybeActivate();
+    },
+
     remove(index) {
       store.filters = store.filters.filter((_, i) => i !== index);
       notify();
