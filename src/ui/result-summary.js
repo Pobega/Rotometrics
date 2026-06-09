@@ -85,7 +85,7 @@ export function buildMoveLine(attacker, defender, move, modifiers, mode) {
     scrappy: attacker.ability === 'scrappy',
   });
   const info = effectivenessInfo(mult, mode);
-  const hitsTwice = attacker.ability === 'parental-bond' ? ' · hits twice' : '';
+  const hitsTwice = attacker.ability === 'parental-bond' ? ' · Hits Twice (0.25x Second Hit)' : '';
   // Spread tag — make the 0.75x state obvious at a glance. Show "Spread (0.75x)"
   // whenever the multiplier is actually applied (modifiers.spread), and "Non-Spread"
   // when a spread-capable move (move.spread) currently isn't getting it, so a
