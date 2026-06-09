@@ -1618,9 +1618,9 @@
     recordSuite('suggest', { pass: SUGGEST_CASES.length - sugFail, fail: sugFail });
   </script>
 
-  <!-- Abilitydex pure-logic tests (filterAbilities / sortAbilities / vgcTag) -->
+  <!-- Abilitydex pure-logic tests (filterAbilities / sortAbilities / abilityTag) -->
   <script type="module">
-    import { filterAbilities, sortAbilities, vgcTag, isVgcAbility } from './src/data/abilities.js';
+    import { filterAbilities, sortAbilities, abilityTag, isVgcAbility } from './src/data/abilities.js';
 
     const results = document.getElementById('results');
 
@@ -1635,11 +1635,11 @@
 
     const ABILITY_CASES = [
       {
-        name: 'vgcTag classifies offensive / defensive / neither',
+        name: 'abilityTag classifies offensive / defensive / neither',
         run: () =>
-          vgcTag('huge-power') === 'off' &&
-          vgcTag('multiscale') === 'def' &&
-          vgcTag('run-away') === null &&
+          abilityTag('huge-power') === 'off' &&
+          abilityTag('multiscale') === 'def' &&
+          abilityTag('run-away') === null &&
           isVgcAbility('huge-power') === true &&
           isVgcAbility('run-away') === false,
       },

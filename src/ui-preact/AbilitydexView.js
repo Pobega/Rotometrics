@@ -6,7 +6,7 @@
 import { html, useRef } from './preact.js';
 import { useSubscription, useLazyRowLoader } from './reactive.js';
 import { SearchChips } from './SearchChips.js';
-import { sortAbilities, filterAbilities, vgcTag } from '../data/abilities.js';
+import { sortAbilities, filterAbilities, abilityTag } from '../data/abilities.js';
 import {
   AbdStore,
   subscribeAbd,
@@ -27,7 +27,7 @@ const ROW_GRID =
 
 // Small Offensive/Defensive marker for the curated VGC abilities (blank otherwise).
 function TagBadge({ apiName }) {
-  const tag = vgcTag(apiName);
+  const tag = abilityTag(apiName);
   if (tag === 'off')
     return html`<span class="text-[7px] px-1 py-0.5 font-black uppercase rounded bg-amber-950/50 text-amber-400 border border-amber-900/40" title="VGC-relevant offensive ability">Off</span>`;
   if (tag === 'def')

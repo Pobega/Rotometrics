@@ -8,9 +8,10 @@ import { OFFENSIVE_VGC_ABILITIES, DEFENSIVE_VGC_ABILITIES } from './constants.js
 const OFF_SET = new Set(OFFENSIVE_VGC_ABILITIES.map((a) => a.apiName));
 const DEF_SET = new Set(DEFENSIVE_VGC_ABILITIES.map((a) => a.apiName));
 
-// Classifies an ability's VGC relevance for the Tag column + the "VGC only"
-// filter: 'off' (damage-boosting), 'def' (damage-reducing), or null (neither).
-export function vgcTag(apiName) {
+// Classifies an ability's VGC relevance for the Tag column + the Offensive /
+// Defensive filters: 'off' (damage-boosting), 'def' (damage-reducing), or null
+// (neither).
+export function abilityTag(apiName) {
   if (OFF_SET.has(apiName)) return 'off';
   if (DEF_SET.has(apiName)) return 'def';
   return null;
@@ -18,7 +19,7 @@ export function vgcTag(apiName) {
 
 // True when an ability appears in either curated VGC list.
 export function isVgcAbility(apiName) {
-  return vgcTag(apiName) !== null;
+  return abilityTag(apiName) !== null;
 }
 
 // Returns a new array sorted by name in the given direction. Stable. Abilities
@@ -44,8 +45,8 @@ export function sortAbilities(rows, dir = 'asc') {
 // (the tag is keyed by apiName, always known); desc and holder matches need
 // loaded details.
 function abilityTermMatches(row, term) {
-  if (term === 'offensive') return vgcTag(row.apiName) === 'off';
-  if (term === 'defensive') return vgcTag(row.apiName) === 'def';
+  if (term === 'offensive') return abilityTag(row.apiName) === 'off';
+  if (term === 'defensive') return abilityTag(row.apiName) === 'def';
   if (row.name.toLowerCase().includes(term)) return true;
   const d = row.details;
   if (!d) return false;
