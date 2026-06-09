@@ -7,6 +7,7 @@ import { STATE, CACHE, update } from './store.js';
 import { getTypeBgClass } from '../ui/render.js';
 import { ALL_TYPES } from '../data/constants.js';
 import { resolveEffectiveMove } from '../engine/damage.js';
+import { isSpreadMove } from '../data/moves.js';
 import { fetchMoveDetails } from '../api/pokeapi.js';
 
 function damagingMoves() {
@@ -39,6 +40,10 @@ async function onSelect(value) {
       s.move.type = mv.type;
       s.move.category = mv.category.toLowerCase();
       s.move.power = mv.power; // base power; resolved BP is computed for display
+      // Sync the Spread Move (0.75x) modifier to the selected move so its 0.75x
+      // multiplier follows the choice automatically (#71 follow-up). User can still
+      // override the toggle afterward.
+      s.modifiers.spread = isSpreadMove(mv);
     });
   } catch (err) {
     console.error('Error fetching move info', err);

@@ -19,6 +19,7 @@ import {
   fetchMoveDetailsMany,
 } from './src/api/pokeapi.js';
 import { pickDefaultMove } from './src/engine/default-move.js';
+import { isSpreadMove } from './src/data/moves.js';
 import { pickAttackerSpread, pickDefenderSpread } from './src/engine/default-spread.js';
 import { pruneOldCaches } from './src/api/cache.js';
 import { buildResultModel } from './src/ui/result-summary.js';
@@ -152,6 +153,10 @@ function setAttackerDetails(details) {
           STATE.move.power = choice.power; // base power; MovePanel shows resolved BP
           STATE.move.type = choice.type;
           STATE.move.category = choice.category.toLowerCase();
+          // Sync the Spread Move (0.75x) modifier to the auto-picked move: spread
+          // signatures (Glacial Lance, Clanging Scales, …) now default-pick, so the
+          // multiplier should follow without a manual toggle (#71 follow-up).
+          STATE.modifiers.spread = isSpreadMove(choice);
         } else {
           STATE.move.apiName = '';
           STATE.move.name = 'Custom Move';
