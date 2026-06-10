@@ -60,7 +60,7 @@ export function MovePanel() {
 
   // Variable moves (Weather Ball) resolve their effective type/BP from battle
   // state for display; STATE.move stays at base so the engine doubles once.
-  const eff = resolveEffectiveMove(STATE.attacker, move, STATE.modifiers);
+  const eff = resolveEffectiveMove(STATE.attacker, move, STATE.modifiers, STATE.defender);
   const isPhysical = move.category.toLowerCase() === 'physical';
   const catColor = isPhysical
     ? 'bg-red-950/30 text-red-400 border border-red-900/30'

@@ -94,6 +94,7 @@ function setAttackerDetails(details) {
   STATE.attacker.baseStats = details.baseStats;
   STATE.attacker.types = details.types;
   STATE.attacker.moves = details.moves;
+  STATE.attacker.weight = details.weight || 0;
   // Render-only fields the AttackerCard island reads (sprite + raw ability list).
   STATE.attacker.sprite = details.sprite;
   STATE.attacker.abilities = details.abilities || [];
@@ -193,6 +194,7 @@ function setDefenderDetails(details) {
   STATE.defender.apiName = details.apiName;
   STATE.defender.baseStats = details.baseStats;
   STATE.defender.types = details.types;
+  STATE.defender.weight = details.weight || 0;
   // Render-only fields the DefenderCard island reads.
   STATE.defender.sprite = details.sprite;
   STATE.defender.abilities = details.abilities || [];

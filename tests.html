@@ -126,6 +126,20 @@
     const GYRO_BALL = { apiName: 'gyro-ball', type: 'Steel', power: 1, category: 'physical' };
     const ELECTRO_BALL = { apiName: 'electro-ball', type: 'Electric', power: 0, category: 'special' };
     const DARK_PULSE = { apiName: 'dark-pulse', type: 'Dark', power: 80, category: 'special' };
+    // Issue #14 special-case moves.
+    const FREEZE_DRY = { apiName: 'freeze-dry', type: 'Ice', power: 70, category: 'special' };
+    const FLYING_PRESS = { apiName: 'flying-press', type: 'Fighting', power: 100, category: 'physical' };
+    const TERRAIN_PULSE = { apiName: 'terrain-pulse', type: 'Normal', power: 50, category: 'special' };
+    const STORED_POWER = { apiName: 'stored-power', type: 'Psychic', power: 20, category: 'special' };
+    const PUNISHMENT = { apiName: 'punishment', type: 'Dark', power: 60, category: 'physical' };
+    const LOW_KICK = { apiName: 'low-kick', type: 'Fighting', power: 0, category: 'physical' };
+    const HEAVY_SLAM = { apiName: 'heavy-slam', type: 'Steel', power: 0, category: 'physical' };
+    const WRING_OUT = { apiName: 'wring-out', type: 'Normal', power: 0, category: 'special' };
+    const BRINE = { apiName: 'brine', type: 'Water', power: 65, category: 'special' };
+    const ASSURANCE = { apiName: 'assurance', type: 'Dark', power: 60, category: 'physical' };
+    const ROCK_BLAST = { apiName: 'rock-blast', type: 'Rock', power: 25, category: 'physical' };
+    const DRAGON_DARTS = { apiName: 'dragon-darts', type: 'Dragon', power: 50, category: 'physical' };
+    const TRIPLE_AXEL = { apiName: 'triple-axel', type: 'Ice', power: 20, category: 'physical' };
 
     // Attacker preset: +atk nature, 32 SP into atk, everything else 0.
     const ATTACKER = (overrides = {}) => NORMAL_MON({
@@ -862,6 +876,224 @@
         modifiers: {},
         expected: { min: 28, max: 33 },
       },
+
+      // -------- Issue #14: type/effectiveness oddballs --------
+      {
+        name: 'Freeze-Dry is super-effective on Water',
+        attacker: ATTACKER(),
+        defender: DEFENDER({ types: ['Water'] }),
+        move: FREEZE_DRY,
+        modifiers: {},
+        expected: { min: 48, max: 58 },
+      },
+      {
+        name: 'Freeze-Dry is 4x on Water/Ground',
+        attacker: ATTACKER(),
+        defender: DEFENDER({ types: ['Water', 'Ground'] }),
+        move: FREEZE_DRY,
+        modifiers: {},
+        expected: { min: 96, max: 116 },
+      },
+      {
+        name: 'Freeze-Dry keeps its normal Ice resistance on Fire',
+        attacker: ATTACKER(),
+        defender: DEFENDER({ types: ['Fire'] }),
+        move: FREEZE_DRY,
+        modifiers: {},
+        expected: { min: 12, max: 14 },
+      },
+      {
+        name: 'Flying Press combines Fighting + Flying (2x on Grass)',
+        attacker: ATTACKER(),
+        defender: DEFENDER({ types: ['Grass'] }),
+        move: FLYING_PRESS,
+        modifiers: {},
+        expected: { min: 106, max: 126 },
+      },
+      {
+        name: 'Flying Press is blocked by Ghost (Fighting 0x)',
+        attacker: ATTACKER(),
+        defender: DEFENDER({ types: ['Ghost'] }),
+        move: FLYING_PRESS,
+        modifiers: {},
+        expected: { min: 0, max: 0 },
+      },
+      {
+        name: 'Terrain Pulse is Normal / 50 with no terrain',
+        attacker: ATTACKER(),
+        defender: DEFENDER(),
+        move: TERRAIN_PULSE,
+        modifiers: {},
+        expected: { min: 25, max: 31 },
+      },
+      {
+        name: 'Terrain Pulse becomes Electric and doubles in Electric Terrain',
+        attacker: ATTACKER(),
+        defender: DEFENDER(),
+        move: TERRAIN_PULSE,
+        modifiers: { terrain: 'electric' },
+        expected: { min: 44, max: 53 },
+      },
+      {
+        name: 'Terrain Pulse stays Normal for an airborne (Flying) user',
+        attacker: ATTACKER({ types: ['Flying'] }),
+        defender: DEFENDER(),
+        move: TERRAIN_PULSE,
+        modifiers: { terrain: 'electric' },
+        expected: { min: 17, max: 21 },
+      },
+
+      // -------- Issue #14: boost-based base power --------
+      {
+        name: 'Stored Power is 20 BP at no boosts',
+        attacker: ATTACKER(),
+        defender: DEFENDER(),
+        move: STORED_POWER,
+        modifiers: {},
+        expected: { min: 7, max: 9 },
+      },
+      {
+        name: 'Stored Power is 80 BP at +3 total boosts',
+        attacker: ATTACKER({ boosts: { atk: 2, spa: 1, def: 0, spd: 0, spe: 0 } }),
+        defender: DEFENDER(),
+        move: STORED_POWER,
+        modifiers: {},
+        expected: { min: 41, max: 49 },
+      },
+      {
+        name: 'Punishment is 60 BP vs an unboosted target',
+        attacker: ATTACKER(),
+        defender: DEFENDER(),
+        move: PUNISHMENT,
+        modifiers: {},
+        expected: { min: 32, max: 38 },
+      },
+      {
+        name: 'Punishment grows with the target’s positive boosts',
+        attacker: ATTACKER(),
+        defender: DEFENDER({ boosts: { atk: 2, def: 0, spd: 0, spe: 0, spa: 0 } }),
+        move: PUNISHMENT,
+        modifiers: {},
+        expected: { min: 53, max: 63 },
+      },
+
+      // -------- Issue #14: weight-based base power --------
+      {
+        name: 'Low Kick is 120 BP vs a 200kg target',
+        attacker: ATTACKER(),
+        defender: DEFENDER({ weight: 2000 }),
+        move: LOW_KICK,
+        modifiers: {},
+        expected: { min: 126, max: 150 },
+      },
+      {
+        name: 'Low Kick is 20 BP vs a 5kg target',
+        attacker: ATTACKER(),
+        defender: DEFENDER({ weight: 50 }),
+        move: LOW_KICK,
+        modifiers: {},
+        expected: { min: 22, max: 28 },
+      },
+      {
+        name: 'Heavy Slam is 120 BP at a 5x weight ratio',
+        attacker: ATTACKER({ weight: 5000 }),
+        defender: DEFENDER({ weight: 1000 }),
+        move: HEAVY_SLAM,
+        modifiers: {},
+        expected: { min: 63, max: 75 },
+      },
+      {
+        name: 'Heavy Slam is 40 BP at equal weight',
+        attacker: ATTACKER({ weight: 1000 }),
+        defender: DEFENDER({ weight: 1000 }),
+        move: HEAVY_SLAM,
+        modifiers: {},
+        expected: { min: 22, max: 26 },
+      },
+
+      // -------- Issue #14: target-HP and turn-state --------
+      {
+        name: 'Wring Out is 120 BP at full HP (the calc default)',
+        attacker: ATTACKER(),
+        defender: DEFENDER(),
+        move: WRING_OUT,
+        modifiers: {},
+        expected: { min: 61, max: 73 },
+      },
+      {
+        name: 'Wring Out is 60 BP at 50% target HP',
+        attacker: ATTACKER(),
+        defender: DEFENDER(),
+        move: WRING_OUT,
+        modifiers: { defenderHpPercent: 50 },
+        expected: { min: 31, max: 37 },
+      },
+      {
+        name: 'Brine does not double at full HP',
+        attacker: ATTACKER(),
+        defender: DEFENDER(),
+        move: BRINE,
+        modifiers: {},
+        expected: { min: 22, max: 27 },
+      },
+      {
+        name: 'Brine doubles against a target at 50% HP',
+        attacker: ATTACKER(),
+        defender: DEFENDER(),
+        move: BRINE,
+        modifiers: { defenderHpPercent: 50 },
+        expected: { min: 45, max: 53 },
+      },
+      {
+        name: 'Assurance is single power by default',
+        attacker: ATTACKER(),
+        defender: DEFENDER(),
+        move: ASSURANCE,
+        modifiers: {},
+        expected: { min: 32, max: 38 },
+      },
+      {
+        name: 'Assurance doubles if the target already took damage',
+        attacker: ATTACKER(),
+        defender: DEFENDER(),
+        move: ASSURANCE,
+        modifiers: { targetDamaged: true },
+        expected: { min: 63, max: 75 },
+      },
+
+      // -------- Issue #14: multi-hit --------
+      {
+        name: 'Rock Blast sums 3 hits',
+        attacker: ATTACKER(),
+        defender: DEFENDER(),
+        move: ROCK_BLAST,
+        modifiers: {},
+        expected: { min: 42, max: 51 },
+      },
+      {
+        name: 'Skill Link locks Rock Blast to 5 hits',
+        attacker: ATTACKER({ ability: 'skill-link' }),
+        defender: DEFENDER(),
+        move: ROCK_BLAST,
+        modifiers: {},
+        expected: { min: 70, max: 85 },
+      },
+      {
+        name: 'Dragon Darts sums 2 hits',
+        attacker: ATTACKER(),
+        defender: DEFENDER(),
+        move: DRAGON_DARTS,
+        modifiers: {},
+        expected: { min: 54, max: 64 },
+      },
+      {
+        name: 'Triple Axel escalates 20/40/60 across 3 hits',
+        attacker: ATTACKER(),
+        defender: DEFENDER(),
+        move: TRIPLE_AXEL,
+        modifiers: {},
+        expected: { min: 65, max: 78 },
+      },
     ];
 
     const results = document.getElementById('results');
@@ -1062,6 +1294,35 @@
           const SINGLE_MV = { name: 'Body Slam', apiName: 'body-slam', type: 'Normal', power: 85, category: 'physical', spread: false };
           const l = buildMoveLine(POLITOED, WHIMSICOTT, SINGLE_MV, { weather: 'none', spread: true }, 'offensive');
           return l.text === 'Body Slam (85 BP) · Neutral · Spread (0.75x)';
+        },
+      },
+      {
+        // Terrain Pulse resolves to the field type + doubled BP for the card,
+        // just like Weather Ball. Electric vs Grass/Fairy is 0.5x.
+        name: 'Terrain Pulse in Electric Terrain shows Electric / 100 BP',
+        run: () => {
+          const TP = { name: 'Terrain Pulse', apiName: 'terrain-pulse', type: 'Normal', power: 50, category: 'special' };
+          const l = buildMoveLine(POLITOED, WHIMSICOTT, TP, { weather: 'none', terrain: 'electric' }, 'offensive');
+          return l.text === 'Terrain Pulse (100 BP) · Not Very Effective' && l.tone === 'red';
+        },
+      },
+      {
+        // Multi-hit moves tag the per-roll hit count so the summed result reads right.
+        name: 'Rock Blast move line tags Hits 3x',
+        run: () => {
+          const RB = { name: 'Rock Blast', apiName: 'rock-blast', type: 'Rock', power: 25, category: 'physical' };
+          const l = buildMoveLine(POLITOED, WHIMSICOTT, RB, { weather: 'none' }, 'offensive');
+          return l.text === 'Rock Blast (25 BP) · Neutral · Hits 3x';
+        },
+      },
+      {
+        // Skill Link locks the 2–5 range to 5 hits, reflected in the tag.
+        name: 'Skill Link bumps the Rock Blast tag to Hits 5x',
+        run: () => {
+          const RB = { name: 'Rock Blast', apiName: 'rock-blast', type: 'Rock', power: 25, category: 'physical' };
+          const skillLinker = { ability: 'skill-link', types: ['Rock'] };
+          const l = buildMoveLine(skillLinker, WHIMSICOTT, RB, { weather: 'none' }, 'offensive');
+          return l.text === 'Rock Blast (25 BP) · Neutral · Hits 5x';
         },
       },
     ];

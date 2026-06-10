@@ -280,6 +280,9 @@ export async function fetchPokemonDetails(apiName) {
     apiName: data.name,
     sprite: data.sprites.other['official-artwork'].front_default || data.sprites.front_default,
     types: data.types.map((t) => formatDisplayName(t.type.name)),
+    // Weight in hectograms (PokéAPI's unit), kept as-is so the engine's
+    // weight-based moves (Low Kick, Heavy Slam, …) read it directly.
+    weight: data.weight,
     baseStats: {
       hp: data.stats[0].base_stat,
       atk: data.stats[1].base_stat,

@@ -106,6 +106,37 @@ export function getTypeEffectiveness(moveType, defenderTypes, { scrappy = false 
   return mult;
 }
 
+// Type-chart multiplier for a *move* against a defender, honoring the handful of
+// moves whose effectiveness diverges from a plain single-type lookup. The single
+// entry point for both the damage calc and the result summary, so the label and
+// the math never disagree.
+//   - Freeze-Dry is Ice-typed but always super-effective on Water (overriding
+//     Water's normal Ice resistance), composed with its normal effectiveness
+//     against the defender's other type.
+//   - Flying Press deals combined Fighting + Flying type effectiveness.
+export function getMoveEffectiveness(move, defenderTypes, opts = {}) {
+  if (move.apiName === 'freeze-dry') {
+    let mult = 1.0;
+    for (const defType of defenderTypes) {
+      if (defType === '???' || !defType) continue;
+      if (defType === 'Water') {
+        mult *= 2;
+        continue;
+      }
+      const row = TYPE_EFFECTIVENESS.Ice;
+      if (row && row[defType] !== undefined) mult *= row[defType];
+    }
+    return mult;
+  }
+  if (move.apiName === 'flying-press') {
+    return (
+      getTypeEffectiveness('Fighting', defenderTypes, opts) *
+      getTypeEffectiveness('Flying', defenderTypes, opts)
+    );
+  }
+  return getTypeEffectiveness(move.type, defenderTypes, opts);
+}
+
 // Map a type-effectiveness multiplier to a display label + favorability tone for
 // the active mode. Favor flips by mode: in offense a high multiplier is good for
 // the user (emerald); in survival a high multiplier means more damage taken, so

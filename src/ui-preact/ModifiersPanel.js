@@ -3,6 +3,7 @@
 // maps) and the Fairy-Aura aura lock; burn lives on STATE.attacker.status.
 import { html } from './preact.js';
 import { STATE, update } from './store.js';
+import { BOOST_STAGES } from './card-common.js';
 
 // Checkbox cells: [statePath, label, checkedTheme]. burned reads/writes
 // attacker.status; the rest are STATE.modifiers booleans.
@@ -58,6 +59,123 @@ function toggle(key, checked) {
     if (key === 'burned') s.attacker.status = checked ? 'burned' : null;
     else s.modifiers[key] = checked;
   });
+}
+
+// Moves whose damage needs a piece of battle state the general toggles don't
+// cover. The relevant control surfaces in MoveContext only while one of these is
+// the selected move, so the panel stays uncluttered the rest of the time.
+const MOVES_FIRST = ['bolt-beak', 'fishious-rend', 'payback'];
+const HP_DEPENDENT = ['wring-out', 'crush-grip', 'brine'];
+
+const ctxSel =
+  'bg-slate-800 border border-slate-700 rounded px-1.5 py-0.5 text-[10px] font-mono text-slate-200 cursor-pointer focus:outline-none focus:border-amber-500';
+
+// One labeled row of the move-context block.
+const CtxRow = ({ label, children }) => html`
+  <div class="flex items-center justify-between gap-2">
+    <span class="text-[10px] font-bold text-slate-400">${label}</span>
+    ${children}
+  </div>`;
+
+const boostSelect = (value, onChange) => html`
+  <select value=${String(value)} onChange=${onChange} class=${ctxSel}>
+    ${BOOST_STAGES.map((n) => html`<option value=${String(n)}>${n >= 0 ? `+${n}` : n}</option>`)}
+  </select>`;
+
+// Per-move inputs for the handful of moves that read extra battle state (Body
+// Press's user Defense, Foul Play's target Attack, Hex's target status, the
+// movesFirst override, target-HP scaling, Assurance's turn flag). Returns null
+// when the selected move needs none of them.
+function MoveContext() {
+  const apiName = STATE.move.apiName;
+  const m = STATE.modifiers;
+  const rows = [];
+
+  if (apiName === 'body-press') {
+    rows.push(
+      html`<${CtxRow} label="User Defense boost">
+        ${boostSelect(STATE.attacker.boosts.def, (e) =>
+          update((s) => {
+            s.attacker.boosts.def = parseInt(e.target.value) || 0;
+          })
+        )}
+      </>`
+    );
+  }
+  if (apiName === 'foul-play') {
+    rows.push(
+      html`<${CtxRow} label="Target Attack boost">
+        ${boostSelect(STATE.defender.boosts.atk, (e) =>
+          update((s) => {
+            s.defender.boosts.atk = parseInt(e.target.value) || 0;
+          })
+        )}
+      </>`
+    );
+  }
+  if (apiName === 'hex') {
+    rows.push(
+      html`<${CtxRow} label="Target is statused (2x)">
+        <input type="checkbox" class="accent-amber-500 cursor-pointer"
+          checked=${!!STATE.defender.status}
+          onChange=${(e) =>
+            update((s) => {
+              s.defender.status = e.target.checked ? 'poisoned' : null;
+            })} />
+      </>`
+    );
+  }
+  if (MOVES_FIRST.includes(apiName)) {
+    const val = m.movesFirst == null ? 'auto' : m.movesFirst ? 'first' : 'last';
+    rows.push(
+      html`<${CtxRow} label="Turn order">
+        <select value=${val} class=${ctxSel}
+          onChange=${(e) =>
+            update((s) => {
+              const v = e.target.value;
+              s.modifiers.movesFirst = v === 'auto' ? null : v === 'first';
+            })}>
+          <option value="auto">Auto (by Speed)</option>
+          <option value="first">Moves first</option>
+          <option value="last">Moves last</option>
+        </select>
+      </>`
+    );
+  }
+  if (HP_DEPENDENT.includes(apiName)) {
+    rows.push(
+      html`<${CtxRow} label="Target HP %">
+        <input type="number" min="1" max="100" value=${String(m.defenderHpPercent)}
+          class=${ctxSel + ' w-14 text-right'}
+          onInput=${(e) =>
+            update((s) => {
+              const n = parseInt(e.target.value);
+              s.modifiers.defenderHpPercent = Number.isNaN(n) ? 100 : Math.min(100, Math.max(1, n));
+            })} />
+      </>`
+    );
+  }
+  if (apiName === 'assurance') {
+    rows.push(
+      html`<${CtxRow} label="Target already damaged (2x)">
+        <input type="checkbox" class="accent-amber-500 cursor-pointer"
+          checked=${!!m.targetDamaged}
+          onChange=${(e) =>
+            update((s) => {
+              s.modifiers.targetDamaged = e.target.checked;
+            })} />
+      </>`
+    );
+  }
+
+  if (!rows.length) return null;
+  return html`
+    <div class="flex flex-col gap-2 border-t border-slate-700/40 pt-3.5">
+      <label class="block text-[9px] font-bold text-slate-500 uppercase tracking-wider text-left">
+        ${STATE.move.name} Options
+      </label>
+      ${rows}
+    </div>`;
 }
 
 export function ModifiersPanel() {
@@ -124,5 +242,7 @@ export function ModifiersPanel() {
           </select>
         </div>
       </div>
+
+      <${MoveContext} />
     </div>`;
 }

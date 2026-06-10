@@ -1,6 +1,6 @@
 // Damage roll calculator for Pokemon Champions rules.
 
-import { calculateStat, calculateStatBoost, getTypeEffectiveness } from './stats.js';
+import { calculateStat, calculateStatBoost, getMoveEffectiveness } from './stats.js';
 import { attackerAbilityMultiplier, defenderAbilityMultiplier } from './abilities.js';
 
 // Effective Speed including stat boosts.
@@ -44,8 +44,9 @@ function paradoxBoosted(mon, statKey, modifiers) {
 
 // Resolve a move's effective type/power from battle state. This is the single
 // source of truth for variable-type/-power moves so the damage calc and the UI
-// (the Attack card's type badge + BP) can never drift. Currently only Weather
-// Ball is variable; add new such moves here.
+// (the Attack card's type badge + BP) can never drift. Type-changing moves
+// (Weather Ball, Terrain Pulse) and variable-base-power moves (Gyro Ball, the
+// weight/HP/boost-driven moves, …) all resolve here.
 //
 // The -ate abilities convert the user's Normal-type moves to another type and
 // boost them 1.2x. resolveEffectiveMove handles the type change (so STAB + the
@@ -58,27 +59,211 @@ const ATE_TYPES = {
   galvanize: 'Electric',
 };
 
-// Weather Ball takes on the weather's type and doubles its power while any
-// weather is active. Mega Sol makes the user's moves behave as if in harsh
-// sunlight, so it turns Weather Ball into a boosted Fire move with no weather.
-export function resolveEffectiveMove(attacker, move, modifiers) {
+// Sum of a mon's positive stat stages. Drives Stored Power / Power Trip (own
+// boosts) and Punishment (the target's). The state only tracks the offensive /
+// defensive boosts the UI exposes, so accuracy/evasion stages aren't counted —
+// good enough for the calculator's purposes.
+function positiveBoostCount(boosts) {
+  let n = 0;
+  for (const k in boosts) {
+    if (boosts[k] > 0) n += boosts[k];
+  }
+  return n;
+}
+
+// Low Kick / Grass Knot base power by the *target's* weight (kilograms). Weight
+// is stored in hectograms (PokéAPI's unit), matching the dex.
+function weightBasedPower(weightHg) {
+  const kg = weightHg / 10;
+  if (kg >= 200) return 120;
+  if (kg >= 100) return 100;
+  if (kg >= 50) return 80;
+  if (kg >= 25) return 60;
+  if (kg >= 10) return 40;
+  return 20;
+}
+
+// Heavy Slam / Heat Crash base power by the ratio of the user's weight to the
+// target's: the heavier the user is relative to the target, the stronger it hits.
+function weightRatioPower(userHg, targetHg) {
+  const ratio = userHg / Math.max(1, targetHg);
+  if (ratio >= 5) return 120;
+  if (ratio >= 4) return 100;
+  if (ratio >= 3) return 80;
+  if (ratio >= 2) return 60;
+  return 40;
+}
+
+// Resolved base power for moves PokéAPI can't report a fixed number for, computed
+// from battle state. Returns null when the move isn't one of these (leaving the
+// reported base power in place). `defender` may be null (e.g. the Attack card
+// before a target is chosen), in which case target-dependent moves fall through.
+function variableBasePower(move, attacker, defender, modifiers) {
+  switch (move.apiName) {
+    case 'return':
+    case 'frustration':
+      return 102; // max happiness / min happiness, the competitive default
+    case 'eruption':
+    case 'water-spout':
+    case 'dragon-energy':
+      return 150; // scales with the user's current HP; a calc assumes full HP
+    case 'stored-power':
+    case 'power-trip':
+      return 20 + 20 * positiveBoostCount(attacker.boosts);
+    case 'gyro-ball': {
+      if (!defender) return null;
+      const userSpe = effectiveSpeed(attacker);
+      const targetSpe = effectiveSpeed(defender);
+      return Math.min(150, Math.floor((25 * targetSpe) / Math.max(1, userSpe)) + 1);
+    }
+    case 'electro-ball': {
+      if (!defender) return null;
+      const ratio = effectiveSpeed(attacker) / Math.max(1, effectiveSpeed(defender));
+      return ratio >= 4 ? 150 : ratio >= 3 ? 120 : ratio >= 2 ? 80 : ratio >= 1 ? 60 : 40;
+    }
+    case 'punishment':
+      if (!defender) return null;
+      return Math.min(200, 60 + 20 * positiveBoostCount(defender.boosts));
+    case 'low-kick':
+    case 'grass-knot':
+      if (!defender || !defender.weight) return null;
+      return weightBasedPower(defender.weight);
+    case 'heavy-slam':
+    case 'heat-crash':
+      if (!defender || !defender.weight || !attacker.weight) return null;
+      return weightRatioPower(attacker.weight, defender.weight);
+    case 'wring-out':
+    case 'crush-grip': {
+      // Scales with the target's *remaining* HP fraction; full HP (the calc
+      // default) is the move's max, 120 BP.
+      const pct = modifiers.defenderHpPercent != null ? modifiers.defenderHpPercent : 100;
+      return Math.max(1, Math.floor((120 * pct) / 100));
+    }
+    default:
+      return null;
+  }
+}
+
+// Weather Ball / Terrain Pulse take on a field-derived type and double their
+// power; Mega Sol makes the user's moves behave as if in harsh sunlight, turning
+// Weather Ball into a boosted Fire move with no weather. Terrain Pulse needs the
+// user grounded (a Flying-type isn't), mirroring the terrain damage boosts below.
+const WEATHER_BALL_TYPES = { sun: 'Fire', rain: 'Water', sandstorm: 'Rock', snow: 'Ice' };
+const TERRAIN_PULSE_TYPES = {
+  electric: 'Electric',
+  grassy: 'Grass',
+  psychic: 'Psychic',
+  misty: 'Fairy',
+};
+
+export function resolveEffectiveMove(attacker, move, modifiers, defender = null) {
+  let type = move.type;
+  let power = move.power;
+  let changed = false;
+  let ateBoosted = false;
+
   if (move.apiName === 'weather-ball') {
     const ballWeather = attacker.ability === 'mega-sol' ? 'sun' : modifiers.weather;
-    const weatherBallTypes = { sun: 'Fire', rain: 'Water', sandstorm: 'Rock', snow: 'Ice' };
-    const resolvedType = weatherBallTypes[ballWeather];
+    const resolvedType = WEATHER_BALL_TYPES[ballWeather];
     if (resolvedType) {
-      return { ...move, type: resolvedType, power: move.power * 2 };
+      type = resolvedType;
+      power = move.power * 2;
+      changed = true;
+    }
+  } else if (move.apiName === 'terrain-pulse') {
+    const grounded = !attacker.types.includes('Flying');
+    const resolvedType = grounded ? TERRAIN_PULSE_TYPES[modifiers.terrain] : undefined;
+    if (resolvedType) {
+      type = resolvedType;
+      power = move.power * 2;
+      changed = true;
+    }
+  } else {
+    // Variable-base-power moves (no type change). Skipped above for the two
+    // type-changers, which already set their own doubled power.
+    const vp = variableBasePower(move, attacker, defender, modifiers);
+    if (vp != null) {
+      power = vp;
+      changed = true;
     }
   }
+
   const ateType = ATE_TYPES[attacker.ability];
-  if (ateType && move.type === 'Normal') {
-    return { ...move, type: ateType, _ateBoosted: true };
+  if (ateType && type === 'Normal') {
+    type = ateType;
+    ateBoosted = true;
+    changed = true;
   }
-  return move;
+
+  if (!changed) return move;
+  const out = { ...move, type, power };
+  if (ateBoosted) out._ateBoosted = true;
+  return out;
+}
+
+// Multi-hit moves the engine sums into a single result. `hits` is the count the
+// calc assumes; `max` (for the 2–5 range moves) is what Skill Link locks them
+// to. `escalating` flags the Triple Kick / Triple Axel family, whose hits ramp
+// 1x / 2x / 3x off the reported (first-hit) base power.
+const MULTI_HIT_MOVES = {
+  'double-kick': { hits: 2 },
+  'dual-chop': { hits: 2 },
+  'double-hit': { hits: 2 },
+  'double-iron-bash': { hits: 2 },
+  twineedle: { hits: 2 },
+  bonemerang: { hits: 2 },
+  'gear-grind': { hits: 2 },
+  'dragon-darts': { hits: 2 },
+  'tachyon-cutter': { hits: 2 },
+  'triple-kick': { hits: 3, escalating: true },
+  'triple-axel': { hits: 3, escalating: true },
+  'surging-strikes': { hits: 3 },
+  'rock-blast': { hits: 3, max: 5 },
+  'bullet-seed': { hits: 3, max: 5 },
+  'icicle-spear': { hits: 3, max: 5 },
+  'pin-missile': { hits: 3, max: 5 },
+  'scale-shot': { hits: 3, max: 5 },
+  'bone-rush': { hits: 3, max: 5 },
+  'comet-punch': { hits: 3, max: 5 },
+  'fury-attack': { hits: 3, max: 5 },
+  'fury-swipes': { hits: 3, max: 5 },
+  'spike-cannon': { hits: 3, max: 5 },
+  'tail-slap': { hits: 3, max: 5 },
+  'water-shuriken': { hits: 3, max: 5 },
+  'population-bomb': { hits: 10, max: 10 },
+};
+
+// Per-hit base powers for a move. Parental Bond (any move hits twice, the second
+// at 0.25x) and the multi-hit moves both decompose a single calc into several
+// floored hits summed per roll; everything else is a single hit. Skill Link
+// locks a 2–5 move to its max hit count.
+function hitPowers(move, power, attacker) {
+  if (attacker.ability === 'parental-bond') {
+    return [power, Math.floor(power * 0.25)];
+  }
+  const spec = MULTI_HIT_MOVES[move.apiName];
+  if (spec) {
+    const count = spec.max && attacker.ability === 'skill-link' ? spec.max : spec.hits;
+    if (spec.escalating) {
+      return Array.from({ length: count }, (_, i) => power * (i + 1));
+    }
+    return Array(count).fill(power);
+  }
+  return [power];
+}
+
+// How many times a move hits for the given attacker (Skill Link locks 2–5 moves
+// to their max). 1 for ordinary moves; drives the result card's "Hits Nx" note.
+// Parental Bond isn't counted here — its second hit is partial and the card
+// labels it separately.
+export function multiHitCount(move, attacker) {
+  const spec = MULTI_HIT_MOVES[move.apiName];
+  if (!spec) return 1;
+  return spec.max && attacker.ability === 'skill-link' ? spec.max : spec.hits;
 }
 
 export function calculateDamageRolls(attacker, defender, move, modifiers) {
-  move = resolveEffectiveMove(attacker, move, modifiers);
+  move = resolveEffectiveMove(attacker, move, modifiers, defender);
 
   const baseIsPhysical = move.category.toLowerCase() === 'physical';
 
@@ -198,6 +383,20 @@ export function calculateDamageRolls(attacker, defender, move, modifiers) {
   if (move.apiName === 'hex' && defender.status) {
     effectivePower *= 2;
   }
+  // Brine doubles against a target at or below half HP; the calc defaults to full
+  // HP (defenderHpPercent unset === 100), where it doesn't trigger.
+  if (
+    move.apiName === 'brine' &&
+    modifiers.defenderHpPercent != null &&
+    modifiers.defenderHpPercent <= 50
+  ) {
+    effectivePower *= 2;
+  }
+  // Assurance doubles if the target already took damage this turn (a turn-state
+  // toggle, since the calc is a single hit).
+  if (move.apiName === 'assurance' && modifiers.targetDamaged) {
+    effectivePower *= 2;
+  }
   // Whether the attacker moves first. Defaults to comparing effective Speed, but
   // an explicit modifier overrides it (Trick Room, Choice Scarf, switch-ins, …).
   // Drives Bolt Beak (doubles when first) and the Analytic ability (1.3x when
@@ -222,23 +421,9 @@ export function calculateDamageRolls(attacker, defender, move, modifiers) {
     }
   }
 
-  // Variable base power. PokeAPI reports 0/1 for these, so compute it here.
-  if (move.apiName === 'return' || move.apiName === 'frustration') {
-    effectivePower = 102; // max happiness / min happiness, the competitive default
-  } else if (
-    move.apiName === 'eruption' ||
-    move.apiName === 'water-spout' ||
-    move.apiName === 'dragon-energy'
-  ) {
-    effectivePower = 150; // scales with the user's current HP; a calc assumes full HP
-  } else if (move.apiName === 'gyro-ball') {
-    const userSpe = effectiveSpeed(attacker);
-    const targetSpe = effectiveSpeed(defender);
-    effectivePower = Math.min(150, Math.floor((25 * targetSpe) / Math.max(1, userSpe)) + 1);
-  } else if (move.apiName === 'electro-ball') {
-    const ratio = effectiveSpeed(attacker) / Math.max(1, effectiveSpeed(defender));
-    effectivePower = ratio >= 4 ? 150 : ratio >= 3 ? 120 : ratio >= 2 ? 80 : ratio >= 1 ? 60 : 40;
-  }
+  // (Variable base power — Return, Eruption, Gyro/Electro Ball, the weight/HP/
+  // boost-driven moves — is resolved in resolveEffectiveMove so the UI's BP
+  // display and the calc share one source of truth; move.power is final here.)
 
   const levelFactor = 22;
   const baseDamageFor = (power) =>
@@ -277,7 +462,7 @@ export function calculateDamageRolls(attacker, defender, move, modifiers) {
   }
   mod *= stab;
 
-  const typeMult = getTypeEffectiveness(move.type, defender.types, {
+  const typeMult = getMoveEffectiveness(move, defender.types, {
     scrappy: attacker.ability === 'scrappy',
   });
   mod *= typeMult;
@@ -374,20 +559,18 @@ export function calculateDamageRolls(attacker, defender, move, modifiers) {
     mod *= 0.5;
   }
 
-  // Parental Bond (Mega Kangaskhan) makes the move hit twice, the second hit at
-  // 0.25x power; the two floored hits are summed per roll. Simplification: the
-  // shared `mod` (incl. full-HP defender abilities like Multiscale and the
-  // spread reduction) is applied uniformly to both hits rather than recomputed
-  // against the defender's reduced HP after the first hit — acceptable here.
-  const hitPowers =
-    attacker.ability === 'parental-bond'
-      ? [effectivePower, Math.floor(effectivePower * 0.25)]
-      : [effectivePower];
+  // Parental Bond and multi-hit moves decompose into several floored hits summed
+  // per roll (see hitPowers). Simplification: the shared `mod` (incl. full-HP
+  // defender abilities like Multiscale and the spread reduction) is applied
+  // uniformly to every hit rather than recomputed against the defender's reduced
+  // HP after each hit, and one damage roll is shared across the hits — acceptable
+  // for a calculator.
+  const powers = hitPowers(move, effectivePower, attacker);
 
   const rolls = [];
   for (let r = 85; r <= 100; r++) {
     let total = 0;
-    for (const power of hitPowers) {
+    for (const power of powers) {
       const rollVal = Math.floor(baseDamageFor(power) * (r / 100));
       total += Math.floor(rollVal * mod);
     }

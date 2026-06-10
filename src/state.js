@@ -19,10 +19,13 @@ export const STATE = {
     ability: 'none',
     sps: { hp: 0, atk: 32, def: 0, spa: 0, spd: 0, spe: 0 },
     ivs: { hp: 31, atk: 31, def: 31, spa: 31, spd: 31, spe: 31 },
-    boosts: { atk: 0, spa: 0, spe: 0 },
+    // def is tracked so Body Press (damage off the user's Defense) can take a
+    // Defense boost; atk/spa/spe cover the ordinary offensive cases.
+    boosts: { atk: 0, def: 0, spa: 0, spe: 0 },
     types: ['???'],
     moves: [],
     status: null,
+    weight: 0, // hectograms (PokéAPI unit); set on selection, used by weight moves
     // Render-only fields the Preact attacker island reads (the vanilla DOM used
     // to hold these); kept on STATE so the island has a single source of truth.
     sprite: '',
@@ -39,8 +42,12 @@ export const STATE = {
     ability: 'none',
     sps: { hp: 32, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 },
     ivs: { hp: 31, atk: 31, def: 31, spa: 31, spd: 31, spe: 31 },
-    boosts: { def: 0, spd: 0, spe: 0 },
+    // atk is tracked so Foul Play (damage off the target's Attack) can take an
+    // Attack boost; def/spd/spe cover the ordinary defensive cases.
+    boosts: { atk: 0, def: 0, spd: 0, spe: 0 },
     types: ['???'],
+    status: null, // Hex / Brine etc. read the defender's status
+    weight: 0, // hectograms; set on selection, used by weight-based moves
     // Render-only fields the Preact defender island reads.
     sprite: '',
     abilities: [],
@@ -70,8 +77,14 @@ export const STATE = {
     tailDef: false, // defender Tailwind (2x Speed)
     boosterActive: false, // Protosynthesis/Quark Drive active (Booster Energy / field)
     pinchActive: false, // pinch abilities (Overgrow/Blaze/Torrent/Swarm/Defeatist) active
-    // movesFirst (Bolt Beak / Fishious Rend) is left unset so the engine
-    // infers turn order from effective Speed; set it to override that.
+    // movesFirst (Bolt Beak / Fishious Rend / Payback) overrides the Speed-inferred
+    // turn order: null = infer from Speed, true = attacker first, false = last.
+    movesFirst: null,
+    // Target's remaining HP as a percent (100 = full, the calc default). Drives
+    // Wring Out / Crush Grip (scaling power) and Brine (x2 at <=50%).
+    defenderHpPercent: 100,
+    // Whether the target already took damage this turn (Assurance x2).
+    targetDamaged: false,
   },
 };
 

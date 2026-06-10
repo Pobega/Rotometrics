@@ -6,10 +6,10 @@ import { STATE } from '../state.js';
 import {
   calculateStat,
   calculateStatBoost,
-  getTypeEffectiveness,
+  getMoveEffectiveness,
   effectivenessInfo,
 } from '../engine/stats.js';
-import { resolveEffectiveMove } from '../engine/damage.js';
+import { resolveEffectiveMove, multiHitCount } from '../engine/damage.js';
 
 // Map raw damage vs effective HP to a KO/survival verdict for the active mode.
 function computeVerdict(mode, minDamage, maxDamage, finalHp) {
@@ -80,12 +80,18 @@ function turnOrder(state) {
 // move so variable moves (Weather Ball) report their resolved type + BP, keeping
 // the card in sync with the Attack card and the damage math.
 export function buildMoveLine(attacker, defender, move, modifiers, mode) {
-  const eff = resolveEffectiveMove(attacker, move, modifiers);
-  const mult = getTypeEffectiveness(eff.type, defender.types, {
+  const eff = resolveEffectiveMove(attacker, move, modifiers, defender);
+  const mult = getMoveEffectiveness(eff, defender.types, {
     scrappy: attacker.ability === 'scrappy',
   });
   const info = effectivenessInfo(mult, mode);
-  const hitsTwice = attacker.ability === 'parental-bond' ? ' · Hits Twice (0.25x Second Hit)' : '';
+  const hits = multiHitCount(move, attacker);
+  const hitsTwice =
+    attacker.ability === 'parental-bond'
+      ? ' · Hits Twice (0.25x Second Hit)'
+      : hits > 1
+        ? ` · Hits ${hits}x`
+        : '';
   // Spread tag — make the 0.75x state obvious at a glance. Show "Spread (0.75x)"
   // whenever the multiplier is actually applied (modifiers.spread), and "Non-Spread"
   // when a spread-capable move (move.spread) currently isn't getting it, so a
