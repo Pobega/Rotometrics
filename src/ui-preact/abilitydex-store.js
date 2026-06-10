@@ -20,6 +20,7 @@ import { createEmitter } from './reactive.js';
 import { makeChipFilter } from './chip-filter.js';
 import { makeSuggester } from './suggestions.js';
 import { runPool } from './load-pool.js';
+import { RegulationBadge } from './RegulationBadge.js';
 
 // Shared, reactive Abilitydex state. AbilitydexView reads these directly and
 // re-renders on notifyAbd().
@@ -256,7 +257,6 @@ export async function handleAbilitydexRowClick(apiName) {
 
   const capped = holders.length > HOLDER_CAP;
   const visible = capped ? holders.slice(0, HOLDER_CAP) : holders;
-  const formatLabel = REGULATIONS[STATE.format]?.label ?? 'National Dex';
 
   const localCache = new Map();
   const getDetails = (n) => localCache.get(n) || (_getPokemonDetails && _getPokemonDetails(n));
@@ -278,7 +278,7 @@ export async function handleAbilitydexRowClick(apiName) {
 
   const session = openDetailModal({
     title: `Pokémon with ${details.name}`,
-    subtitle: `${holders.length} Pokémon · ${formatLabel}`,
+    subtitle: html`<span class="inline-flex items-center gap-1.5">${holders.length} Pokémon <${RegulationBadge} /></span>`,
     header: buildAbilitySummary(details),
     items: buildItems(),
   });

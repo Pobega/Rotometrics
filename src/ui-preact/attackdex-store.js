@@ -20,6 +20,7 @@ import { createEmitter } from './reactive.js';
 import { makeChipFilter } from './chip-filter.js';
 import { makeSuggester } from './suggestions.js';
 import { runPool } from './load-pool.js';
+import { RegulationBadge } from './RegulationBadge.js';
 
 // Shared, reactive Attackdex state. AttackdexView reads these directly and
 // re-renders on notifyAdx(). Same shape/semantics as the old vanilla AttackdexPage.
@@ -290,7 +291,6 @@ export async function handleAttackdexRowClick(apiName) {
 
   const capped = learners.length > LEARNER_CAP;
   const visible = capped ? learners.slice(0, LEARNER_CAP) : learners;
-  const formatLabel = REGULATIONS[STATE.format]?.label ?? 'National Dex';
 
   const localCache = new Map();
   const getDetails = (n) => localCache.get(n) || (_getPokemonDetails && _getPokemonDetails(n));
@@ -312,7 +312,7 @@ export async function handleAttackdexRowClick(apiName) {
 
   const session = openDetailModal({
     title: `Who learns ${details.name}`,
-    subtitle: `${learners.length} Pokémon · ${formatLabel}`,
+    subtitle: html`<span class="inline-flex items-center gap-1.5">${learners.length} Pokémon <${RegulationBadge} /></span>`,
     header: buildMoveSummary(details),
     items: buildItems(),
   });

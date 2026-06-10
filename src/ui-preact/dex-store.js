@@ -25,6 +25,7 @@ import { createEmitter } from './reactive.js';
 import { makeChipFilter } from './chip-filter.js';
 import { makeSuggester } from './suggestions.js';
 import { runPool } from './load-pool.js';
+import { RegulationBadge } from './RegulationBadge.js';
 
 // Shared, reactive Pokédex state. DexView reads these fields directly and
 // re-renders on notifyDex(). Same shape/semantics as the old vanilla DexPage.
@@ -417,7 +418,7 @@ export async function handleDexRowClick(apiName) {
   const buildItems = () => moves.map((m) => buildMoveItem(m, getDetails(m), makeOnClick(m)));
 
   const session = openDetailModal({
-    title: details.name,
+    title: html`<span class="flex items-center gap-2 min-w-0"><span class="truncate">${details.name}</span><${RegulationBadge} /></span>`,
     subtitle: html`
       <span class="flex items-center flex-wrap gap-1.5">
         ${details.types.map((t) => html`<span class=${`text-[8px] px-1 py-0.5 font-extrabold uppercase rounded ${getTypeBgClass(t)} text-white`}>${t}</span>`)}
