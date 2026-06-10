@@ -73,6 +73,69 @@ function PlaceholderRow({ row, pinned, view }) {
     </div>`;
 }
 
+// Per-stat cells for the mobile card (the grid table relies on column headers for
+// these labels; the cards have none, so each value carries its own).
+const CARD_STATS = [
+  { key: 'hp', label: 'HP' },
+  { key: 'atk', label: 'Atk' },
+  { key: 'def', label: 'Def' },
+  { key: 'spa', label: 'SpA' },
+  { key: 'spd', label: 'SpD' },
+  { key: 'spe', label: 'Spe' },
+];
+
+// Mobile (<sm) card: the same row data stacked vertically so it never needs the
+// horizontal scroller the grid table does. Sprite + name + pin on top, type badges,
+// a wrapping mini stat grid (or the 4 speed tiers), then abilities.
+function DexCard({ row, pinned, view }) {
+  const d = row.details;
+  const statChip = (label, value, valueClass = 'text-slate-100') => html`
+    <div class="flex flex-col items-center rounded bg-slate-900/60 py-1">
+      <span class="text-[8px] font-bold uppercase tracking-wider text-slate-500">${label}</span>
+      <span class=${`font-mono text-xs ${valueClass}`}>${value}</span>
+    </div>`;
+
+  let statBlock;
+  if (!d) {
+    statBlock = html`<div class="text-[10px] text-slate-600">loading…</div>`;
+  } else if (view === 'speed') {
+    statBlock = html`
+      <div class="grid grid-cols-4 gap-1">
+        ${SPEED_TIERS.map((t) =>
+          statChip(t.label, speedTier(d.baseStats, t), t.scarf ? 'text-sky-300' : 'text-slate-100')
+        )}
+      </div>`;
+  } else {
+    const s = d.baseStats;
+    // 7 columns (6 stats + BST) on a single row — no wrapping. Each chip needs
+    // only ~45px for a 3-digit value + short label, which fits even at 320px.
+    statBlock = html`
+      <div class="grid grid-cols-7 gap-1">
+        ${CARD_STATS.map((c) => statChip(c.label, s[c.key]))}
+        ${statChip('BST', bst(s), 'font-bold text-amber-400')}
+      </div>`;
+  }
+
+  return html`
+    <div class=${`flex flex-col gap-2 rounded-xl border border-slate-800/70 p-3 cursor-pointer ${pinned ? 'bg-amber-950/10' : 'bg-slate-900/20'}`}
+      data-api=${row.apiName} onClick=${() => handleDexRowClick(row.apiName)}>
+      <div class="flex items-center gap-2">
+        ${d
+          ? html`<img src=${d.sprite || ''} alt="" loading="lazy" class="w-9 h-9 object-contain shrink-0" />`
+          : html`<div class="w-9 h-9 bg-slate-800 rounded shrink-0 animate-pulse"></div>`}
+        <span class="font-bold text-slate-100 text-sm flex-1 min-w-0 truncate">${row.name}</span>
+        ${d &&
+        html`<div class="flex flex-wrap gap-1 justify-end">
+          ${d.types.map((t) => html`<span class=${`text-[8px] px-1 py-0.5 font-extrabold uppercase rounded ${getTypeBgClass(t)} text-white`} title=${t}>${TYPE_SHORT[t] || t}</span>`)}
+        </div>`}
+        <${PinButton} row=${row} pinned=${pinned} />
+      </div>
+      ${statBlock}
+      ${d &&
+      html`<div class="text-[10px] text-slate-400 leading-tight">${d.abilities.map((a) => a.name).join(', ')}</div>`}
+    </div>`;
+}
+
 function DexRow({ row, pinned, view }) {
   const d = row.details;
   if (!d) return html`<${PlaceholderRow} row=${row} pinned=${pinned} view=${view} />`;
@@ -143,6 +206,37 @@ function ViewToggle() {
     </div>`;
 }
 
+// Mobile (<sm) sort control. The desktop sort lives in the grid header, which is
+// hidden on phones, so the cards need their own. Columns are context-aware: the
+// base-stat set in stats view, name + the 4 tiers in speed view. The select picks
+// the column; the button flips direction (re-selecting the active key toggles it,
+// matching setDexSort's desktop behavior).
+function MobileSortControl({ view }) {
+  const cols = view === 'speed' ? [SORT_COLS[0], ...SPEED_SORT_COLS] : SORT_COLS;
+  const desc = DexStore.sortDir === 'desc';
+  // Inline on the view-toggle's row, growing to fill the leftover width. The
+  // leading "Sort" prefix on the select label disambiguates it from the search.
+  // min-w + flex-wrap on the parent lets it drop to its own line on very narrow
+  // screens rather than crushing the select.
+  return html`
+    <div class="sm:hidden flex items-center gap-1.5 flex-1 min-w-[150px]">
+      <select
+        class="flex-1 min-w-0 rounded-xl bg-slate-900 border border-slate-700 px-2 py-2 text-xs text-slate-200"
+        value=${DexStore.sortKey}
+        onChange=${(e) => setDexSort(e.target.value)}
+        aria-label="Sort by">
+        ${cols.map((c) => html`<option value=${c.key}>Sort: ${c.label}</option>`)}
+      </select>
+      <button
+        onClick=${() => setDexSort(DexStore.sortKey)}
+        class="shrink-0 rounded-xl bg-slate-900 border border-slate-700 px-3 py-2 text-xs font-bold text-slate-200 hover:text-white transition"
+        title=${desc ? 'Descending — tap for ascending' : 'Ascending — tap for descending'}
+        aria-label=${desc ? 'Sort descending, tap for ascending' : 'Sort ascending, tap for descending'}>
+        ${desc ? '▼' : '▲'}
+      </button>
+    </div>`;
+}
+
 function SortButton({ col }) {
   const active = DexStore.sortKey === col.key;
   const arrow = active ? (DexStore.sortDir === 'desc' ? '▼' : '▲') : '';
@@ -199,6 +293,10 @@ export function DexView() {
         </h2>
         <div class="flex flex-wrap items-start gap-2 w-full sm:w-auto">
           <${ViewToggle} />
+          <!-- Mobile-only sort (desktop sorts via the grid header). Shares the
+               toggle's row, taking the remaining width; SearchChips is w-full so it
+               wraps to its own line beneath. -->
+          <${MobileSortControl} view=${view} />
           <${SearchChips}
             draft=${DexStore.draft}
             filters=${DexStore.filters}
@@ -212,30 +310,41 @@ export function DexView() {
         </div>
       </div>
 
-      <!-- Scrollable table -->
-      <div class="overflow-x-auto">
-        <div class=${minWidth(view)}>
-          <!-- Header row -->
-          <div class=${`grid ${gridCols(view)} items-center gap-2 px-3 py-2 text-[9px] font-extrabold uppercase tracking-wider text-slate-400 border-b border-slate-700`}>
-            <${SortButton} col=${SORT_COLS[0]} />
-            <span class="text-left">Type</span>
-            <span class="text-left">Abilities</span>
-            ${statCols.map((col) => html`<${SortButton} col=${col} />`)}
-            <span class="justify-self-center"><i class="fa-solid fa-thumbtack text-[9px]"></i></span>
-          </div>
-          <!-- Data rows: pinned first, then the filtered rest -->
-          <div class="flex flex-col" ref=${rowsRef}>
-            ${pinnedRows.map((row) => html`<${DexRow} key=${`pin-${row.apiName}`} row=${row} pinned=${true} view=${view} />`)}
-            ${pinnedRows.length > 0 && rest.length > 0 && html`<div class="border-b-2 border-amber-900/30"></div>`}
-            ${rest.map((row) => html`<${DexRow} key=${row.apiName} row=${row} pinned=${false} view=${view} />`)}
-            ${
-              pinnedRows.length === 0 &&
-              rest.length === 0 &&
-              html`
-              <div class="px-3 py-8 text-center text-xs text-slate-500">No Pokémon match ${terms.map((t, i) => html`${i > 0 ? ' + ' : ''}“${t}”`)}.</div>`
-            }
+      <!-- Rows: grid table on sm+, stacked cards on mobile. Both live under the
+           same ref so the lazy-row observer tracks whichever layout is visible. -->
+      <div ref=${rowsRef}>
+        <!-- Desktop: horizontally-scrollable grid table -->
+        <div class="hidden sm:block overflow-x-auto">
+          <div class=${minWidth(view)}>
+            <!-- Header row -->
+            <div class=${`grid ${gridCols(view)} items-center gap-2 px-3 py-2 text-[9px] font-extrabold uppercase tracking-wider text-slate-400 border-b border-slate-700`}>
+              <${SortButton} col=${SORT_COLS[0]} />
+              <span class="text-left">Type</span>
+              <span class="text-left">Abilities</span>
+              ${statCols.map((col) => html`<${SortButton} col=${col} />`)}
+              <span class="justify-self-center"><i class="fa-solid fa-thumbtack text-[9px]"></i></span>
+            </div>
+            <!-- Data rows: pinned first, then the filtered rest -->
+            <div class="flex flex-col">
+              ${pinnedRows.map((row) => html`<${DexRow} key=${`pin-${row.apiName}`} row=${row} pinned=${true} view=${view} />`)}
+              ${pinnedRows.length > 0 && rest.length > 0 && html`<div class="border-b-2 border-amber-900/30"></div>`}
+              ${rest.map((row) => html`<${DexRow} key=${row.apiName} row=${row} pinned=${false} view=${view} />`)}
+            </div>
           </div>
         </div>
+
+        <!-- Mobile: stacked cards (no horizontal scroll) -->
+        <div class="sm:hidden flex flex-col gap-2">
+          ${pinnedRows.map((row) => html`<${DexCard} key=${`pin-card-${row.apiName}`} row=${row} pinned=${true} view=${view} />`)}
+          ${pinnedRows.length > 0 && rest.length > 0 && html`<div class="border-b border-amber-900/30 my-1"></div>`}
+          ${rest.map((row) => html`<${DexCard} key=${`card-${row.apiName}`} row=${row} pinned=${false} view=${view} />`)}
+        </div>
+
+        ${
+          pinnedRows.length === 0 &&
+          rest.length === 0 &&
+          html`<div class="px-3 py-8 text-center text-xs text-slate-500">No Pokémon match ${terms.map((t, i) => html`${i > 0 ? ' + ' : ''}“${t}”`)}.</div>`
+        }
       </div>
 
     </section>`;
