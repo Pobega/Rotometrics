@@ -299,6 +299,22 @@ export async function fetchPokemonDetails(apiName) {
   return details;
 }
 
+// PokéAPI hasn't written real effect_entries for many newer moves — it leaves
+// them as this boilerplate even when the move has a genuine secondary effect
+// (e.g. Lash Out's "power doubles if your stats were lowered this turn"). When we
+// see it, the flavor text carries the actual behavior, so fall back to that.
+const GENERIC_MOVE_EFFECT = /^inflicts regular damage(\s+with no additional effect)?\.?$/i;
+
+// Most recent English flavor-text line, whitespace-collapsed. The entries run
+// oldest → newest, so the last English match is the current-generation wording.
+function latestEnglishFlavor(data) {
+  const entries = (data.flavor_text_entries || []).filter(
+    (e) => e.language && e.language.name === 'en'
+  );
+  const entry = entries[entries.length - 1];
+  return entry ? (entry.flavor_text || '').replace(/\s+/g, ' ').trim() : '';
+}
+
 // Pull the English rules text for a move, preferring the terse short_effect and
 // substituting the move's effect chance into PokéAPI's $effect_chance token so
 // strings like "Has a $effect_chance% chance to burn" read correctly. Used for
@@ -306,12 +322,16 @@ export async function fetchPokemonDetails(apiName) {
 // column. Returns '' when no English entry exists.
 function moveDescription(data) {
   const entry = (data.effect_entries || []).find((e) => e.language && e.language.name === 'en');
-  if (!entry) return '';
-  let text = entry.short_effect || entry.effect || '';
+  let text = entry ? (entry.short_effect || entry.effect || '').trim() : '';
+  // No real effect text, or PokéAPI's generic placeholder — use the flavor text,
+  // which describes the actual behavior for moves PokéAPI hasn't annotated.
+  if (!text || GENERIC_MOVE_EFFECT.test(text)) {
+    return latestEnglishFlavor(data) || text;
+  }
   if (data.effect_chance != null) {
     text = text.replace(/\$effect_chance/g, data.effect_chance);
   }
-  return text.trim();
+  return text;
 }
 
 export async function fetchMoveDetails(moveApiName) {
