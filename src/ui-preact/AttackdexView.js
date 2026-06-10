@@ -50,7 +50,10 @@ function MoveRow({ row }) {
 
   const cat = getCategoryBadge(d.category);
   const power = d.power ? d.power : '—';
-  const pp = d.pp === null || d.pp === undefined ? '—' : d.pp;
+  // Priority: show a signed value so +1 (Quick Attack) and -6 (Whirlwind) read
+  // at a glance; 0 (the common case) is dimmed so the non-zero rows stand out.
+  const prio = d.priority > 0 ? `+${d.priority}` : `${d.priority ?? 0}`;
+  const prioCls = d.priority ? 'text-slate-300' : 'text-slate-600';
   // Two flavours of spread: foes-only ('Spread') vs also-hits-your-ally
   // ('Spread+Ally'), which is the decision that matters in VGC doubles.
   const kind = spreadKind(d);
@@ -68,7 +71,7 @@ function MoveRow({ row }) {
       <span><span class=${`text-[8px] px-1.5 py-0.5 font-extrabold uppercase rounded ${getTypeBgClass(d.type)} text-white`} title=${d.type}>${d.type}</span></span>
       <span><span class=${`text-[8px] px-1.5 py-0.5 font-black uppercase rounded ${cat.cls}`}>${cat.label}</span></span>
       <span class="text-left font-mono font-bold text-amber-400">${power}</span>
-      <span class="text-left font-mono text-slate-300">${pp}</span>
+      <span class=${`text-left font-mono ${prioCls}`}>${prio}</span>
       <span class="text-slate-400 text-[10px] leading-tight line-clamp-2">${d.desc || '—'}</span>
     </div>`;
 }
@@ -76,7 +79,7 @@ function MoveRow({ row }) {
 const SORT_COLS = [
   { key: 'name', label: 'Move' },
   { key: 'power', label: 'Power' },
-  { key: 'pp', label: 'PP' },
+  { key: 'priority', label: 'Prio' },
 ];
 
 function SortButton({ col }) {

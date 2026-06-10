@@ -26,7 +26,7 @@ import { runPool } from './load-pool.js';
 export const AdxStore = {
   roster: [], // [{ apiName, name, details|null }]
   byName: {}, // apiName -> row (same object refs as roster)
-  sortKey: 'name', // 'name' | 'power' | 'pp'
+  sortKey: 'name', // 'name' | 'power' | 'priority'
   sortDir: 'asc',
   filters: [], // committed search terms (the chips); ANDed together
   draft: '', // uncommitted input text (live-previewed before Enter)

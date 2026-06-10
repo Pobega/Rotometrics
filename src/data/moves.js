@@ -33,15 +33,16 @@ export function isSpreadMove(details) {
   return spreadKind(details) !== null;
 }
 
-// Numeric value for a sortable key ('power' | 'pp') on a row, or null when the
-// row's details aren't loaded yet (so it can be sorted to the bottom).
+// Numeric value for a sortable key ('power' | 'priority') on a row, or null when
+// the row's details aren't loaded yet (so it can be sorted to the bottom). Note a
+// genuine 0 (e.g. priority for most moves) is kept distinct from a missing value.
 function moveValue(row, key) {
   if (!row.details) return null;
   const v = row.details[key];
   return v === null || v === undefined ? null : v;
 }
 
-// Returns a new array sorted by `key` ('name', 'power', or 'pp') in the given
+// Returns a new array sorted by `key` ('name', 'power', or 'priority') in the given
 // direction. Rows whose details aren't loaded sort to the end (for numeric
 // keys); the sort is stable.
 export function sortMoves(rows, key, dir = 'desc') {

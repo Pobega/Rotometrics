@@ -351,9 +351,11 @@ export async function fetchMoveDetails(moveApiName) {
     // null in PokeAPI means the move never misses (e.g. Swift, Aura Sphere); the
     // smart default-move pick treats null as 100%.
     accuracy: data.accuracy ?? null,
-    // Attackdex fields. `pp` and `target` drive the PP sort and the Spread
-    // filter; `desc` backs the description column + free-text search.
+    // Attackdex fields. `priority` and `target` drive the Priority sort and the
+    // Spread filter; `desc` backs the description column + free-text search.
+    // Priority spans -7..+5; 0 (the vast majority of moves) is the default.
     pp: data.pp ?? null,
+    priority: data.priority ?? 0,
     target: data.target ? data.target.name : null,
     desc: moveDescription(data),
     learnedBy: (data.learned_by_pokemon || []).map((p) => p.name),
