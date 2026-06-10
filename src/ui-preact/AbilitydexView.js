@@ -63,6 +63,22 @@ function AbilityRow({ row }) {
     </div>`;
 }
 
+// Mobile (<sm) card: name + tag badge on top, effect text below. Abilitydex is
+// only 3 columns, but the effect column still forces ~520px of horizontal scroll;
+// the card lets it wrap instead (mirrors DexView's DexCard).
+function AbilityCard({ row }) {
+  const d = row.details;
+  return html`
+    <div class=${`flex flex-col gap-2 rounded-xl border border-slate-800/70 p-3 cursor-pointer bg-slate-900/20`}
+      data-api=${row.apiName} onClick=${() => handleAbilitydexRowClick(row.apiName)}>
+      <div class="flex items-center gap-2">
+        <span class=${`font-bold text-sm flex-1 min-w-0 truncate ${d ? 'text-slate-100' : 'text-slate-300'}`}>${row.name}</span>
+        <${TagBadge} apiName=${row.apiName} />
+      </div>
+      <div class="text-[10px] text-slate-400 leading-tight">${d ? d.desc || '—' : 'loading…'}</div>
+    </div>`;
+}
+
 export function AbilitydexView() {
   useSubscription(subscribeAbd);
 
@@ -132,24 +148,34 @@ export function AbilitydexView() {
         </div>
       </div>
 
-      <!-- Scrollable table -->
-      <div class="overflow-x-auto">
-        <div class="min-w-[520px]">
-          <!-- Header row -->
-          <div class="grid grid-cols-[minmax(160px,1.6fr)_56px_minmax(240px,3fr)] items-center gap-2 px-3 py-2 text-[9px] font-extrabold uppercase tracking-wider text-slate-400 border-b border-slate-700">
-            <span class="text-left">Ability</span>
-            <span class="text-left">Tag</span>
-            <span class="text-left">Effect</span>
-          </div>
-          <!-- Data rows -->
-          <div class="flex flex-col" ref=${rowsRef}>
-            ${
-              sorted.length
-                ? sorted.map((row) => html`<${AbilityRow} key=${row.apiName} row=${row} />`)
-                : html`<div class="px-3 py-8 text-center text-xs text-slate-500">No abilities match ${terms.map((t, i) => html`${i > 0 ? ' + ' : ''}“${t}”`)}.</div>`
-            }
+      <!-- Rows: grid table on sm+, stacked cards on mobile. Both live under the
+           same ref so the lazy-row observer tracks whichever layout is visible. -->
+      <div ref=${rowsRef}>
+        <!-- Desktop: horizontally-scrollable grid table -->
+        <div class="hidden sm:block overflow-x-auto">
+          <div class="min-w-[520px]">
+            <!-- Header row -->
+            <div class="grid grid-cols-[minmax(160px,1.6fr)_56px_minmax(240px,3fr)] items-center gap-2 px-3 py-2 text-[9px] font-extrabold uppercase tracking-wider text-slate-400 border-b border-slate-700">
+              <span class="text-left">Ability</span>
+              <span class="text-left">Tag</span>
+              <span class="text-left">Effect</span>
+            </div>
+            <!-- Data rows -->
+            <div class="flex flex-col">
+              ${sorted.map((row) => html`<${AbilityRow} key=${row.apiName} row=${row} />`)}
+            </div>
           </div>
         </div>
+
+        <!-- Mobile: stacked cards (no horizontal scroll) -->
+        <div class="sm:hidden flex flex-col gap-2">
+          ${sorted.map((row) => html`<${AbilityCard} key=${`card-${row.apiName}`} row=${row} />`)}
+        </div>
+
+        ${
+          sorted.length === 0 &&
+          html`<div class="px-3 py-8 text-center text-xs text-slate-500">No abilities match ${terms.map((t, i) => html`${i > 0 ? ' + ' : ''}“${t}”`)}.</div>`
+        }
       </div>
 
     </section>`;

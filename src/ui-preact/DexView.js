@@ -120,19 +120,25 @@ function DexCard({ row, pinned, view }) {
     <div class=${`flex flex-col gap-2 rounded-xl border border-slate-800/70 p-3 cursor-pointer ${pinned ? 'bg-amber-950/10' : 'bg-slate-900/20'}`}
       data-api=${row.apiName} onClick=${() => handleDexRowClick(row.apiName)}>
       <div class="flex items-center gap-2">
-        ${d
-          ? html`<img src=${d.sprite || ''} alt="" loading="lazy" class="w-9 h-9 object-contain shrink-0" />`
-          : html`<div class="w-9 h-9 bg-slate-800 rounded shrink-0 animate-pulse"></div>`}
+        ${
+          d
+            ? html`<img src=${d.sprite || ''} alt="" loading="lazy" class="w-9 h-9 object-contain shrink-0" />`
+            : html`<div class="w-9 h-9 bg-slate-800 rounded shrink-0 animate-pulse"></div>`
+        }
         <span class="font-bold text-slate-100 text-sm flex-1 min-w-0 truncate">${row.name}</span>
-        ${d &&
-        html`<div class="flex flex-wrap gap-1 justify-end">
+        ${
+          d &&
+          html`<div class="flex flex-wrap gap-1 justify-end">
           ${d.types.map((t) => html`<span class=${`text-[8px] px-1 py-0.5 font-extrabold uppercase rounded ${getTypeBgClass(t)} text-white`} title=${t}>${TYPE_SHORT[t] || t}</span>`)}
-        </div>`}
+        </div>`
+        }
         <${PinButton} row=${row} pinned=${pinned} />
       </div>
       ${statBlock}
-      ${d &&
-      html`<div class="text-[10px] text-slate-400 leading-tight">${d.abilities.map((a) => a.name).join(', ')}</div>`}
+      ${
+        d &&
+        html`<div class="text-[10px] text-slate-400 leading-tight">${d.abilities.map((a) => a.name).join(', ')}</div>`
+      }
     </div>`;
 }
 
