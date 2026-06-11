@@ -25,12 +25,27 @@ const SUBTITLE_BY_PAGE = {
   abilitydex: 'Abilitydex',
 };
 
+// The brand title's gradient follows the active view's Rotom form: base Rotom's
+// amber→sky on the calculator, Wash Rotom's yellow→blue on the Pokédex, Heat
+// Rotom's yellow→red on the Attackdex, and Frost Rotom's yellow→purple on the
+// Abilitydex. We swap only the gradient stops; the rest of the <h1> classes stay
+// fixed in TITLE_BASE_CLS so the swap can reset className wholesale.
+const TITLE_BASE_CLS =
+  'text-lg sm:text-base font-black tracking-wider bg-gradient-to-r bg-clip-text text-transparent uppercase truncate';
+const TITLE_GRADIENT_BY_PAGE = {
+  calculator: 'from-amber-400 via-orange-500 to-sky-400',
+  pokedex: 'from-amber-400 via-sky-500 to-blue-600',
+  attackdex: 'from-amber-300 via-orange-500 to-red-500',
+  abilitydex: 'from-amber-300 via-fuchsia-500 to-purple-500',
+};
+
 const pages = new Map(); // id -> { navBtn, pageEl, onShow }
 let domCache = null;
 
 function navDom() {
   if (domCache) return domCache;
   domCache = {
+    brandTitle: document.getElementById('brand-title'),
     brandSubtitle: document.getElementById('brand-subtitle'),
     mobileOverlay: document.getElementById('mobile-floating-overlay'),
     desktopResultsBar: document.getElementById('results-hud'),
@@ -56,6 +71,10 @@ export function showPage(id) {
   notify();
   if (dom.brandSubtitle)
     dom.brandSubtitle.textContent = SUBTITLE_BY_PAGE[id] || SUBTITLE_BY_PAGE.calculator;
+  if (dom.brandTitle)
+    dom.brandTitle.className = `${TITLE_BASE_CLS} ${
+      TITLE_GRADIENT_BY_PAGE[id] || TITLE_GRADIENT_BY_PAGE.calculator
+    }`;
 
   for (const [pid, cfg] of pages) {
     const active = pid === id;
