@@ -266,6 +266,22 @@ export function multiHitCount(move, attacker) {
   return spec.max && attacker.ability === 'skill-link' ? spec.max : spec.hits;
 }
 
+// The hit-count range a move can land for the given attacker, driving the card's
+// "Hits N×" / "Hits 2–5×" note. Returns null for single-hit moves (and Parental
+// Bond, which the card labels separately). A 2–5 move spans the HIT_COUNT_PROBS
+// keys; Skill Link locks it to its max, and fixed-count moves report a single
+// value (min === max).
+export function multiHitRange(move, attacker) {
+  if (attacker.ability === 'parental-bond') return null;
+  const spec = MULTI_HIT_MOVES[move.apiName];
+  if (!spec) return null;
+  if (spec.max && attacker.ability === 'skill-link') return { min: spec.max, max: spec.max };
+  if (spec.max) {
+    return { min: Math.min(...Object.keys(HIT_COUNT_PROBS).map(Number)), max: spec.max };
+  }
+  return { min: spec.hits, max: spec.hits };
+}
+
 // Resolve all the shared inputs to a damage calc (stats, effective power, the
 // full `mod` chain) once, returning a `hitVals(power)` closure that yields a
 // single hit's 16 floored damage values (r = 85..100). Both the flat-roll array

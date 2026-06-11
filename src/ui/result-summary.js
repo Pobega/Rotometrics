@@ -9,7 +9,7 @@ import {
   getMoveEffectiveness,
   effectivenessInfo,
 } from '../engine/stats.js';
-import { resolveEffectiveMove, multiHitCount } from '../engine/damage.js';
+import { resolveEffectiveMove, multiHitRange } from '../engine/damage.js';
 
 // Map raw damage vs effective HP to a KO/survival verdict for the active mode.
 function computeVerdict(mode, minDamage, maxDamage, finalHp) {
@@ -85,12 +85,14 @@ export function buildMoveLine(attacker, defender, move, modifiers, mode) {
     scrappy: attacker.ability === 'scrappy',
   });
   const info = effectivenessInfo(mult, mode);
-  const hits = multiHitCount(move, attacker);
+  const range = multiHitRange(move, attacker);
   const hitsTwice =
     attacker.ability === 'parental-bond'
       ? ' · Hits Twice (0.25x Second Hit)'
-      : hits > 1
-        ? ` · Hits ${hits}x`
+      : range
+        ? range.min === range.max
+          ? ` · Hits ${range.min}x`
+          : ` · Hits ${range.min}-${range.max}x`
         : '';
   // Spread tag — make the 0.75x state obvious at a glance. Show "Spread (0.75x)"
   // whenever the multiplier is actually applied (modifiers.spread), and "Non-Spread"
@@ -122,10 +124,12 @@ const TIER_RGB = {
   green: '52,211,153', // emerald-400
 };
 
-// Paint the damage distribution as a CSS gradient across the 0–100% HP gauge:
-// alpha tracks probability density, so the bar is brightest where the outcome
-// actually clusters and fades to nothing at the unlikely min/max tails — the
-// "▓░█░▓" shape. Returns null if there's nothing to draw.
+// Paint the damage distribution as a CSS gradient across the 0–100% HP gauge.
+// The bar is a solid flat fill (like the other calcs) up to the guaranteed
+// minimum total, then a short "shoulder" eases it down into the probability
+// density — brightest where the outcome clusters, fading to nothing at the
+// unlikely upper tail — so the solid part blends into the spread instead of
+// reading as a separate chunk. Returns null if there's nothing to draw.
 function buildDensityGradient(outcomes, finalHp, rgb) {
   const bins = 60;
   const dens = new Array(bins + 1).fill(0);
@@ -135,18 +139,27 @@ function buildDensityGradient(outcomes, finalHp, rgb) {
   }
   // Light 3-tap smoothing so discrete damage values read as a continuous curve.
   const sm = dens.map((d, i) => 0.25 * (dens[i - 1] || 0) + 0.5 * d + 0.25 * (dens[i + 1] || 0));
-  const lo = sm.findIndex((d) => d > 0);
+  const lo = sm.findIndex((d) => d > 0); // guaranteed minimum (support start)
   let hi = bins;
   while (hi > 0 && sm[hi] === 0) hi--;
   if (lo < 0) return null;
   const max = Math.max(...sm);
+  const shoulder = 8; // bins over which the solid fill eases into the density
   const stops = [];
   for (let i = 0; i <= bins; i++) {
     const pos = ((i / bins) * 100).toFixed(1);
-    // Within the distribution's support, keep a 0.25 floor so faint tails stay
-    // visible (no interior gaps); outside it, fully transparent.
-    const a = i >= lo && i <= hi ? (0.25 + 0.75 * (sm[i] / max)).toFixed(3) : '0';
-    stops.push(`rgba(${rgb},${a}) ${pos}%`);
+    let a;
+    if (i < lo) {
+      a = 1; // solid, guaranteed-damage floor
+    } else if (i <= hi) {
+      // Higher of the density (0.25 floor so faint tails stay visible) and a
+      // shoulder decaying from the solid fill, so the two blend seamlessly.
+      const density = 0.25 + 0.75 * (sm[i] / max);
+      a = Math.max(density, Math.max(0, 1 - (i - lo) / shoulder));
+    } else {
+      a = 0; // above the max possible roll — empty track
+    }
+    stops.push(`rgba(${rgb},${a.toFixed ? a.toFixed(3) : a}) ${pos}%`);
   }
   return `linear-gradient(90deg, ${stops.join(',')})`;
 }
@@ -183,8 +196,7 @@ export function buildResultModel(rolls, state = STATE, dist = null) {
     // real per-hit-independent (and hit-count-weighted) distribution rather than
     // the shared-roll approximation.
     if (dist && verdict.roll && dist.koChance != null) {
-      verdict.chance =
-        state.mode === 'survival' ? pctOf(1 - dist.koChance) : pctOf(dist.koChance);
+      verdict.chance = state.mode === 'survival' ? pctOf(1 - dist.koChance) : pctOf(dist.koChance);
     } else {
       verdict.chance = koChanceLabel(state.mode, rolls, finalHp, verdict);
     }
@@ -210,10 +222,6 @@ export function buildResultModel(rolls, state = STATE, dist = null) {
     if (dist) {
       const tierKey = maxPct >= 100 ? 'red' : maxPct >= 50 ? 'amber' : 'green';
       model.densityGradient = buildDensityGradient(dist.outcomes, finalHp, TIER_RGB[tierKey]);
-      // The lowest possible total (every hit at its min, fewest hits) is the
-      // guaranteed floor — drawn as a solid flat fill like the other calcs, with
-      // the density fading out above it.
-      model.floorFill = Math.min(100, (dist.outcomes[0][0] / finalHp) * 100);
       const band = `Likely ${((dist.likely.lo / finalHp) * 100).toFixed(0)}–${(
         (dist.likely.hi / finalHp) *
         100

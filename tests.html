@@ -1307,12 +1307,12 @@
         },
       },
       {
-        // Multi-hit moves tag the per-roll hit count so the summed result reads right.
-        name: 'Rock Blast move line tags Hits 3x',
+        // A 2–5 move tags its full hit-count range so the spread reads right.
+        name: 'Rock Blast move line tags Hits 2-5x',
         run: () => {
           const RB = { name: 'Rock Blast', apiName: 'rock-blast', type: 'Rock', power: 25, category: 'physical' };
           const l = buildMoveLine(POLITOED, WHIMSICOTT, RB, { weather: 'none' }, 'offensive');
-          return l.text === 'Rock Blast (25 BP) · Neutral · Hits 3x';
+          return l.text === 'Rock Blast (25 BP) · Neutral · Hits 2-5x';
         },
       },
       {

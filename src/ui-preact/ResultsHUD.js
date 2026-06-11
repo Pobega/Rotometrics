@@ -42,7 +42,6 @@ function Gauge({ model, h: barH }) {
     const tallH = barH === 'h-2' ? 'h-3' : 'h-2';
     return html`
       <div class=${`relative flex-1 ${tallH} rounded-full bg-slate-800/80 overflow-hidden ring-1 ring-slate-700/50`}>
-        <div class=${`absolute inset-y-0 left-0 transition-all duration-300 ${model.gaugeTier}`} style=${`width:${model.floorFill}%`}></div>
         <div class="absolute inset-0 transition-all duration-300" style=${`background:${model.densityGradient}`}></div>
       </div>`;
   }
@@ -62,13 +61,15 @@ function MultiHitStrip({ model, mobile }) {
   return html`
     <div class=${`flex items-center gap-3 ${base} font-bold tabular-nums text-slate-400 leading-none`}>
       <span class="text-slate-300">${mh.band}</span>
-      ${mh.counts &&
-      html`<span class="flex items-center gap-2">
+      ${
+        mh.counts &&
+        html`<span class="flex items-center gap-2">
         <span class="uppercase tracking-wide text-slate-500">KO by hits</span>
         ${mh.counts.map(
           (c) => html`<span><span class="text-slate-300">${c.count}×</span> ${c.ko ?? '–'}</span>`
         )}
-      </span>`}
+      </span>`
+      }
     </div>`;
 }
 
@@ -134,10 +135,12 @@ export function ResultsHUD({ variant }) {
         <div id="desktop-results-bar" class="rounded-2xl border border-slate-700/80 shadow-xl overflow-hidden bg-slate-900/95 backdrop-blur-md">
           <div class="max-w-[1440px] mx-auto px-6 py-3 flex items-center justify-between gap-6">${left}${right}</div>
           <div class="max-w-[1440px] mx-auto px-6 pb-2.5 flex items-center"><${Gauge} model=${model} h="h-2" /></div>
-          ${model.multiHit &&
-          html`<div class="max-w-[1440px] mx-auto px-6 pb-2.5 -mt-1 flex items-center">
+          ${
+            model.multiHit &&
+            html`<div class="max-w-[1440px] mx-auto px-6 pb-2.5 -mt-1 flex items-center">
             <${MultiHitStrip} model=${model} mobile=${false} />
-          </div>`}
+          </div>`
+          }
         </div>
       </div>
     </div>`;
