@@ -19,10 +19,10 @@ const IDLE_CLS = `${NAV_BASE_CLS} text-slate-400 hover:text-white`;
 // (src/ui-preact/HeaderControls.js), keyed off STATE.page; showPage sets that and
 // notifies. The subtitle is a plain <p> the island doesn't own, so it stays here.
 const SUBTITLE_BY_PAGE = {
-  calculator: 'VGC Spread Optimizer',
-  pokedex: 'Pokémon Champions Pokédex',
-  attackdex: 'Pokémon Champions Attackdex',
-  abilitydex: 'Pokémon Champions Abilitydex',
+  calculator: 'Calculator',
+  pokedex: 'Pokédex',
+  attackdex: 'Attackdex',
+  abilitydex: 'Abilitydex',
 };
 
 const pages = new Map(); // id -> { navBtn, pageEl, onShow }

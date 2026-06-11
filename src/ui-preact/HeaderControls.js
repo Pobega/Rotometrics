@@ -74,7 +74,7 @@ export function FormatSelector() {
   useStore();
   const t = themeFor(STATE.format);
   return html`
-    <div class=${`flex items-center gap-1.5 bg-slate-900 border rounded-lg px-3 sm:px-2.5 py-2 sm:py-1.5 text-[10px] font-bold transition-colors ${t.pillBorder} ${t.pillText}`}>
+    <div class=${`flex items-center gap-1.5 bg-slate-900 border rounded-lg px-3 max-[360px]:px-2 sm:px-2.5 py-2 sm:py-1.5 text-[10px] font-bold transition-colors ${t.pillBorder} ${t.pillText}`}>
       <span class="text-[9px] font-extrabold text-slate-500 uppercase tracking-wider hidden sm:inline">Regulation:</span>
       <select value=${STATE.format} onChange=${(e) => onFormatChange(e.target.value)}
         class="bg-transparent font-bold focus:outline-none text-slate-200 cursor-pointer uppercase tracking-wider text-xs sm:text-[10px]">
