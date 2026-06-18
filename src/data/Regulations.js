@@ -28,6 +28,45 @@ export const REGULATIONS = {
     exclude: [], // roster species not legal this regulation
     legalForms: ['-mega', '-eternal'], // form suffixes re-allowed despite NON_LEGAL_FORMS
   },
+  regulation_mb: {
+    label: 'Regulation M-B', // full badge / tag text
+    short: 'M-B', // compact selector + pill text
+    // Rotom-form accent for the brand glow and format pill (Fan Rotom indigo).
+    theme: {
+      glow: 'rgba(129,140,248,0.65)',
+      pillBorder: 'border-indigo-500/40',
+      pillText: 'text-indigo-300',
+    },
+    // M-B keeps the full Champions roster and opens up 22 new base species (the
+    // mega-capable lines below re-enable their Megas via the shared '-mega' allow;
+    // raichu was already in the roster, so its new Mega X/Y need no include entry).
+    include: [
+      'sceptile',
+      'blaziken',
+      'swampert',
+      'mawile',
+      'metagross',
+      'staraptor',
+      'scolipede',
+      'scrafty',
+      'eelektross',
+      'pyroar',
+      'malamar',
+      'barbaracle',
+      'dragalge',
+      'falinks',
+      'vileplume',
+      'qwilfish',
+      'musharna',
+      'grimmsnarl',
+      'overqwil',
+      'houndstone',
+      'annihilape',
+      'gholdengo',
+    ],
+    exclude: [], // roster species not legal this regulation
+    legalForms: ['-mega', '-eternal'], // Megas + Eternal Floette stay legal, as in M-A
+  },
 };
 
 // Accent for the unrestricted "National Dex" view (STATE.format === 'all'), which
