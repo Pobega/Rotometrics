@@ -6,7 +6,7 @@
 export const STATE = {
   mode: 'offensive',
   targetKO: 'ohko',
-  format: 'regulation_ma',
+  format: 'regulation_mb',
   page: 'calculator', // active top-nav view; the Brand island reads this to pick the Rotom form
 
   attacker: {
