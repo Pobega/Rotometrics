@@ -399,7 +399,15 @@ function damageContext(attacker, defender, move, modifiers) {
   }
 
   // Conditional power multipliers driven by battle state.
-  if (move.apiName === 'knock-off' && defender.item && defender.item !== 'none') {
+  // Knock Off's boost (and removal) only applies to items it can actually knock
+  // off. A Mega's Mega Stone can't be removed, so no boost there. (Megas always
+  // carry item === 'mega_stone'; see the mega lock in App.js.)
+  if (
+    move.apiName === 'knock-off' &&
+    defender.item &&
+    defender.item !== 'none' &&
+    defender.item !== 'mega_stone'
+  ) {
     effectivePower = Math.floor(effectivePower * 1.5);
   }
   if (move.apiName === 'facade' && attacker.status) {
