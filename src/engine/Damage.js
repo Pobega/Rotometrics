@@ -553,7 +553,9 @@ function damageContext(attacker, defender, move, modifiers) {
   if (attackerAbilityMod !== 1.0) finalMods.push(attackerAbilityMod);
 
   if (modifiers.screens) {
-    finalMods.push(0.66);
+    // Light Screen / Reflect in doubles: the cartridge's exact 2732/4096
+    // (≈0.667), not a rounded 0.66, so the chained result matches @smogon/calc.
+    finalMods.push(2732 / 4096);
   }
 
   const defenderAbilityMod = defenderAbilityMultiplier(defender.ability, abilityCtx);
