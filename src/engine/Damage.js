@@ -462,10 +462,34 @@ function damageContext(attacker, defender, move, modifiers) {
   const baseDamageFor = (power) =>
     Math.floor(Math.floor((levelFactor * power * effectiveAtk) / 50) / effectiveDef) + 2;
 
-  let mod = 1.0;
+  // Canonical (Gen 9) damage rounding. Rather than collapse every multiplier
+  // into one float and floor once, the cartridge applies modifiers in defined
+  // stages, each rounded to 16-bit (4096) fixed point with "round half up".
+  // `modify` is a single such step; `chainMods` combines the final-stage
+  // modifiers into one fixed-point value applied with a single rounding (so a
+  // run of small multipliers doesn't round at every step). Matching this keeps
+  // our rolls within a point of standard calculators instead of drifting low.
+  const FP = 4096;
+  const toFP = (m) => Math.trunc(m * FP);
+  // Apply a 4096 fixed-point modifier to a damage value with the cartridge's
+  // "round half down" (pokeRound): a fractional part of exactly .5 truncates
+  // down. This matches @smogon/calc — the library behind calc.pokemonshowdown.com
+  // — which is the reference these rolls are validated against.
+  const applyFP = (v, fp) => {
+    const n = v * fp;
+    const q = Math.floor(n / FP);
+    return n - q * FP > FP / 2 ? q + 1 : q;
+  };
+  const modify = (v, m) => applyFP(v, toFP(m));
+  // Combining the final-stage modifiers into a single modifier, by contrast,
+  // rounds half UP (the game's chained-modifier accumulator), so keep +FP/2 here.
+  const chainMods = (mods) => mods.reduce((c, m) => Math.trunc((c * toFP(m) + FP / 2) / FP), FP);
+
+  // --- Pre-random modifiers: applied to base damage, before the 85–100 roll. --
+  const preRandomMods = [];
 
   if (modifiers.spread) {
-    mod *= 0.75;
+    preRandomMods.push(0.75);
   }
 
   // Mega Sol (Meganium): its moves always behave as if in harsh sunlight,
@@ -473,44 +497,47 @@ function damageContext(attacker, defender, move, modifiers) {
   const offensiveWeather = attacker.ability === 'mega-sol' ? 'sun' : modifiers.weather;
   if (offensiveWeather === 'sun') {
     if (move.type === 'Fire') {
-      mod *= 1.5;
+      preRandomMods.push(1.5);
     } else if (move.type === 'Water') {
-      mod *= 0.5;
+      preRandomMods.push(0.5);
     }
   } else if (offensiveWeather === 'rain') {
     if (move.type === 'Water') {
-      mod *= 1.5;
+      preRandomMods.push(1.5);
     } else if (move.type === 'Fire') {
-      mod *= 0.5;
+      preRandomMods.push(0.5);
     }
   }
 
   if (modifiers.crit) {
-    mod *= attacker.ability === 'sniper' ? 2.25 : 1.5;
+    preRandomMods.push(attacker.ability === 'sniper' ? 2.25 : 1.5);
   }
 
+  // --- STAB: its own rounded step, after the roll. ---------------------------
   let stab = 1.0;
   if (attacker.types.includes(move.type)) {
     stab = attacker.ability === 'adaptability' ? 2.0 : 1.5;
   }
-  mod *= stab;
 
+  // --- Type effectiveness: exact ×2 / floored halving, as on the cartridge
+  // (Math.floor(v * mult) reproduces both for the {0.25,0.5,1,2,4} multipliers). --
   const typeMult = getMoveEffectiveness(move, defender.types, {
     scrappy: attacker.ability === 'scrappy',
   });
-  mod *= typeMult;
 
-  if (
+  // --- Burn: halves physical damage; its own rounded step. -------------------
+  const burned =
     isPhysical &&
     attacker.ability !== 'guts' &&
     attacker.status === 'burned' &&
-    move.apiName !== 'facade'
-  ) {
-    mod *= 0.5;
-  }
+    move.apiName !== 'facade';
+
+  // --- Final modifier chain: abilities, items, screens, terrain, auras, etc.,
+  // combined into one fixed-point modifier applied with a single rounding. -----
+  const finalMods = [];
 
   if ((move.apiName === 'collision-course' || move.apiName === 'electro-drift') && typeMult > 1.0) {
-    mod *= 5461 / 4096;
+    finalMods.push(5461 / 4096);
   }
 
   const abilityCtx = {
@@ -522,12 +549,15 @@ function damageContext(attacker, defender, move, modifiers) {
     modifiers,
     movesFirst: attackerMovesFirst,
   };
-  mod *= attackerAbilityMultiplier(attacker.ability, abilityCtx);
+  const attackerAbilityMod = attackerAbilityMultiplier(attacker.ability, abilityCtx);
+  if (attackerAbilityMod !== 1.0) finalMods.push(attackerAbilityMod);
 
-  let screenMod = modifiers.screens ? 0.66 : 1.0;
-  mod *= screenMod;
+  if (modifiers.screens) {
+    finalMods.push(0.66);
+  }
 
-  mod *= defenderAbilityMultiplier(defender.ability, abilityCtx);
+  const defenderAbilityMod = defenderAbilityMultiplier(defender.ability, abilityCtx);
+  if (defenderAbilityMod !== 1.0) finalMods.push(defenderAbilityMod);
 
   let terrainMod = 1.0;
   if (
@@ -557,7 +587,7 @@ function damageContext(attacker, defender, move, modifiers) {
   ) {
     terrainMod = 0.5;
   }
-  mod *= terrainMod;
+  if (terrainMod !== 1.0) finalMods.push(terrainMod);
 
   // Auras (1.33x their type) come from the field toggle OR the attacker's own
   // Fairy Aura / Dark Aura ability, so the ability is self-contained in the engine
@@ -565,38 +595,56 @@ function damageContext(attacker, defender, move, modifiers) {
   // so at most one applies — no stacking.
   const fairyAura = modifiers.aura === 'fairy' || attacker.ability === 'fairy-aura';
   const darkAura = modifiers.aura === 'dark' || attacker.ability === 'dark-aura';
-  let auraMod = 1.0;
   if (fairyAura && move.type === 'Fairy') {
-    auraMod = 1.33;
+    finalMods.push(1.33);
   } else if (darkAura && move.type === 'Dark') {
-    auraMod = 1.33;
+    finalMods.push(1.33);
   }
-  mod *= auraMod;
 
-  let friendGuardMod = modifiers.friendGuard ? 0.75 : 1.0;
-  mod *= friendGuardMod;
+  if (modifiers.friendGuard) {
+    finalMods.push(0.75);
+  }
 
   if (modifiers.helpingHand) {
-    mod *= 1.5;
+    finalMods.push(1.5);
   }
 
   if (attacker.item === 'life_orb') {
-    mod *= 1.3;
+    finalMods.push(1.3);
   } else if (attacker.item === 'expert_belt' && typeMult > 1.0) {
-    mod *= 1.2;
+    finalMods.push(1.2);
   } else if (attacker.item === 'black_glasses_etc') {
-    mod *= 1.2;
+    finalMods.push(1.2);
   }
 
   if (defender.item === 'berries' && typeMult > 1.0) {
-    mod *= 0.5;
+    finalMods.push(0.5);
   }
 
-  // A single hit's 16 floored damage values across the r = 85..100 roll range.
+  const finalChain = chainMods(finalMods);
+
+  // The hit deals no damage at all when the type chart (typeMult 0) or a zeroing
+  // ability in the final chain (Levitate, Flash Fire, Wonder Guard, …) cancels
+  // it. Otherwise damage floors at a minimum of 1, so the min-1 rule must not
+  // resurrect an immune hit.
+  const immune = typeMult === 0 || finalChain === 0;
+
+  // A single hit's 16 damage values across the r = 85..100 roll range, walking
+  // the canonical stages: pre-random mods, the roll, STAB, type, burn, then the
+  // combined final chain.
   const hitVals = (power) => {
+    let base = baseDamageFor(power);
+    for (const m of preRandomMods) base = modify(base, m);
+
     const vals = [];
     for (let r = 85; r <= 100; r++) {
-      vals.push(Math.floor(Math.floor(baseDamageFor(power) * (r / 100)) * mod));
+      let d = Math.floor((base * r) / 100);
+      d = modify(d, stab);
+      d = Math.floor(d * typeMult);
+      if (burned) d = modify(d, 0.5);
+      d = applyFP(d, finalChain);
+      if (!immune) d = Math.max(1, d);
+      vals.push(d);
     }
     return vals;
   };

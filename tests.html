@@ -237,7 +237,7 @@
         defender: DEFENDER(),
         move: FAKE_OUT,
         modifiers: {},
-        expected: { min: 42, max: 50 },
+        expected: { min: 43, max: 51 },
       },
       {
         name: 'Huge Power (regression)',
@@ -431,7 +431,7 @@
         defender: DEFENDER(),
         move: TACKLE,
         modifiers: {},
-        expected: { min: 81, max: 97 },
+        expected: { min: 82, max: 97 },
       },
       {
         name: 'Expert Belt 1.2x on super-effective only',
@@ -439,7 +439,7 @@
         defender: DEFENDER({ types: ['Grass'] }),
         move: { ...TACKLE, type: 'Fire' },
         modifiers: {},
-        expected: { min: 100, max: 120 },
+        expected: { min: 101, max: 120 },
       },
       {
         name: 'Acrobatics doubles power with no held item',
@@ -455,7 +455,7 @@
         defender: DEFENDER(),
         move: ACROBATICS,
         modifiers: {},
-        expected: { min: 37, max: 45 },
+        expected: { min: 38, max: 45 },
       },
 
       // -------- Group A: conditional power multipliers --------
@@ -537,7 +537,7 @@
         defender: DEFENDER({ types: ['Normal'] }),
         move: COLLISION_COURSE,
         modifiers: {},
-        expected: { min: 141, max: 167 },
+        expected: { min: 141, max: 168 },
       },
       {
         name: 'Collision Course no bonus on a neutral hit',
@@ -678,7 +678,7 @@
         defender: DEFENDER(),
         move: TACKLE,
         modifiers: { crit: true },
-        expected: { min: 141, max: 168 },
+        expected: { min: 142, max: 168 },
       },
       {
         name: 'Sun boosts Fire moves 1.5x (Fire STAB attacker)',
@@ -742,7 +742,7 @@
         defender: DEFENDER({ types: ['Fire'] }),
         move: WEATHER_BALL,
         modifiers: { weather: 'rain' },
-        expected: { min: 159, max: 189 },
+        expected: { min: 158, max: 188 },
       },
       {
         name: 'Mega Sol makes Weather Ball a boosted Fire move with no weather',
@@ -766,7 +766,7 @@
         defender: DEFENDER(),
         move: ELEC_HIT,
         modifiers: { terrain: 'electric' },
-        expected: { min: 54, max: 65 },
+        expected: { min: 55, max: 65 },
       },
       {
         name: 'Friend Guard 0.75x',
@@ -782,7 +782,7 @@
         defender: DEFENDER(),
         move: TACKLE,
         modifiers: { screens: true },
-        expected: { min: 41, max: 49 },
+        expected: { min: 42, max: 49 },
       },
       {
         name: 'spread move modifier 0.75x',
@@ -790,7 +790,7 @@
         defender: DEFENDER(),
         move: TACKLE,
         modifiers: { spread: true },
-        expected: { min: 47, max: 56 },
+        expected: { min: 46, max: 55 },
       },
 
       // -------- Burn and Helping Hand --------
@@ -2238,7 +2238,7 @@
           optimizeSurvivalEVsWithNatures(
             MON({ types: ['Fire'], nature: '+spa', sps: { hp:0,atk:0,def:0,spa:32,spd:0,spe:0 } }),
             MON({ types: ['Grass'] }), FIRE_BLAST, {}, null),
-          { hp: 0, def: 10, nature: '+spd', total: 10 }),
+          { hp: 2, def: 8, nature: '+spd', total: 10 }),
       },
       {
         name: 'survival: unsurvivable hit returns null',
@@ -2253,7 +2253,7 @@
           optimizeSurvivalEVsWithNatures(
             MON({ types: ['Fire'], nature: '+spa', sps: { hp:0,atk:0,def:0,spa:32,spd:0,spe:0 } }),
             MON({ types: ['Grass'] }), FIRE_BLAST, {}, ['+spd']),
-          { hp: 0, def: 10, nature: '+spd', total: 10 }),
+          { hp: 2, def: 8, nature: '+spd', total: 10 }),
       },
       {
         // The optimizers clone their actors internally (structuredClone); they
