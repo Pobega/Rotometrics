@@ -1178,6 +1178,48 @@
     recordSuite('resolve', { pass: RESOLVE_CASES.length - resolveFail, fail: resolveFail });
   </script>
 
+  <!-- calculateStat: pins the Champions Lv50/31-IV stat formula so the +20/+75
+       constants can't silently drift. Real-Pokemon anchors prove parity with the
+       actual game, not just our own algebra. -->
+  <script type="module">
+    import { calculateStat } from './src/engine/Stats.js';
+
+    const results = document.getElementById('results');
+    const summary = document.getElementById('summary');
+
+    const STAT_CASES = [
+      // Derivation anchors (round base 100): floor((base + sp + 20) * nature), HP = base + sp + 75.
+      { name: 'non-HP neutral, 0 SP → base + 20', run: () => calculateStat('atk', 100, 0, 'neutral') === 120 },
+      { name: 'non-HP +boost, 32 SP → floor(152 * 1.1)', run: () => calculateStat('atk', 100, 32, '+atk') === 167 },
+      { name: 'non-HP −reduction (+atk lowers spa), 0 SP → floor(120 * 0.9)', run: () => calculateStat('spa', 100, 0, '+atk') === 108 },
+      { name: 'HP, 0 SP → base + 75', run: () => calculateStat('hp', 100, 0, 'neutral', true) === 175 },
+      { name: 'HP, 32 SP → base + 32 + 75', run: () => calculateStat('hp', 100, 32, 'neutral', true) === 207 },
+      { name: 'Shedinja (HP base 1) → 1', run: () => calculateStat('hp', 1, 0, 'neutral', true) === 1 },
+
+      // Real-Pokemon anchors — Garchomp (HP 108 / Atk 130 / Spe 102); values match the in-game Lv50 stats.
+      { name: 'Garchomp max Atk (32 SP, +atk) → 200', run: () => calculateStat('atk', 130, 32, '+atk') === 200 },
+      { name: 'Garchomp max Spe (32 SP, +spe) → 169', run: () => calculateStat('spe', 102, 32, '+spe') === 169 },
+      { name: 'Garchomp neutral Atk (0 SP) → 150', run: () => calculateStat('atk', 130, 0, 'neutral') === 150 },
+      { name: 'Garchomp min HP (0 SP) → 183', run: () => calculateStat('hp', 108, 0, 'neutral', true) === 183 },
+      { name: 'Garchomp max HP (32 SP) → 215 (= mainline 252 EV)', run: () => calculateStat('hp', 108, 32, 'neutral', true) === 215 },
+    ];
+
+    let statFail = 0;
+    for (const c of STAT_CASES) {
+      let ok = false, err = null;
+      try { ok = !!c.run(); } catch (e) { err = e; }
+      const div = document.createElement('div');
+      div.className = 'case ' + (ok ? 'pass' : 'fail');
+      div.innerHTML = ok
+        ? `<div class="name">✓ [stats] ${c.name}</div>`
+        : `<div class="name">✗ [stats] ${c.name}</div><div class="detail">${err ? err.message : 'assertion failed'}</div>`;
+      results.appendChild(div);
+      if (!ok) statFail++;
+    }
+
+    recordSuite('stats', { pass: STAT_CASES.length - statFail, fail: statFail });
+  </script>
+
   <!-- Move effectiveness label/tone tests (context-aware coloring) -->
   <script type="module">
     import { effectivenessInfo } from './src/engine/Stats.js';
