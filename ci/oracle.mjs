@@ -16,8 +16,15 @@
 // neutral final is ALSO base + 20. So feeding both engines the same base stat
 // (via Champions sps=0 on our side and a baseStats override on Smogon's) yields
 // identical final Atk/Def/SpA/SpD. The only mechanic under test is then the
-// damage formula + modifier rounding. (HP differs by 5 between the two formulas,
-// but the absolute damage rolls don't depend on the defender's HP, so it's moot.)
+// damage formula + modifier rounding. (HP also coincides at 0 SP — both are
+// base + 75 — but the rolls don't depend on the defender's HP, so we don't
+// bother offsetting Smogon's HP base.)
+//
+// The `statScenarios` list ADDITIONALLY exercises SP and nature: at level 50 /
+// 31 IV, EV = 8*SP - 4 (SP>=1) makes Smogon's final equal ours exactly, and our
+// fixed nature pairs map 1:1 to Smogon natures with the same lowered stat. So
+// those scenarios cross-check our +1-per-SP scaling and ±10% nature against the
+// reference, not just the modifier layer.
 //
 // Stat-altering items (Choice Band) are out of scope here — we test a range of
 // raw Attack magnitudes directly; only damage-altering modifiers (Life Orb,
@@ -59,6 +66,43 @@ function smogonMon({ atk = 100, def = 100, spa = 100, spd = 100, types, item }) 
     spe: 80,
   };
   return new Pokemon(gen, 'Pikachu', { level: 50, item, overrides: { types, baseStats } });
+}
+
+// --- raw-stat helpers: parameterized by base stat + investment, not a final ----
+// Used by `statScenarios` to exercise SP + nature. Our fixed nature ids map 1:1 to
+// Smogon natures that boost the same stat AND lower the same stat (see Stats.js),
+// and EV = 8*SP - 4 (SP>=1; 0 for SP 0) makes the level-50/31-IV finals identical.
+const NATURE_MAP = {
+  '+atk': 'Adamant', // +Atk / -SpA
+  '+spa': 'Modest', //  +SpA / -Atk
+  '+def': 'Impish', //  +Def / -SpA
+  '+spd': 'Calm', //    +SpD / -Atk
+  '+spe': 'Jolly', //   +Spe / -SpA
+  neutral: 'Serious',
+};
+const spToEv = (sp) => (sp === 0 ? 0 : 8 * sp - 4);
+
+function ourStatMon({ base, sp, nature, types, item = 'none' }) {
+  const zero = { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 };
+  return {
+    baseStats: { ...base },
+    sps: { ...zero, ...sp },
+    ivs: { hp: 31, atk: 31, def: 31, spa: 31, spd: 31, spe: 31 },
+    boosts: { atk: 0, spa: 0, def: 0, spd: 0, spe: 0 },
+    nature,
+    item,
+    ability: 'none',
+    types,
+  };
+}
+
+function smogonStatMon({ base, ev, nature, types }) {
+  return new Pokemon(gen, 'Pikachu', {
+    level: 50,
+    nature: NATURE_MAP[nature],
+    evs: ev,
+    overrides: { types, baseStats: base },
+  });
 }
 
 // Each scenario yields 16 rolls from each engine; we assert they're identical.
@@ -225,18 +269,136 @@ function ourRolls(s) {
   return calculateDamageRolls(attacker, defender, move, modifiers);
 }
 
-let failures = 0;
-for (const s of scenarios) {
-  const ours = ourRolls(s);
-  const smog = smogonRolls(s);
-  const match = ours.length === smog.length && ours.every((v, i) => v === smog[i]);
-  console.log(`${match ? 'PASS' : 'FAIL'}  ${s.name}`);
-  if (!match) {
-    failures++;
-    console.error(`  ours:   ${ours.join(',')}`);
-    console.error(`  smogon: ${smog.join(',')}`);
-  }
+// --- SP + nature scenarios: validate the stat layer, not just the modifiers ----
+// Each varies SP and/or nature on the stat that drives the roll; both engines
+// compute their finals naturally (ours from SP, Smogon from EV = 8*SP - 4).
+const statScenarios = [
+  {
+    name: '+atk nature, 32 SP, physical STAB',
+    cat: 'physical',
+    bp: 80,
+    type: 'Normal',
+    atkTypes: ['Normal'],
+    defTypes: ['Ground'],
+    atkBase: 130,
+    atkSp: 32,
+    atkNature: '+atk',
+    defBase: 120,
+    defSp: 0,
+    defNature: 'neutral',
+  },
+  {
+    name: '+spa nature, 32 SP, special STAB super-effective',
+    cat: 'special',
+    bp: 90,
+    type: 'Fire',
+    atkTypes: ['Fire'],
+    defTypes: ['Grass'],
+    atkBase: 130,
+    atkSp: 32,
+    atkNature: '+spa',
+    defBase: 110,
+    defSp: 0,
+    defNature: 'neutral',
+  },
+  {
+    name: 'neutral, 16 SP (EV 124), physical — pure SP scaling',
+    cat: 'physical',
+    bp: 80,
+    type: 'Normal',
+    atkTypes: ['Normal'],
+    defTypes: ['Ground'],
+    atkBase: 120,
+    atkSp: 16,
+    atkNature: 'neutral',
+    defBase: 120,
+    defSp: 0,
+    defNature: 'neutral',
+  },
+  {
+    name: '+def defender, 32 SP on defense, physical',
+    cat: 'physical',
+    bp: 80,
+    type: 'Normal',
+    atkTypes: ['Normal'],
+    defTypes: ['Ground'],
+    atkBase: 120,
+    atkSp: 0,
+    atkNature: 'neutral',
+    defBase: 100,
+    defSp: 32,
+    defNature: '+def',
+  },
+];
+
+const fullBase = (over) => ({ hp: 100, atk: 100, def: 100, spa: 100, spd: 100, spe: 80, ...over });
+
+function statMonStats(s) {
+  const physical = s.cat === 'physical';
+  const atkStat = physical ? 'atk' : 'spa';
+  const defStat = physical ? 'def' : 'spd';
+  return { physical, atkStat, defStat };
 }
 
-console.log(`\n${scenarios.length - failures}/${scenarios.length} scenarios match @smogon/calc`);
+function ourStatRolls(s) {
+  const { atkStat, defStat } = statMonStats(s);
+  const attacker = ourStatMon({
+    base: fullBase({ [atkStat]: s.atkBase }),
+    sp: { [atkStat]: s.atkSp },
+    nature: s.atkNature,
+    types: s.atkTypes,
+  });
+  const defender = ourStatMon({
+    base: fullBase({ [defStat]: s.defBase }),
+    sp: { [defStat]: s.defSp },
+    nature: s.defNature,
+    types: s.defTypes,
+  });
+  const move = { apiName: 'tackle', type: s.type, power: s.bp, category: s.cat };
+  return calculateDamageRolls(attacker, defender, move, {});
+}
+
+function smogonStatRolls(s) {
+  const { physical, atkStat, defStat } = statMonStats(s);
+  const attacker = smogonStatMon({
+    base: fullBase({ [atkStat]: s.atkBase }),
+    ev: { [atkStat]: spToEv(s.atkSp) },
+    nature: s.atkNature,
+    types: s.atkTypes,
+  });
+  const defender = smogonStatMon({
+    base: fullBase({ [defStat]: s.defBase }),
+    ev: { [defStat]: spToEv(s.defSp) },
+    nature: s.defNature,
+    types: s.defTypes,
+  });
+  const move = new Move(gen, 'Tackle', {
+    overrides: { basePower: s.bp, type: s.type, category: physical ? 'Physical' : 'Special' },
+    useMax: false,
+  });
+  const res = calculate(gen, attacker, defender, move, new Field({ gameType: 'Singles' }));
+  const dmg = res.damage;
+  return Array.isArray(dmg) ? dmg : [dmg];
+}
+
+let failures = 0;
+const run = (list, our, smog) => {
+  for (const s of list) {
+    const a = our(s);
+    const b = smog(s);
+    const match = a.length === b.length && a.every((v, i) => v === b[i]);
+    console.log(`${match ? 'PASS' : 'FAIL'}  ${s.name}`);
+    if (!match) {
+      failures++;
+      console.error(`  ours:   ${a.join(',')}`);
+      console.error(`  smogon: ${b.join(',')}`);
+    }
+  }
+};
+
+run(scenarios, ourRolls, smogonRolls);
+run(statScenarios, ourStatRolls, smogonStatRolls);
+
+const total = scenarios.length + statScenarios.length;
+console.log(`\n${total - failures}/${total} scenarios match @smogon/calc`);
 process.exit(failures ? 1 : 0);
