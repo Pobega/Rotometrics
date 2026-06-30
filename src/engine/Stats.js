@@ -55,6 +55,12 @@ export const TYPE_EFFECTIVENESS = {
   Fairy: { Fire: 0.5, Fighting: 2, Poison: 0.5, Dragon: 2, Dark: 2, Steel: 0.5 },
 };
 
+// Champions stats are always Lv50 with 31 IVs, so the official formulas collapse
+// to constants — the `+20` and `+75` below are NOT magic numbers:
+//   non-HP inner: floor((2*Base + 31)/2) + 5 = (Base + 15) + 5 = Base + 20
+//   HP:           floor((2*Base + 31)/2) + 50 + 10 = (Base + 15) + 60 = Base + 75
+// SP (stat points) add +1 each directly at Lv50; nature is the final ±10% multiplier.
+// See tests.html `stats` suite for golden anchors (incl. real in-game Garchomp values).
 export function calculateStat(statName, base, sp, natureName, isHP = false) {
   if (isHP) {
     if (base === 1) return 1;
